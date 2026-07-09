@@ -11,8 +11,8 @@
 
 | # | Milestone | Verified? | Date | Notes |
 |---|---|---|---|---|
-| S0.1 | `AndroidManifest.xml` and `accessibility_service_config.xml` declared correctly per `AGENTS.md` Section 4.0. `canRetrieveWindowContent="false"` confirmed. | ☐ | | |
-| S0.2 | Bare `ScrollAccessibilityService` registered, `onServiceConnected()` fires, confirmed in Logcat. | ☐ | | |
+| S0.1 | `AndroidManifest.xml` and `accessibility_service_config.xml` declared correctly per `AGENTS.md` Section 4.0. `canRetrieveWindowContent="false"` confirmed. | ☑ | 2026-07-09 | MS — Verified on-device: service registered, no crash on enabling in Settings → Accessibility. |
+| S0.2 | Bare `ScrollAccessibilityService` registered, `onServiceConnected()` fires, confirmed in Logcat. | ☑ | 2026-07-09 | MS — Logcat confirmed: `I/ScrollAccessibilityService: ScrollAccessibilityService connected` fired on toggle, physical device. |
 | S0.3 | Raw `TYPE_VIEW_SCROLLED` events logging to Logcat with `packageName`, `scrollY`, and the per-view key (`packageName:className:viewId`). | ☐ | | |
 | S0.4 | Per-view HashMap delta tracking implemented per `AGENTS.md` Section 4.2 and `DATA_CONTRACT.md` Section 2. Global `lastScrollY` does not exist anywhere in the codebase. | ☐ | | |
 | S0.5 | RecyclerView reset guard confirmed: a large negative delta (> `ScrollaConstants.RECYCLE_RESET_THRESHOLD_PX`) is treated as a baseline reset, not accumulated as distance. Verified by scrolling fast in Instagram or Reddit and confirming no sudden large spikes in the log. | ☐ | | |
