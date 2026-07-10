@@ -81,6 +81,9 @@ Every time A makes a decision that isn't obvious from the contract or deviates f
 |---|---|---|---|---|
 | — | — | No decisions logged yet | — | — |
 
+| 1 | 2026-07-10 | scrollDeltaY fallback when scrollY==0 (API 28+, excluding -1 sentinel and 0) | Instagram/Chrome report scroll motion only via scrollDeltaY; scrollY always 0 | Yes — per-app distances for these apps derive from delta events, not cumulative position |
+| 2 | 2026-07-10 | YouTube accepted as untrackable | Fires no scroll events at all under canRetrieveWindowContent=false (verified via typeAllMask diagnostic) | Yes — YouTube will show 0 distance in leaderboards; UI may need to communicate this |
+
 **Example of what belongs here:**
 ```
 | 1 | 2025-02-14 | Using viewIdResourceName + scrollY bucket as fallback key when viewId is null, not just "unknown" | "unknown" key caused cross-view contamination on Instagram's feed, which has many unlabelled RecyclerViews | Yes — B should know that getTodayTopApps() may group some Instagram events under a fallback key rather than the exact package |
@@ -95,6 +98,7 @@ Updated as testing reveals manufacturer-specific behavior. This feeds directly i
 | Manufacturer | Model | Android | Finding | Status | Workaround |
 |---|---|---|---|---|---|
 | — | — | — | No findings yet | — | — |
+| OPPO | CPH2565 | 15 | ColorOS kills the accessibility service process within ~seconds-to-minutes of scroll inactivity; system logs it in mCrashedServices and auto-restarts it. No FATAL EXCEPTION in crash buffer — OS kill, not a code crash. Observed twice on 2026-07-10 (18:17, 19:26). Each restart wipes the in-memory HashMap (re-baseline). | Open | S1 foreground service + battery whitelist (S1.A7) should mitigate; verify survival time improves after those land |
 
 **What to log here:** Anything that works differently on one manufacturer versus another — service survival time before being killed, events not firing for certain apps, widget not updating on schedule, battery whitelist steps that differ from what the help text says. These notes inform the OEM battery whitelist screen built in S1.A7.
 
@@ -105,6 +109,8 @@ Updated as testing reveals manufacturer-specific behavior. This feeds directly i
 | # | Discovered | Description | Severity | Sprint | Resolved? |
 |---|---|---|---|---|---|
 | — | — | No known issues yet | — | — | — |
+
+| 1 | 2026-07-10 | YouTube emits no scroll events; distance untrackable under privacy constraints | 🟡 High | S0 | Accepted limitation — not fixable without violating canRetrieveWindowContent=false |
 
 **Severity guide:**
 - 🔴 **Critical:** Silent data loss or a permanently wrong number. Blocks Sprint 2 handoff.
@@ -161,13 +167,19 @@ A running scratchpad for in-progress thoughts, things to pick up next session, a
    event.scrollDeltaX (horizontal), available API 28+ only. Fallback strategy 
    needed: prefer scrollDelta fields when scrollY == 0 and API >= 28.
 
-3. YouTube: no TYPE_VIEW_SCROLLED events fire at all during feed scrolling. 
-   Root cause not yet investigated — may require listening to additional 
-   event types (e.g. TYPE_WINDOW_CONTENT_CHANGED) or may be a deeper 
-   architectural gap. Needs separate investigation before Sprint 0 sign-off, 
-   since YouTube is a likely heavily-used app for this product's target users.
+3. YouTube: RESOLVED (2026-07-10). Diagnostic test with typeAllMask captured all
+   event types YouTube fires during active use: only TYPE_WINDOW_CONTENT_CHANGED,
+   TYPE_WINDOW_STATE_CHANGED, TYPE_VIEW_CLICKED, TYPE_VIEW_SELECTED. Zero
+   TYPE_VIEW_SCROLLED events, and no event carries scroll position/delta data.
+   Conclusion: YouTube scrolling is untrackable under canRetrieveWindowContent=false.
+   Accepted as a product limitation — the privacy constraint is non-negotiable.
+   typeAllMask diagnostic reverted to typeViewScrolled after investigation.
 
-Decision: S0.4's production delta logic needs updating to use scrollDelta 
-fallback for finding #2. Finding #3 (YouTube) is a bigger open question 
-requiring more investigation before S0.7/S0.8 accuracy testing, since silently 
-missing an entire app's scroll data would badly skew accuracy results.
+4. Instagram Reels (ViewPager): confirmed scrollDeltaY populated with real
+   per-swipe values (e.g. 2101, 1802, 1461) while scrollY=0 — same pattern as
+   Chrome's FrameLayout scrolling. scrollDelta fallback covers these.
+
+Decision: S0.4 delta logic amended with scrollDelta fallback (scrollY==0 →
+use event.scrollDeltaY when API>=28 and value not in {-1, 0}). YouTube excluded
+from S0.7/S0.8 accuracy test scope — test apps: Reddit, Play Store, Chrome,
+Instagram, Settings.
