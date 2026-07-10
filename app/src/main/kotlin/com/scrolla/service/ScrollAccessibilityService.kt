@@ -1,6 +1,7 @@
 package com.scrolla.service
 
 import android.accessibilityservice.AccessibilityService
+import android.os.Build
 import android.util.Log
 import android.view.accessibility.AccessibilityEvent
 import java.util.HashMap
@@ -38,12 +39,22 @@ class ScrollAccessibilityService : AccessibilityService() {
 
         val compositeKey = "$pkg:$className:$viewId"
 
-        // Lookup last scrollY for this composite key, compute delta
-        val lastY = lastKnownScrollY[compositeKey]
-        val delta = if (lastY != null) (scrollY - lastY) else 0
-
-        // Update map with current scrollY for future events
-        lastKnownScrollY[compositeKey] = scrollY
+        val delta = if (scrollY != 0) {
+            // Cumulative scrollY path: per-view HashMap exactly as before.
+            // First event for a key is the baseline (delta = 0); update the map.
+            val lastY = lastKnownScrollY[compositeKey]
+            val computed = if (lastY != null) (scrollY - lastY) else 0
+            lastKnownScrollY[compositeKey] = scrollY
+            computed
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P
+            && event.scrollDeltaY != -1
+            && event.scrollDeltaY != 0) {
+            // Some apps (Instagram, Chrome) report scrollY=0 but populate scrollDeltaY
+            // with real per-event deltas (API 28+). Use it directly; do NOT update the HashMap.
+            event.scrollDeltaY
+        } else {
+            0
+        }
 
         Log.d(TAG, "pkg=$pkg delta=$delta scrollY=$scrollY key=$compositeKey")
     }
