@@ -74,7 +74,7 @@ Add a row every time a review happens — mandatory or optional. One row per PR,
 
 | # | Date | PR / Branch | Type | Reviewer | Verdict | Issues found | Resolved? |
 |---|---|---|---|---|---|---|---|
-| — | — | — | — | — | — | No reviews yet | — |
+| 1 | 2026-07-10 | a/delta-tracking | M1 | B | Approved | None — see notes above regarding the viewId finding, which is informational only and does not block approval | Yes |
 
 ---
 
