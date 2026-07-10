@@ -150,3 +150,24 @@ A running scratchpad for in-progress thoughts, things to pick up next session, a
 
 ---
 *This file is owned by Person A. B reads it to understand current handoff status. AI agents read it to avoid re-litigating implementation decisions already made.*
+
+### Finding: scrollY reliability varies significantly by app architecture
+
+1. Standard ScrollView/ListView apps (e.g., Play Store): event.scrollY reports 
+   correctly, delta computation works as designed.
+
+2. RecyclerView-based apps (Instagram, WhatsApp): event.scrollY always reports 0. 
+   Real scroll signal is present in event.scrollDeltaY (vertical) or 
+   event.scrollDeltaX (horizontal), available API 28+ only. Fallback strategy 
+   needed: prefer scrollDelta fields when scrollY == 0 and API >= 28.
+
+3. YouTube: no TYPE_VIEW_SCROLLED events fire at all during feed scrolling. 
+   Root cause not yet investigated — may require listening to additional 
+   event types (e.g. TYPE_WINDOW_CONTENT_CHANGED) or may be a deeper 
+   architectural gap. Needs separate investigation before Sprint 0 sign-off, 
+   since YouTube is a likely heavily-used app for this product's target users.
+
+Decision: S0.4's production delta logic needs updating to use scrollDelta 
+fallback for finding #2. Finding #3 (YouTube) is a bigger open question 
+requiring more investigation before S0.7/S0.8 accuracy testing, since silently 
+missing an entire app's scroll data would badly skew accuracy results.
