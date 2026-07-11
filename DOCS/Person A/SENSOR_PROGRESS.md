@@ -179,7 +179,26 @@ A running scratchpad for in-progress thoughts, things to pick up next session, a
    per-swipe values (e.g. 2101, 1802, 1461) while scrollY=0 — same pattern as
    Chrome's FrameLayout scrolling. scrollDelta fallback covers these.
 
+5. S0.5 reset guard (RECYCLE_RESET_THRESHOLD_PX=500) verified on-device 
+   (2026-07-11) on Instagram: RESET DETECTED fired correctly on large negative 
+   deltas from both RecyclerView (feed, e.g. delta=-6432) and ViewPager 
+   (Reels swiping, e.g. delta=-1397 to -2101) sources. Threshold correctly 
+   catches large negative jumps regardless of whether the delta came from 
+   HashMap-diffed scrollY or from scrollDeltaY directly.
+
+   Open question, not yet resolved: during fast horizontal Reels swiping, 
+   RESET DETECTED fired 7 times within ~2.5 seconds on scrollDeltaY-sourced 
+   deltas. These are genuine per-event values crossing -500, not RecyclerView 
+   baseline jumps — a different underlying cause than the guard was originally 
+   designed for. Behavior is technically correct per the current threshold 
+   definition, but worth revisiting whether -500 should apply uniformly to 
+   both HashMap-diffed (scrollY) and direct (scrollDeltaY) delta sources, since 
+   they represent different signal types with potentially different natural 
+   ranges. Revisit before S0.7 accuracy testing if reset-suppression during 
+   fast swiping proves to distort distance totals.
+
 Decision: S0.4 delta logic amended with scrollDelta fallback (scrollY==0 →
 use event.scrollDeltaY when API>=28 and value not in {-1, 0}). YouTube excluded
 from S0.7/S0.8 accuracy test scope — test apps: Reddit, Play Store, Chrome,
-Instagram, Settings.
+Instagram, Settings. S0.5 reset guard verified working on Instagram; threshold 
+tuning for scrollDeltaY-sourced deltas flagged for revisit before S0.7.
