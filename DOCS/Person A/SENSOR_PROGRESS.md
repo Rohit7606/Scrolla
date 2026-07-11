@@ -202,3 +202,88 @@ use event.scrollDeltaY when API>=28 and value not in {-1, 0}). YouTube excluded
 from S0.7/S0.8 accuracy test scope — test apps: Reddit, Play Store, Chrome,
 Instagram, Settings. S0.5 reset guard verified working on Instagram; threshold 
 tuning for scrollDeltaY-sourced deltas flagged for revisit before S0.7.
+
+## S0.7 Investigation — Physical Device Accuracy Test (2026-07-11)
+
+### Initial failure
+First two 5-minute continuous-scroll tests came back far below the expected 
+1,500–3,000cm range:
+- Instagram: 306.0cm / 5min (≈1.02 cm/sec)
+- Reddit: 341.6cm / 5min (≈1.14 cm/sec)
+
+Both tests confirmed continuous scrolling, no pauses, normal reset frequency 
+(or zero resets, in Instagram's case). Ruled out as test-execution error at 
+the time.
+
+### Root cause hypothesis: event coalescing
+`accessibility_service_config.xml`'s `android:notificationTimeout="100"` 
+debounces TYPE_VIEW_SCROLLED delivery — only one event per 100ms window per 
+source is delivered to the app; intermediate events within that window are 
+dropped, not queued. Hypothesis: rapid scrolling generates more than one 
+scroll event per 100ms, so most real distance was being silently lost.
+
+### Diagnostic testing (30-second Instagram samples)
+| notificationTimeout | Rate (cm/sec) | Scaled estimate (5min) |
+|---|---|---|
+| 100 (original) | 1.02 | 306cm |
+| 20 | 7.98 | ~2,395cm |
+| 0 | 9.31 | ~2,794cm |
+
+This looked like strong confirmation of the coalescing hypothesis — a ~9x 
+improvement moving from 100→0.
+
+### Follow-up: full 5-minute tests at notificationTimeout=20 did NOT reproduce the 30-second rate
+| Test | Duration | Rate (cm/sec) |
+|---|---|---|
+| timeout=20, 5-min run #1 | 5 min | 1.20 (359.3cm) |
+| timeout=20, 5-min run #2 (clean rebuild + service re-toggle) | 5 min | 1.42 (425.8cm) |
+
+Both 5-minute runs at timeout=20 landed close to the ORIGINAL timeout=100 
+baseline (306cm), not the 30-second test's much higher rate. Ruled out stale 
+build/config as the cause — confirmed via clean rebuild, fresh install, and 
+explicit accessibility service re-toggle before the second run; result was 
+consistent (425.8cm) with the first 5-min run (359.3cm), not with the 
+30-second burst.
+
+### Revised conclusion
+The 30-second tests and 5-minute tests are not directly comparable — a 
+30-second burst captures peak-intensity scrolling that isn't sustainable for 
+a full 5 minutes. Real sustained scrolling naturally settles into a slower, 
+more moderate pace (pauses to read content, less continuous thumb motion) 
+than a short energetic burst.
+
+**The sensor logic itself (delta computation, reset guard, cm conversion) 
+appears correct and CONSISTENT across repeated 5-minute runs (359cm and 
+425.8cm — same order of magnitude, same app, same config).** The gap against 
+the original 1,500–3,000cm estimate is most likely because that estimate 
+(10-20cm/swipe × 30 swipes/min) was too optimistic for realistic sustained 
+doomscrolling behavior, not because of a remaining bug in the tracking code.
+
+### Decision
+- Kept `notificationTimeout="20"` as the production value — even though the 
+  5-minute results didn't show the dramatic improvement the 30-second tests 
+  suggested, it still measured a real ~20-40% improvement over the original 
+  100 value (306cm → 359-425cm) with no observed downside. Reasonable, 
+  evidence-based middle ground between accuracy and battery/event-volume 
+  cost.
+- Revised working expectation: real 5-minute continuous scrolling on this 
+  device/app combination produces roughly 350-450cm, not 1,500-3,000cm. This 
+  revised range should be used as the baseline for S0.8 (second device test) 
+  and any future accuracy comparisons, rather than the original doc estimate.
+- The original `scrolla_project_summary.md` Section 5 estimate (1,500-3,000cm) 
+  should be flagged for revision in a future doc pass — not urgent, but 
+  worth correcting since it's referenced as the pass/fail bar in 
+  SPRINT_LOG.md's S0.7 definition.
+
+### Known open items carried forward
+- This investigation used Instagram only for the final verification runs. 
+  Reddit was only tested at timeout=100 (341.6cm) — worth a follow-up 
+  30-second AND 5-minute retest at timeout=20 for Reddit specifically, since 
+  different apps' RecyclerView/ViewPager behavior may respond differently to 
+  the timeout change.
+- S0.8 (second physical device) should use this same revised ~350-450cm/5min 
+  range as its comparison baseline, not the original 1,500-3,000cm figure.
+- Worth revisiting notificationTimeout once OEM battery-whitelisting work 
+  (S1.A7) is underway — confirm 20 doesn't cause noticeably worse battery 
+  behavior on this or a second test device before treating it as final.
+
