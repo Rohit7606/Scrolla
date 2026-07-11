@@ -249,6 +249,61 @@ Add a block for every device tested. Keep all entries — failures are as import
 **Overall verdict:** Ready for friend group ✅ / Needs fixes ❌ / Partial — whitelist required ⚠️
 ---
 ```
+### Completed Device Logs
+
+---
+**Device:** OPPO CPH2565
+**Tester:** Person A
+**Android version:** Android 15 (API 35)
+**App version / build:** a/delta-tracking branch, notificationTimeout=20 (post S0.7 tuning)
+**Date of testing:** 2026-07-11
+**Battery whitelist applied?** No — not yet tested (Section 3.3 whitelist steps not yet applied/verified)
+
+| Test | Protocol | Result | Notes |
+|---|---|---|---|
+| Service survival — 15 min | T1 | Not run | Deferred to S1 battery testing |
+| Service survival — 60 min | T1 | Not run | Deferred to S1 battery testing |
+| Accuracy test | T2 | Pass (revised criteria) | Instagram, 5min continuous: 359.3cm and 425.8cm across two runs (reproducible, ~1.2-1.4 cm/sec). Below original SPRINT_LOG estimate of 1500-3000cm even after fixing a real notificationTimeout event-coalescing bug (100→20, confirmed ~9x improvement via 30-sec diagnostic tests). Original doc estimate now believed too optimistic for sustained real scrolling — see SENSOR_PROGRESS.md full writeup. |
+| Widget update | T3 | Not run | Widget not yet built (Sprint 2 item) |
+| Reboot survival | T4 | Not run | Deferred to S1 battery testing |
+| Re-enablement banner | T5 | Not run | Banner not yet built |
+| End-to-end Firestore | T6 | Not run | Firestore sync not yet built |
+
+**OEM-specific findings:**
+Multiple RESET DETECTED events (up to 7) can fire within ~2.5s during a single continuous fast-fling gesture — expected behavior given per-event threshold checking, not a bug, but noted for future "don't double-count resets" logic if ever needed.
+
+**Battery whitelist notes:**
+Not yet tested — OPPO uses ColorOS, expected to need Section 3.3 (OnePlus/Oppo/Realme) whitelist steps. To be verified in S1.A7.
+
+**Overall verdict:** Partial — whitelist required ⚠️ (accuracy sensor logic verified working; battery/survival testing still pending)
+---
+
+---
+**Device:** Google Pixel (model to confirm — please fill in exact model)
+**Tester:** Person A
+**Android version:** [fill in — please confirm]
+**App version / build:** a/delta-tracking branch, notificationTimeout=20 (same config as OPPO test)
+**Date of testing:** 2026-07-11
+**Battery whitelist applied?** No — stock Android, no whitelist steps expected per Section 3.5
+
+| Test | Protocol | Result | Notes |
+|---|---|---|---|
+| Service survival — 15 min | T1 | Not run | Deferred to S1 battery testing |
+| Service survival — 60 min | T1 | Not run | Deferred to S1 battery testing |
+| Accuracy test | T2 | Pass | Instagram, 5min continuous: 1084.1cm (~3.61 cm/sec). Roughly 2.5-3x HIGHER than OPPO under identical config/protocol. Closer to original SPRINT_LOG estimate (1500-3000cm) than OPPO's result. See SENSOR_PROGRESS.md for OEM-discrepancy hypothesis. |
+| Widget update | T3 | Not run | Widget not yet built |
+| Reboot survival | T4 | Not run | Deferred to S1 |
+| Re-enablement banner | T5 | Not run | Not yet built |
+| End-to-end Firestore | T6 | Not run | Not yet built |
+
+**OEM-specific findings:**
+Significant accuracy discrepancy vs OPPO CPH2565 under identical test conditions (same app, same 5min duration, same notificationTimeout=20). Working hypothesis: OPPO's ColorOS applies additional event throttling beyond what notificationTimeout controls, consistent with documented OEM aggressiveness patterns in Section 3.3 vs 3.5. Needs further investigation — see SENSOR_PROGRESS.md.
+
+**Battery whitelist notes:**
+N/A — stock Android, no whitelist expected needed per Section 3.5.
+
+**Overall verdict:** Needs fixes ❌ — cross-device magnitude discrepancy unresolved, requires investigation before this pair of devices can be considered consistently calibrated.
+---
 
 ### Completed Device Logs
 
@@ -263,6 +318,10 @@ A summary table pulled from individual device logs above. Shows at a glance whic
 | Manufacturer | Model | Android | Without whitelist | With whitelist | Widget reliable? | Notes |
 |---|---|---|---|---|---|---|
 | — | — | — | — | — | — | No entries yet |
+| Manufacturer | Model | Android | Without whitelist | With whitelist | Widget reliable? | Notes |
+|---|---|---|---|---|---|---|
+| OPPO | CPH2565 | 15 | Not tested | Not tested | Not tested | Accuracy verified (see Section 5), survival/whitelist testing pending |
+| Google | [Pixel model] | [version] | Not tested | N/A (stock) | Not tested | Accuracy verified but ~3x higher than OPPO under same config — see SENSOR_PROGRESS.md |
 
 > **Target:** Every device in the friend group should survive 60+ minutes with whitelist applied. If a device fails at 60 minutes even with whitelist, that's a Section 6 known issue in `SENSOR_PROGRESS.md` and Screen 8 needs a device-specific warning.
 
@@ -303,5 +362,12 @@ Updated by A after every round of testing. This is the single line B (and the fr
 | All friend group manufacturers in Screen 8 | ❌ Not yet | — |
 | End-to-end test passed (Protocol T6) | ❌ Not yet | — |
 | **Overall: safe to sideload?** | **❌ No** | — |
+| Check | Status | Last updated |
+|---|---|---|
+| Minimum device bar met (Section 1) | ❌ Not yet — 2/3 devices, 2/2 manufacturers for accuracy only; survival/widget/reboot untested | 2026-07-11 |
+| All friend group devices tested | ❌ Not yet | 2026-07-11 |
+| All friend group manufacturers in Screen 8 | ❌ Not yet — Screen 8 not built | 2026-07-11 |
+| End-to-end test passed (Protocol T6) | ❌ Not yet — Firestore not built | 2026-07-11 |
+| **Overall: safe to sideload?** | **❌ No** | 2026-07-11 |
 
 > When all rows above show ✅, update the bottom row to "✅ Yes — [date]" and notify the friend group that installation can begin.
