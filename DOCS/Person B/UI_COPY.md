@@ -358,9 +358,13 @@ If no peak hour data yet:
 
 ---
 
-## 7. SERVICE HEALTH SCREEN (Screen 8)
+## 7. SETTINGS SCREEN (Screen 9)
 
-### Status banners
+**Renamed from "Service Health screen."** Reached via the gear icon on the Profile tab (Screen 8). Two sections on one screen: **Service Health** (unchanged from the original design) and **Account** (relocated here from the old standalone Profile page — content is identical to before, only the location changed; see the decisions log at the bottom of this file).
+
+### Service Health section
+
+#### Status banners
 
 ```
 Active (green):
@@ -384,7 +388,7 @@ Stopped — OEM kill suspected (orange):
   Button:  "Fix battery settings"
 ```
 
-### Last sync line
+#### Last sync line
 
 ```
 Template: "Last synced {relativeTime}"
@@ -395,13 +399,13 @@ Examples:
 "Never synced"                ← first install before first sync
 ```
 
-### Battery whitelisting section header
+#### Battery whitelisting section header
 
 ```
 "Battery settings — your phone: {manufacturer}"
 ```
 
-### Primary group row
+#### Primary group row
 
 ```
 Label:   "Widget group"
@@ -409,144 +413,24 @@ Subtext: "shown on your home screen widget"
 Value:   "{groupName} ›"
 ```
 
-### Permission info link
+**Note:** this is the *only* place the primary/widget group is set. The Profile tab's groups card (Section 12) is read-only and just links to the group switcher — don't rebuild a second primary-group toggle there.
+
+#### Permission info link
 
 ```
 Label: "What this permission can see"
 // Opens inline expansion — use the same text as Screen 3's "Why does Scrolla need this?" section
 ```
 
-### Reboot note
+#### Reboot note
 
 ```
 "Permission is re-checked after every restart"
 ```
 
----
+### Account section
 
-## 8. GROUP SCREENS (Screens 9–10)
-
-### Group switcher (Screen 9)
-
-```
-Title: "Your groups"
-
-Group row format:
-  "{groupName}"
-  Subtext when primary: "Widget group"
-
-Add group button: "+ Join another group"
-
-Empty state:
-  "You're not in any groups yet"
-  Button: "Join a group"
-```
-
-### Join group (Screen 10)
-
-```
-Title:             "Join a group"
-Input placeholder: "Enter 6-digit code"
-Button:            "Join"
-Success:           "You've joined {groupName}"
-Error — not found: "Group not found — check the code"
-Error — already:   "You're already in this group"
-Error — own code:  "That's your own group code"
-```
-
----
-
-## 9. GAMIFICATION SCREENS (Screens 11–13)
-
-### Weekly recap card (Screen 11)
-
-```
-Card headline:   "Your week in scroll"
-Stat line:       "{weeklyTotalKm} this week"
-Landmark line:   "that's {landmark}"
-Rank line:       "{rank} in {groupName}"
-Badge (if earned): "Most improved" or "Most consistent"
-Footer:          "Scrolla"
-
-Share button:    "Share your recap"
-Skip button:     "Maybe later"
-```
-
-### Personal records (Screen 12)
-
-```
-Title: "Your records"
-
-Best day section:
-  Label:  "lowest day"
-  Value:  "{bestKm}"
-  Detail: "{relativeDate}"         e.g. "3 weeks ago" or "yesterday"
-
-Milestone section (first time under a round number):
-  "First time under 1 km"   → show if `getPersonalBestKm() < 1.0`
-  "First time under 2 km"   → show if `getPersonalBestKm() < 2.0`
-  // Only show the lowest milestone achieved, not all of them
-
-7-day average:
-  Label: "7-day average"
-  Value: "{avgKm}"
-
-Empty state (fewer than 2 days of data):
-  "Your records will appear after a couple of days of data"
-```
-
-### Hall of fame (Screen 13) ⚠️ FRAMING IS DELIBERATE — DO NOT CHANGE
-
-```
-Title: "Group records"
-
-Best day row:
-  "{displayName}  {recordKm}  {relativeDate}"
-  e.g. "Priya   0.4 km   2 weeks ago"
-
-Progress toward record: ⚠️ DO NOT REMOVE — this line is a shame-mitigation design decision
-  "You're {gapKm} from the group's best day"
-  e.g. "You're 1.9 km from the group's best day"
-  // Always show this line for the current user, even if they hold the record
-  // If they hold the record: "You hold the group's best day"
-
-No record set:
-  Title: "No record set yet"
-  Body:  "The first person to complete a day will set the record"
-```
-
-**Why "progress toward record" must stay:** The hall of fame without it is purely a display of who has the single best number ever. With it, every user has a personal progress line that's about *them* relative to the record, not about their rank relative to others. This is the specific framing fix from `scrolla_project_summary.md` Section 16 — it reduces the shame potential of showing an absolute ranking of historical bests.
-
----
-
-## 10. APP BREAKDOWN DETAIL SCREEN (Screen 14)
-
-```
-Title: "App breakdown"
-Subtitle: "Today's scroll by app — stays on your device"
-
-App row format:
-  "{appName}   {km}"
-  Progress bar showing proportion of today's total
-
-Nudge line (show below the #1 app):
-  Template: "Cutting {topAppName} by 20% would put you in {potentialRank}"
-  Example:  "Cutting Instagram by 20% would put you in 1st"
-  If cutting 20% wouldn't change rank:
-  "{topAppName} is your biggest source today"
-
-Empty state:
-  "No app data yet today — keep scrolling"
-
-Privacy note (always visible, same as Insights screen):
-  "App breakdown stays on this device, never shared with your group"
-```
-
----
-
-## 11. PROFILE SCREEN (Screen 15)
-
-### Display name
+#### Display name
 
 ```
 Label:             "Display name"
@@ -555,15 +439,9 @@ Subtext:           "Shown to friends on the leaderboard"
 Save confirmation: "Name updated"
 ```
 
-### Groups section
+**Note:** the name itself is *displayed* (read-only) at the top of the Profile tab (Section 12) — editing always happens here.
 
-```
-Section label: "Your groups"
-Primary badge: "Widget group"
-Change button: "Change"    ← opens group switcher
-```
-
-### Phone number linking
+#### Phone number linking
 
 ```
 Label:    "Backup sign-in"
@@ -573,7 +451,7 @@ Button (linked):     "Phone number linked"
 Linked subtext:      "+XX XXXXX XXXXX"
 ```
 
-### Sign out
+#### Sign out
 
 ```
 Button: "Sign out"
@@ -584,7 +462,7 @@ Confirmation dialog:
   Cancel:  "Cancel"
 ```
 
-### Delete account ⚠️ CONSEQUENCES MUST BE STATED CLEARLY — DO NOT SOFTEN
+#### Delete account ⚠️ CONSEQUENCES MUST BE STATED CLEARLY — DO NOT SOFTEN
 
 ```
 Button (destructive): "Delete account"
@@ -612,7 +490,189 @@ Error:       "Couldn't delete your account — try again or contact support"
 
 ---
 
-## 12. WIDGET COPY
+## 8. GROUP SCREENS (Screens 10–11)
+
+### Group switcher (Screen 10)
+
+```
+Title: "Your groups"
+
+Group row format:
+  "{groupName}"
+  Subtext when primary: "Widget group"
+
+Add group button: "+ Join another group"
+
+Empty state:
+  "You're not in any groups yet"
+  Button: "Join a group"
+```
+
+### Join group (Screen 11)
+
+```
+Title:             "Join a group"
+Input placeholder: "Enter 6-digit code"
+Button:            "Join"
+Success:           "You've joined {groupName}"
+Error — not found: "Group not found — check the code"
+Error — already:   "You're already in this group"
+Error — own code:  "That's your own group code"
+```
+
+---
+
+## 9. GAMIFICATION SCREENS (Screens 12–14)
+
+### Weekly recap card (Screen 12)
+
+```
+Card headline:   "Your week in scroll"
+Stat line:       "{weeklyTotalKm} this week"
+Landmark line:   "that's {landmark}"
+Rank line:       "{rank} in {groupName}"
+Badge (if earned): "Most improved" or "Most consistent"
+Footer:          "Scrolla"
+
+Share button:    "Share your recap"
+Skip button:     "Maybe later"
+```
+
+### Personal records (Screen 13)
+
+```
+Title: "Your records"
+
+Best day section:
+  Label:  "lowest day"
+  Value:  "{bestKm}"
+  Detail: "{relativeDate}"         e.g. "3 weeks ago" or "yesterday"
+
+Milestone section (first time under a round number):
+  "First time under 1 km"   → show if `getPersonalBestKm() < 1.0`
+  "First time under 2 km"   → show if `getPersonalBestKm() < 2.0`
+  // Only show the lowest milestone achieved, not all of them
+
+7-day average:
+  Label: "7-day average"
+  Value: "{avgKm}"
+
+Empty state (fewer than 2 days of data):
+  "Your records will appear after a couple of days of data"
+```
+
+**Note:** this screen is now also reachable from the Profile tab's personal-best teaser card (Section 12), in addition to Home. The content and queries here are unchanged — Profile just adds a second entry point.
+
+### Hall of fame (Screen 14) ⚠️ FRAMING IS DELIBERATE — DO NOT CHANGE
+
+```
+Title: "Group records"
+
+Best day row:
+  "{displayName}  {recordKm}  {relativeDate}"
+  e.g. "Priya   0.4 km   2 weeks ago"
+
+Progress toward record: ⚠️ DO NOT REMOVE — this line is a shame-mitigation design decision
+  "You're {gapKm} from the group's best day"
+  e.g. "You're 1.9 km from the group's best day"
+  // Always show this line for the current user, even if they hold the record
+  // If they hold the record: "You hold the group's best day"
+
+No record set:
+  Title: "No record set yet"
+  Body:  "The first person to complete a day will set the record"
+```
+
+**Why "progress toward record" must stay:** The hall of fame without it is purely a display of who has the single best number ever. With it, every user has a personal progress line that's about *them* relative to the record, not about their rank relative to others. This is the specific framing fix from `scrolla_project_summary.md` Section 16 — it reduces the shame potential of showing an absolute ranking of historical bests.
+
+**Note:** this screen is now also reachable from the Profile tab's hall-of-fame teaser card (Section 12), which reuses this exact "progress toward record" line — the same framing rule applies there too.
+
+---
+
+## 10. APP BREAKDOWN DETAIL SCREEN (Screen 15)
+
+```
+Title: "App breakdown"
+Subtitle: "Today's scroll by app — stays on your device"
+
+App row format:
+  "{appName}   {km}"
+  Progress bar showing proportion of today's total
+
+Nudge line (show below the #1 app):
+  Template: "Cutting {topAppName} by 20% would put you in {potentialRank}"
+  Example:  "Cutting Instagram by 20% would put you in 1st"
+  If cutting 20% wouldn't change rank:
+  "{topAppName} is your biggest source today"
+
+Empty state:
+  "No app data yet today — keep scrolling"
+
+Privacy note (always visible, same as Insights screen):
+  "App breakdown stays on this device, never shared with your group"
+```
+
+---
+
+## 11. (retired) — formerly "PROFILE SCREEN"
+
+This section previously described a single "Profile" screen that mixed account admin with identity content. It's been split in two:
+- Account admin (display name editing, phone linking, sign out, delete account) now lives in **Section 7 — Settings (Screen 9)**.
+- Identity/achievement content is now the Profile *tab* — see **Section 12** below.
+
+Left as a placeholder heading rather than deleted outright, so anyone searching this file for "Profile" and landing on the old section number gets redirected instead of finding a gap.
+
+---
+
+## 12. PROFILE TAB (Screen 8)
+
+**New screen.** Added when Profile was promoted from a settings-only page to a main bottom tab — an identity/achievement hub in the Strava/Duolingo mold, not a settings dump. This is deliberately a **teaser hub**: every card below reuses copy and data already defined for Personal Records (Screen 13) and Hall of Fame (Screen 14) rather than duplicating it. If a future decision moves this to show full stats inline instead, update this section and the design note in `scrolla_project_summary.md` Section 8 together — don't let them drift apart.
+
+### Identity header
+
+```
+Display name: {displayName}   // read-only here — editing happens in Settings → Account (Screen 9)
+Gear icon: opens Settings (Screen 9)
+```
+
+### Personal best teaser card
+
+```
+Label: "personal best"
+Text:  "{bestKm} · {relativeDate}"
+// same underlying value as Personal Records' "lowest day" section (Screen 13) — display it, don't recompute it separately
+Empty state (no data yet): "Keep scrolling to set your first record"
+Tap label: "Personal records →"
+```
+
+### Hall of fame status teaser card ⚠️ SAME FRAMING RULE AS SCREEN 14 — DO NOT SOFTEN
+
+```
+Text (not record holder): "You're {gapKm} from the group's best day"
+Text (record holder):     "You hold the group's best day"
+// identical line to Hall of Fame's "progress toward record" (Screen 14) — the same shame-mitigation
+// reasoning applies here: don't drop it, don't reword it into something more "rank"-flavored
+Empty state (no group record set yet): "No record set yet — be the first"
+Tap label: "Hall of fame →"
+```
+
+### Groups teaser card
+
+```
+Template: "{groupCount} groups · {primaryGroupName} on widget"
+Example:  "2 groups · College Friends on widget"
+Tap label: "Manage groups →"
+```
+
+**Note:** this card is read-only. The actual primary/widget-group control lives on the Settings screen (Section 7's "Primary group row") — don't build a second editable control here, it'll just create two sources of truth for the same setting.
+
+### Empty state (brand-new user, no scroll data at all)
+
+The personal-best and hall-of-fame cards each show their own empty state individually (above). No separate full-screen empty state is needed — same approach as Home's rotating insight card handling a new user (Section 4, Type 4 placeholder).
+
+---
+
+## 13. WIDGET COPY
 
 ### Small widget
 
@@ -649,7 +709,7 @@ Footer: "{groupName}"
 
 ---
 
-## 13. STRINGS NOT YET WRITTEN — TRACK HERE
+## 14. STRINGS NOT YET WRITTEN — TRACK HERE
 
 Add a row whenever B identifies a string that needs to exist but hasn't been designed yet. Do not invent inline copy without adding it here first.
 
@@ -659,10 +719,10 @@ Add a row whenever B identifies a string that needs to exist but hasn't been des
 
 ---
 
-## 14. COPY DECISIONS LOG — WHAT WAS CHANGED AND WHY
+## 15. COPY DECISIONS LOG — WHAT WAS CHANGED AND WHY
 
 Any time B edits copy that was already in this file, log the old version, the new version, and the reason. This prevents "I wonder why it said that" questions two months later.
 
 | # | Date | Screen | Old copy | New copy | Reason |
 |---|---|---|---|---|---|
-| — | — | — | No changes yet | — | — |
+| 1 | 2026-07-11 | Screens 8/9 (was: Screen 8 "Service Health", Screen 15 "Profile") | Two screens: "Service Health" (Screen 8, tracking/battery only) and "Profile" (Screen 15, admin-only: name, groups, phone, sign-out, delete) | Split into "Profile" (Screen 8, new main tab — identity/achievement hub with teaser cards) and "Settings" (Screen 9 — Service Health + Account sections merged, reached via gear icon on Profile) | Profile promoted to a bottom tab, Strava/Duolingo-style, so it serves as an identity/achievement surface instead of a settings dump. Account admin and service-health content consolidated into one Settings destination rather than living on two separate screens. Screens 9 onward renumbered by +1 as a result. Full reasoning logged in `SOCIAL_PROGRESS.md` Section 9. |

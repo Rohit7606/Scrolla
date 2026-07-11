@@ -1,3 +1,4 @@
+
 # REVIEW_LOG.md — Scrolla
 **Purpose:** Tracks every cross-review that happens on this project. Two types of review are mandatory (defined in `AGENTS.md` Section 2). All others are optional but encouraged.
 **AI agents reading this:** Before suggesting a merge for any PR touching `tracking/` or `firestore/` security rules, check this log. If the PR isn't logged here with a completed review, it is not ready to merge regardless of build status.

@@ -85,7 +85,7 @@
 - Android will kill a plain background service to save battery
 - **Important correction:** an `AccessibilityService` is system-managed (started/stopped by Android when the user toggles it in Settings) — it is NOT itself a Foreground Service, and the two were originally conflated in this doc. The fix: call `startForeground()` from within the AccessibilityService's `onServiceConnected()` callback on Android 11+ (API 30+), with a fallback to a separate companion `ForegroundService` if that doesn't hold reliably on the team's actual test devices.
 - Notification can be minimal: "Tracking scroll distance" (clearer than a vague "is running" message, per audit feedback) with a small icon
-- **OEM battery killing is a separate, bigger problem than the foreground-service mechanics.** Samsung, Xiaomi, OnePlus, and Huawei all kill background/foreground services of third-party apps more aggressively than stock Android, regardless of correct foreground-service implementation. This is not a bug to fix in code — it requires a dedicated onboarding/settings screen guiding the user through OEM-specific battery whitelisting (see Section 8, screen 8, and Section 16).
+- **OEM battery killing is a separate, bigger problem than the foreground-service mechanics.** Samsung, Xiaomi, OnePlus, and Huawei all kill background/foreground services of third-party apps more aggressively than stock Android, regardless of correct foreground-service implementation. This is not a bug to fix in code — it requires a dedicated onboarding/settings screen guiding the user through OEM-specific battery whitelisting (see Section 8, screen 9, and Section 16).
 - The in-memory scroll buffer (batch accumulation, see Section 5) should flush to Room inside the AccessibilityService's `onInterrupt()` and `onDestroy()` callbacks, so a kill doesn't silently drop unflushed data.
 
 ---
@@ -245,16 +245,18 @@ The entire value proposition is **ambient awareness** — you see the number bui
 5. **Home** (default tab) — today's km as the hero number, plus exactly *one* rotating insight (alternating between streak/record/time-of-day/app-nudge, not all at once — see Section 11's presentation guidance)
 6. **Leaderboard** — reverse rank for the currently active group, with a way to switch groups
 7. **Insights** — charts, top apps, peak scrolling hour
+8. **Profile** — identity/achievement hub, not a settings screen: display name, a personal-best teaser, a hall-of-fame gap teaser, and a read-only groups summary, each tapping through to its existing detail screen rather than duplicating content. A gear icon opens Settings. Added after the initial screen map was drafted — see the design note below.
 
 ### Layer 3 — secondary/detail screens, reached by tapping into a tab, not via the tab bar
-8. **App settings / Service Health screen** — permission status, primary group selection, AND OEM-specific battery optimization whitelisting guidance (detects `Build.MANUFACTURER` and shows Samsung/Xiaomi/OnePlus/Huawei-specific steps — see Section 16). This screen was originally planned as low-priority "polish" but was promoted to Tier 1 build priority after the loophole audit, because it directly determines whether the core service stays alive on real phones.
-9. **Group switcher list** — all groups the user belongs to, plus an entry point to join another (scrollable list, no fixed-tab cap, per the multi-group design in Section 10)
-10. **Join group** — enter a new 6-digit code
-11. **Weekly recap card** — shareable image (km, rank, badge, landmark), opened from Home
-12. **Personal records** — lowest day ever, milestones, opened from Home
-13. **Group hall of fame** — best-ever single days across the group, opened from Leaderboard
-14. **App breakdown detail** — per-app totals plus the "cut X by Y% to rank higher" nudge, opened from Insights
-15. **Profile page** — display name (shown on the leaderboard), list of groups, link-phone-number option (see Section 10), "delete my account" flow (see Section 16), sign-out
+9. **Settings** (formerly "App settings / Service Health screen") — two sections on one screen: an **Account** section (display-name editing, phone-number linking, sign-out, delete-account flow — relocated here from the old standalone Profile page, content unchanged) and a **Service Health** section (permission status, primary group/widget selection, and OEM-specific battery optimization whitelisting guidance, detecting `Build.MANUFACTURER` and showing Samsung/Xiaomi/OnePlus/Huawei-specific steps — see Section 16). The Service Health half was promoted to Tier 1 build priority after the loophole audit, because it directly determines whether the core service stays alive on real phones.
+10. **Group switcher list** — all groups the user belongs to, plus an entry point to join another (scrollable list, no fixed-tab cap, per the multi-group design in Section 10)
+11. **Join group** — enter a new 6-digit code
+12. **Weekly recap card** — shareable image (km, rank, badge, landmark), opened from Home
+13. **Personal records** — lowest day ever, milestones, opened from Home and from Profile
+14. **Group hall of fame** — best-ever single days across the group, opened from Leaderboard and from Profile
+15. **App breakdown detail** — per-app totals plus the "cut X by Y% to rank higher" nudge, opened from Insights
+
+**Design note — why Profile is a tab, not a detail screen (added after the initial map was drafted):** Strava and Duolingo both keep a dedicated profile tab as an identity/achievement surface, with account admin tucked behind a settings icon reached *from* that screen rather than living inside it. Scrolla follows the same split: Profile (8) is the "who you are" surface, Settings (9) is the "manage your account/device" surface — two different owners in practice too, since Profile's teaser content depends on B's leaderboard/records work while Settings' Service Health half depends on A's `observeServiceHealth()` Flow. Profile is deliberately a **teaser hub**, reusing Screens 13 and 14 rather than duplicating their content — consistent with the "one hero stat, tap deeper" rule already established for every other surface (see the design principle below, and Section 11's presentation guidance). Showing full stats inline on Profile instead was considered and set aside for now: the teaser version is the more reversible choice, and this project's own build-order correction (below) already established that starting lean and expanding later beats building the dense version first and living with it.
 
 ### Design principle behind the split
 Each main tab shows only a teaser of the detail screens (a small card, a single line) rather than the full content, to avoid recreating the clutter problem described in Section 11. Tapping the teaser opens the full detail screen. This is why records, hall-of-fame, and the app-nudge are separate screens rather than sections crammed into Home, Leaderboard, or Insights directly.
@@ -272,7 +274,7 @@ The original build order ("Home + widget first, then Leaderboard, then detail sc
 **Sprint 1 — Core pipeline:**
 6. Room persistence with the tightened batching (Section 5)
 7. Correct foreground-service architecture (Section 3's corrected guidance)
-8. The Service Health / battery-whitelisting screen (Screen 8) — built now, not deferred
+8. The Service Health half of the Settings screen (Screen 9) — battery-whitelisting UI — built now, not deferred
 9. Firebase Auth (Google sign-in)
 10. Firestore security rules (Section 10) — deployed before any client sync code touches the database
 
@@ -286,7 +288,7 @@ The original build order ("Home + widget first, then Leaderboard, then detail sc
 15. Group join/create flow, multi-group switcher
 16. Insights tab with charts
 17. Empty states and error states for all screens (a group of 1, a service that's been killed, no data yet — these were originally going to be built last as "polish," which the audit flagged as a real risk for a two-person team; build them deliberately, not as an afterthought)
-18. Profile page with account deletion flow
+18. Settings screen's Account section, with the account-deletion flow, plus the Profile tab's achievement teasers
 19. Remaining detail screens (personal records, hall of fame, weekly recap)
 
 ---
