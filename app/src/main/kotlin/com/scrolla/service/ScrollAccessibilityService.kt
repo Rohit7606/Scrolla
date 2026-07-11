@@ -4,6 +4,8 @@ import android.accessibilityservice.AccessibilityService
 import android.os.Build
 import android.util.Log
 import android.view.accessibility.AccessibilityEvent
+import com.scrolla.model.DistanceFormatter
+import com.scrolla.model.ScrollaConstants
 import java.util.HashMap
 
 class ScrollAccessibilityService : AccessibilityService() {
@@ -39,9 +41,8 @@ class ScrollAccessibilityService : AccessibilityService() {
 
         val compositeKey = "$pkg:$className:$viewId"
 
-        val delta = if (scrollY != 0) {
-            // Cumulative scrollY path: per-view HashMap exactly as before.
-            // First event for a key is the baseline (delta = 0); update the map.
+        // ----- S0.4 delta computation (three paths) -----
+        val delta: Int = if (scrollY != 0) {
             val lastY = lastKnownScrollY[compositeKey]
             val computed = if (lastY != null) (scrollY - lastY) else 0
             lastKnownScrollY[compositeKey] = scrollY
@@ -49,14 +50,24 @@ class ScrollAccessibilityService : AccessibilityService() {
         } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P
             && event.scrollDeltaY != -1
             && event.scrollDeltaY != 0) {
-            // Some apps (Instagram, Chrome) report scrollY=0 but populate scrollDeltaY
-            // with real per-event deltas (API 28+). Use it directly; do NOT update the HashMap.
             event.scrollDeltaY
         } else {
             0
         }
+        // ----- end S0.4 delta computation -----
 
-        Log.d(TAG, "pkg=$pkg delta=$delta scrollY=$scrollY key=$compositeKey")
+        // S0.6: Convert delta (px) to centimeters for logging
+        val ydpi = resources.displayMetrics.ydpi
+        val deltaCm = DistanceFormatter.pxToCm(delta, ydpi)
+
+        // S0.5: Reset detection using DATA_CONTRACT.md's threshold
+        val resetThreshold = ScrollaConstants.RECYCLE_RESET_THRESHOLD_PX
+        if (delta < -resetThreshold) {
+            Log.d(TAG, "pkg=$pkg RESET DETECTED delta=$delta deltaCm=$deltaCm scrollY=$scrollY key=$compositeKey")
+        }
+
+        // Normal logging — show both px delta and cm conversion
+        Log.d(TAG, "pkg=$pkg delta=$delta deltaCm=$deltaCm scrollY=$scrollY key=$compositeKey")
     }
 
     override fun onInterrupt() {
