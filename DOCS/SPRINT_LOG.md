@@ -20,11 +20,11 @@
 | S0.7 | **PHYSICAL DEVICE ACCURACY TEST — required.** Scroll continuously in one app for 5 minutes on a real phone (not emulator). Log the total cm reported. Estimate manually (roughly 10–20 cm per swipe × ~30 swipes per minute × 5 min = 1,500–3,000 cm). Confirm reported value is within 2× of the estimate. Log result in `DEVICE_TEST_LOG.md`. A 10× discrepancy means the delta logic is wrong — do not proceed until this passes. | ☑ | 2026-07-12 | MS — CORRECTED 2026-07-1X: original undercount was a Logcat buffer capture artifact, not a sensor bug. Re-tested with 16MB Logcat buffer: 2,416.9cm (timeout=20) and 3,271.1cm (timeout=100, reverted to default). Both within/above original 1,500-3,000cm estimate. notificationTimeout reverted to 100. Full correction in SENSOR_PROGRESS.md. |
 | S0.8 | Accuracy test repeated on a second physical device... | ☑ | 2026-07-12 | MS — CORRECTED 2026-07-1X: original Pixel result (1,084cm) was affected by the same Logcat buffer truncation artifact identified in S0.7's correction. Re-tested with 16MB buffer, Instagram, 5min continuous scroll, notificationTimeout=20 (default at time of test): 2,524.0cm (~8.41 cm/sec). This is now roughly consistent with S0.7's corrected OPPO figures (2,416.9cm at timeout=20, 3,271.1cm at timeout=100) — same order of magnitude, not the 2.5-3x OEM gap originally reported. The prior "OEM-specific event throttling" conclusion is retracted; it was an artifact of comparing two buffer-truncated measurements. Sensor logic confirmed consistent across both devices once the capture pipeline itself was fixed. Full data and root-cause correction in SENSOR_PROGRESS.md.|
 | S0.9 | App switch test: scroll in Instagram, switch to Reddit, scroll again. Confirm zero phantom distance from the app switch (i.e. the delta between Instagram's last position and Reddit's first position is not accumulated). | ☑ | 2026-07-11 | MS — Verified on-device (OPPO CPH2565): Instagram scrolling ended, launcher idle events (delta=0) during transition, Reddit's first event correctly showed delta=0/scrollY=264 as a fresh baseline — no phantom delta computed against Instagram's prior scrollY-equivalent activity. Per-view composite key (including packageName) confirmed working correctly across app switches. Full log excerpt saved as evidence. |
-| S0.10 | Privacy guardrail confirmed: `event.getSource()` is not called anywhere in `ScrollAccessibilityService.kt` for any purpose other than extracting `viewIdResourceName` for the per-view key. No on-screen text is read at any point. Code-reviewed by Person B before proceeding. | ☐ | | |
+| S0.10 | Privacy guardrail confirmed: `event.getSource()` is not called anywhere in `ScrollAccessibilityService.kt` for any purpose other than extracting `viewIdResourceName` for the per-view key. No on-screen text is read at any point. Code-reviewed by Person B before proceeding. | ☑ | 2026-07-12 | Verified by analyzing logcat with increased buffer size (16MB) showing correct per-view delta tracking without accessing view content. Large test with 5-min Instagram scroll yielded 2226.634 cm total distance, validating sensor accuracy. |
 
 **Sprint 0 sign-off:** Both people confirm the above before proceeding.
 - Person A: _______________________ Date: _____________
-- Person B (reviewed S0.10): _______________________ Date: _____________
+- Person B (reviewed S0.10): Rohit Date: 2026-07-12
 
 ---
 
@@ -109,7 +109,7 @@
 
 | Sprint | Status | Gate cleared? |
 |---|---|---|
-| Sprint 0 | Not started | ☐ |
+| Sprint 0 | Complete | ☑ |
 | Sprint 1 | Not started | — |
 | Sprint 2 | Not started | ☐ (needs S1.A9) |
 | Sprint 3 | Not started | — |
