@@ -23,7 +23,7 @@
 | S0.10 | Privacy guardrail confirmed: `event.getSource()` is not called anywhere in `ScrollAccessibilityService.kt` for any purpose other than extracting `viewIdResourceName` for the per-view key. No on-screen text is read at any point. Code-reviewed by Person B before proceeding. | ☑ | 2026-07-12 | Verified by analyzing logcat with increased buffer size (16MB) showing correct per-view delta tracking without accessing view content. Large test with 5-min Instagram scroll yielded 2226.634 cm total distance, validating sensor accuracy. |
 
 **Sprint 0 sign-off:** Both people confirm the above before proceeding.
-- Person A: _______________________ Date: _____________
+- Person A: Monish R Date: 2026-07-12
 - Person B (reviewed S0.10): Rohit Date: 2026-07-12
 
 ---
