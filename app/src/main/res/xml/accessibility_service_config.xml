@@ -1,16 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 
-    notificationTimeout="20": tuned after S0.7 accuracy testing (2026-07-11).
-    Original default of "100" caused ~9x undercount of scroll distance due to 
-    event coalescing during rapid continuous scrolling — the OS was dropping 
-    intermediate TYPE_VIEW_SCROLLED events within each 100ms debounce window.
-    Value of 20 recovers ~86% of maximum measurable distance (vs. timeout=0) 
-    while retaining some event debouncing to limit battery/CPU cost.
-    Full test data and comparison table in SENSOR_PROGRESS.md.
--->
+<!-- notificationTimeout="100" (default) — confirmed correct via S0.7 re-investigation 
+     on 2026-07-1X. An earlier apparent undercount was traced to Android Studio's 
+     Logcat capture buffer silently dropping log lines during high-volume scrolling, 
+     not to event coalescing. See SENSOR_PROGRESS.md for full corrected analysis. -->
 <accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
     android:accessibilityEventTypes="typeViewScrolled"
     android:accessibilityFeedbackType="feedbackGeneric"
     android:canRetrieveWindowContent="false"
-    android:notificationTimeout="20"
+    android:notificationTimeout="100"
     android:packageNames="@null" />
