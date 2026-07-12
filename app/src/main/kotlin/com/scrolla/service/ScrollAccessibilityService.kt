@@ -42,31 +42,36 @@ class ScrollAccessibilityService : AccessibilityService() {
         val compositeKey = "$pkg:$className:$viewId"
 
         // ----- S0.4 delta computation (three paths) -----
+        // Branch 1: scrollY != 0  (normal delta path)
         val delta: Int = if (scrollY != 0) {
+            // Compute per‑view delta
             val lastY = lastKnownScrollY[compositeKey]
             val computed = if (lastY != null) (scrollY - lastY) else 0
+
+            // ----- RESET detection (inside this branch only) -----
+            if (computed < -ScrollaConstants.RECYCLE_RESET_THRESHOLD_PX) {
+                val cm = DistanceFormatter.pxToCm(computed, resources.displayMetrics.ydpi)
+                Log.d(TAG, "pkg=$pkg RESET DETECTED delta=$computed deltaCm=$cm scrollY=$scrollY key=$compositeKey")
+            }
+
+            // Update the HashMap for the next event
             lastKnownScrollY[compositeKey] = scrollY
             computed
         } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P
-            && event.scrollDeltaY != -1
-            && event.scrollDeltaY != 0) {
+                && event.scrollDeltaY != -1
+                && event.scrollDeltaY != 0) {
+            // Instagram, Chrome, etc. report scrollDeltaY even when scrollY==0.
+            // Use that value directly; do NOT update the HashMap here.
             event.scrollDeltaY
         } else {
             0
         }
-        // ----- end S0.4 delta computation -----
+        // -----------------------------------------------------
 
-        // S0.6: Convert delta (px) to centimeters for logging
-        val ydpi = resources.displayMetrics.ydpi
-        val deltaCm = DistanceFormatter.pxToCm(delta, ydpi)
+        // Convert delta to centimeters for logging (used for both reset and normal lines)
+        val deltaCm = DistanceFormatter.pxToCm(delta, resources.displayMetrics.ydpi)
 
-        // S0.5: Reset detection using DATA_CONTRACT.md's threshold
-        val resetThreshold = ScrollaConstants.RECYCLE_RESET_THRESHOLD_PX
-        if (delta < -resetThreshold) {
-            Log.d(TAG, "pkg=$pkg RESET DETECTED delta=$delta deltaCm=$deltaCm scrollY=$scrollY key=$compositeKey")
-        }
-
-        // Normal logging — show both px delta and cm conversion
+        // Log the event (reset detection already logged above if applicable)
         Log.d(TAG, "pkg=$pkg delta=$delta deltaCm=$deltaCm scrollY=$scrollY key=$compositeKey")
     }
 
