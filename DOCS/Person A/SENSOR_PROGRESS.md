@@ -291,4 +291,41 @@ doomscrolling behavior, not because of a remaining bug in the tracking code.
 - Worth revisiting notificationTimeout once OEM battery-whitelisting work 
   (S1.A7) is underway — confirm 20 doesn't cause noticeably worse battery 
   behavior on this or a second test device before treating it as final.
+ ## CORRECTION — S0.7 Root Cause Re-investigation (2026-07-1X)
+
+The investigation above incorrectly attributed the undercount to 
+`notificationTimeout` event coalescing. The actual root cause was Android 
+Studio's Logcat capture buffer (default size, likely 1024KB) silently 
+evicting log lines during high-volume rapid scrolling — the app's sensor 
+logic was computing and logging correct deltas the entire time; the data 
+just wasn't being retained long enough to export.
+
+**Fix:** Increased Logcat buffer size to 16384 KB in Android Studio settings 
+(Tools → Logcat → Logcat cycle buffer size).
+
+**Isolation test confirming this (2026-07-1X, OPPO CPH2565, Instagram, 5min, 16MB buffer):**
+| notificationTimeout | Total cm |
+|---|---|
+| 20 | 2,416.9cm |
+| 100 (original default) | 3,271.1cm |
+
+Both values now land within or above the original expected range 
+(1,500-3,000cm). `notificationTimeout` reverted to its original default 
+value of 100 — it was never the actual problem, and the smaller timeout 
+value trades battery/CPU cost for no real accuracy benefit.
+
+**Lesson learned:** When debugging accuracy issues via Logcat, always verify 
+the capture pipeline itself (buffer size, export completeness) before 
+concluding the underlying sensor logic is at fault. A 72,319-line vs 
+141,149-line line count difference between two "same duration" tests should 
+have been an earlier signal that something upstream of the app was 
+truncating data.
+
+**Follow-up impact on S0.8:** The original S0.8 Pixel result (1,084cm) and its 
+"OEM-specific throttling" conclusion are also retracted for the same reason — 
+that test was run before the Logcat buffer fix. Re-tested with the 16MB buffer: 
+2,524.0cm, now consistent in magnitude with S0.7's corrected OPPO figures 
+(2,416.9-3,271.1cm range). No genuine OEM-to-OEM distance gap has been 
+confirmed at this point; both devices produce comparable results once the 
+measurement artifact is removed.
 
