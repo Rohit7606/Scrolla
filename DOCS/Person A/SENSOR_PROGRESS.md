@@ -186,16 +186,21 @@ A running scratchpad for in-progress thoughts, things to pick up next session, a
    catches large negative jumps regardless of whether the delta came from 
    HashMap-diffed scrollY or from scrollDeltaY directly.
 
-   Open question, not yet resolved: during fast horizontal Reels swiping, 
-   RESET DETECTED fired 7 times within ~2.5 seconds on scrollDeltaY-sourced 
-   deltas. These are genuine per-event values crossing -500, not RecyclerView 
-   baseline jumps — a different underlying cause than the guard was originally 
-   designed for. Behavior is technically correct per the current threshold 
-   definition, but worth revisiting whether -500 should apply uniformly to 
-   both HashMap-diffed (scrollY) and direct (scrollDeltaY) delta sources, since 
-   they represent different signal types with potentially different natural 
-   ranges. Revisit before S0.7 accuracy testing if reset-suppression during 
-   fast swiping proves to distort distance totals.
+  RESOLVED (2026-07-12): The reset guard was incorrectly applied to 
+   scrollDeltaY-sourced deltas as well as scrollY-diffed ones. Since 
+   scrollDeltaY is already a per-swipe value (not a cumulative diff), normal 
+   Reels swipes routinely exceeded -500px and were falsely flagged as resets 
+   — confirmed via 5-min Instagram test showing 13,505 of 13,590 events 
+   (99.4%) incorrectly labeled RESET DETECTED. Fixed by scoping the reset 
+   check to only fire inside the scrollY != 0 (HashMap-diffed) branch; the 
+   scrollDeltaY fallback path now has no reset detection at all, matching its 
+   different semantic meaning (single-gesture value, not a baseline jump). 
+   Re-verified via repeat 5-min Instagram test: 0 RESET DETECTED events, 
+   distance total unchanged (425.8cm, consistent with prior runs) — confirming 
+   the fix only corrected labeling, not distance accuracy. Also caught and 
+   fixed a related bug in analyze_scroll_log.py where reset-line counting 
+   used a flawed subtraction formula, masking the true false-positive rate 
+   until corrected.
 
 Decision: S0.4 delta logic amended with scrollDelta fallback (scrollY==0 →
 use event.scrollDeltaY when API>=28 and value not in {-1, 0}). YouTube excluded
