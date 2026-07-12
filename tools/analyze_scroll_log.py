@@ -28,8 +28,10 @@ def parse_log_file(log_path):
 
             # Track the delta from a RESET DETECTED line so we can skip its
             # paired duplicate (the app logs the same delta twice: once with
-            # the "RESET DETECTED" prefix and once without).
+            # the "RESET DETECTED" prefix and once without). Also track the
+            # exact count of reset lines for accurate reporting.
             last_reset_delta = None
+            reset_count = 0
 
             for entry_index, entry in enumerate(entries, start=1):
                 message = entry.get("message", "")
@@ -54,6 +56,7 @@ def parse_log_file(log_path):
                         if 'RESET DETECTED' in message:
                             # Record this delta so we can skip its paired duplicate on the next iteration
                             last_reset_delta = delta_cm
+                            reset_count += 1
                         else:
                             # Non-reset message - track for max finding
                             clean_line_data.append((entry_index, message, delta_cm))
@@ -64,7 +67,7 @@ def parse_log_file(log_path):
 
             return {
                 'total_lines': len(entries),
-                'reset_lines_count': len(entries) - len(clean_line_data),
+                'reset_lines_count': reset_count,
                 'all_delta_cm_values': all_delta_cm_values,
                 'clean_line_data': clean_line_data,
                 'anomalies': anomalies
@@ -76,8 +79,10 @@ def parse_log_file(log_path):
 
             # Track the delta from a RESET DETECTED line so we can skip its
             # paired duplicate (the app logs the same delta twice: once with
-            # the "RESET DETECTED" prefix and once without).
+            # the "RESET DETECTED" prefix and once without). Also track the
+            # exact count of reset lines for accurate reporting.
             last_reset_delta = None
+            reset_count = 0
 
             for line_number, line in enumerate(lines, start=1):
                 line = line.strip()
@@ -102,6 +107,7 @@ def parse_log_file(log_path):
                         if 'RESET DETECTED' in line:
                             # Record this delta so we can skip its paired duplicate on the next iteration
                             last_reset_delta = delta_cm
+                            reset_count += 1
                         else:
                             # Non-reset line - track for max finding
                             clean_line_data.append((line_number, line, delta_cm))
@@ -112,7 +118,7 @@ def parse_log_file(log_path):
 
             return {
                 'total_lines': len(lines),
-                'reset_lines_count': len(lines) - len(clean_line_data),
+                'reset_lines_count': reset_count,
                 'all_delta_cm_values': all_delta_cm_values,
                 'clean_line_data': clean_line_data,
                 'anomalies': anomalies
