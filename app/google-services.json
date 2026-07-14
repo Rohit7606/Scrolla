@@ -21,6 +21,14 @@
       "services": {
         "appinvite_service": {
           "other_platform_oauth_client": []
+        },
+        "auth": {
+          "services": {
+            "sign_in_method_providers": []
+          }
+        },
+        "firestore": {
+          "rules_export_enabled": false
         }
       }
     }
