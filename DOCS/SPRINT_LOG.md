@@ -35,8 +35,8 @@
 
 | # | Milestone | Verified? | Date | Notes |
 |---|---|---|---|---|
-| S1.A1 | Room database set up with all four entities (`ScrollEvent`, `DailyTotal`, `AppTotal`, `ServiceHealthState`) per `DATA_CONTRACT.md` Section 2.1. Migrations defined even at v1 — no `fallbackToDestructiveMigration()` in production config. | ☐ | | |
-| S1.A2 | All DAOs from `DATA_CONTRACT.md` Section 2.2 implemented and tested. | ☐ | | |
+| S1.A1 | Room database set up with all four entities (`ScrollEvent`, `DailyTotal`, `AppTotal`, `ServiceHealthState`) per `DATA_CONTRACT.md` Section 2.1. Migrations defined even at v1 — no `fallbackToDestructiveMigration()` in production config.| ☑ | 2026-07-12 | MS — All four entities per DATA_CONTRACT.md Section 2.1. Runtime smoke test confirmed ScrollaDatabase.getDatabase() initializes successfully on-device (OPPO CPH2565), no exceptions, Logcat: "SUCCESS: Room database initialized". Smoke test code removed before commit. Build verified clean. |
+| S1.A2 | All DAOs from `DATA_CONTRACT.md` Section 2.2 implemented and tested. | ☑ | 2026-07-14 | MS — DAOs implemented, Room bumped 2.6.1→2.7.1 for Kotlin 2.2.10 compat (fixed `unexpected jvm signature V` KSP error). Runtime-verified via temporary MainActivity test: inserted + queried ScrollEvent, confirmed 100.0 returned via Logcat, confirmed .db/-wal/-shm files exist on device. Test code removed, verified via Get-Content before commit. |
 | S1.A3 | In-memory batch accumulator flushes to Room every `ScrollaConstants.BATCH_FLUSH_EVENT_COUNT` events OR every `ScrollaConstants.BATCH_FLUSH_INTERVAL_MS`, whichever comes first. | ☐ | | |
 | S1.A4 | Flush also fires inside `onInterrupt()` and `onDestroy()` callbacks — confirmed by force-stopping the app while scrolling and verifying no data loss beyond the current batch window. | ☐ | | |
 | S1.A5 | `startForeground()` called inside `onServiceConnected()` per `AGENTS.md` Section 4.1. Notification uses `ScrollaConstants.NOTIFICATION_TEXT` and `ScrollaConstants.NOTIFICATION_CHANNEL_ID`. Notification confirmed non-dismissible where API allows. | ☐ | | |

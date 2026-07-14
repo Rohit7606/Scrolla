@@ -10,9 +10,9 @@
 
 > _(A updates this line at the end of every session so B knows where things stand without reading the whole file)_
 
-**Sprint 0:** Not started
-**Sprint 1:** Not started
-**Sprint 2 handoff ready:** ❌ — Sprint 0 not yet complete. B should not wire real sensor data into any UI screen yet.
+**Sprint 0:** Complete ✅ (signed off 2026-07-12)
+**Sprint 1:** In progress — S1.A1 ✅, S1.A2 ✅ (2026-07-14), S1.A3 next
+**Sprint 2 handoff ready:** ❌ — Sprint 1 not yet complete (S1.A9 ScrollRepository still pending). B should still use mock data for now.
 
 **What B can safely build against right now:** Mock data only. Use `0.0f` as a placeholder for `getTodayTotalKm()` and label it clearly as a stub in code comments (`// STUB: replace with ScrollRepository.getTodayTotalKm() after S1.A9`).
 
@@ -24,16 +24,17 @@ Track each component independently — a component is "done" only when it has pa
 
 | Component | File(s) | Status | Sprint | Verified on device? |
 |---|---|---|---|---|
-| Manifest + config | `AndroidManifest.xml`, `res/xml/accessibility_service_config.xml` | 🔴 Not started | S0 | ☐ |
-| AccessibilityService shell | `service/ScrollAccessibilityService.kt` | 🔴 Not started | S0 | ☐ |
-| Per-view delta tracking | `tracking/ScrollDeltaTracker.kt` | 🔴 Not started | S0 | ☐ |
-| Distance accumulator | `tracking/DistanceAccumulator.kt` | 🔴 Not started | S0 | ☐ |
-| Room entities | `room/entities/` | 🔴 Not started | S1 | ☐ |
+| Manifest + config | `AndroidManifest.xml`, `res/xml/accessibility_service_config.xml` | ✅ Verified on device | S0 | ☑ |
+| AccessibilityService shell | `service/ScrollAccessibilityService.kt` | ✅ Verified on device | S0 | ☑ |
+| Per-view delta tracking | `service/ScrollAccessibilityService.kt` (HashMap-based, inline) | ✅ Verified on device | S0 | ☑ |
+| Distance accumulator (cm conversion) | `model/DistanceFormatter.kt` | ✅ Verified on device | S0 | ☑ |
+| RecyclerView reset guard | `service/ScrollAccessibilityService.kt` | ✅ Verified on device | S0 | ☑ |
+| Room entities | `room/ScrollEvent.kt`, `DailyTotal.kt`, `AppTotal.kt`, `ServiceHealthState.kt` | ✅ Verified on device | S1 | ☑ |
+| Room database | `room/ScrollaDatabase.kt` | ✅ Verified on device | S1 | ☑ |
 | Room DAOs | `room/dao/` | 🔴 Not started | S1 | ☐ |
-| Room database | `room/ScrollaDatabase.kt` | 🔴 Not started | S1 | ☐ |
 | Batch flush logic | inside `ScrollAccessibilityService.kt` | 🔴 Not started | S1 | ☐ |
 | Foreground service setup | inside `ScrollAccessibilityService.kt` | 🔴 Not started | S1 | ☐ |
-| ServiceHealthState updates | `room/entities/ServiceHealthState.kt` + service | 🔴 Not started | S1 | ☐ |
+| ServiceHealthState updates | `room/ServiceHealthState.kt` + service | 🔴 Not started | S1 | ☐ |
 | BOOT_COMPLETED receiver | `device/BootReceiver.kt` | 🔴 Not started | S1 | ☐ |
 | OEM battery whitelist screen | `device/BatteryWhitelistHelper.kt` | 🔴 Not started | S1 | ☐ |
 | ScrollRepository implementation | `room/ScrollRepository.kt` | 🔴 Not started | S1 | ☐ |
@@ -46,7 +47,6 @@ Track each component independently — a component is "done" only when it has pa
 **Status key:** 🔴 Not started · 🟡 In progress · 🟢 Code complete · ✅ Verified on device
 
 ---
-
 ## 3. SPRINT 0 — SENSOR ACCURACY VERIFICATION
 
 This section is the most important in the whole file. Sprint 0 is not complete until the accuracy test passes. Update this section as you work through S0.
