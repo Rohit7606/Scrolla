@@ -14,6 +14,7 @@ import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.common.SignInButton
 import com.google.firebase.auth.AuthResult
 import com.scrolla.auth.AuthRepository
+import com.scrolla.MainActivity
 import com.scrolla.R
 
 class SignInActivity : AppCompatActivity() {
@@ -107,7 +108,7 @@ class SignInActivity : AppCompatActivity() {
         val currentUser = authRepository.currentUser
         if (currentUser != null) {
             // User is already signed in, go to main activity.
-            val intent = this@SignInActivity.Intent(this, MainActivity::class.java)
+            val intent = Intent(this, MainActivity::class.java)
             startActivity(intent)
             finish()
         }
