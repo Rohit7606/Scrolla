@@ -54,7 +54,7 @@ class ScrollAccessibilityService : AccessibilityService() {
 
         val compositeKey = "$pkg:$className:$viewId"
 
-        // ----- S0.4 delta computation (three paths) -----
+        // ----- S0.4: Per-view delta computation (three paths) -----
         // Branch 1: scrollY != 0  (normal delta path)
         val delta: Int = if (scrollY != 0) {
             // Compute per‑view delta
@@ -103,12 +103,7 @@ class ScrollAccessibilityService : AccessibilityService() {
         val shouldFlushByTime = timeSinceLastFlush >= ScrollaConstants.BATCH_FLUSH_INTERVAL_MS
 
         if (shouldFlushByCount || shouldFlushByTime) {
-            // Take snapshot and clear buffer synchronously BEFORE launching coroutine
-            val snapshot = HashMap(batchBuffer)
-            batchBuffer.clear()
-            flushBatch(snapshot)
-            eventCountSinceFlush = 0
-            lastFlushTimestamp = currentTime
+            triggerFlushIfNeeded()
         }
     }
 
@@ -142,8 +137,24 @@ class ScrollAccessibilityService : AccessibilityService() {
         }
     }
 
+    private fun triggerFlushIfNeeded() {
+        if (batchBuffer.isEmpty()) return
+        val snapshot = HashMap(batchBuffer)
+        batchBuffer.clear()
+        flushBatch(snapshot)
+        eventCountSinceFlush = 0
+        lastFlushTimestamp = System.currentTimeMillis()
+    }
+
     override fun onInterrupt() {
-        // No-op for now
+        // Best-effort flush; may not complete before process death
+        triggerFlushIfNeeded()
+    }
+
+    override fun onDestroy() {
+        // Best-effort flush; may not complete before process death
+        triggerFlushIfNeeded()
+        super.onDestroy()
     }
 
     companion object {
