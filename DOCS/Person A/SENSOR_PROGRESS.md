@@ -31,8 +31,8 @@ Track each component independently — a component is "done" only when it has pa
 | RecyclerView reset guard | `service/ScrollAccessibilityService.kt` | ✅ Verified on device | S0 | ☑ |
 | Room entities | `room/ScrollEvent.kt`, `DailyTotal.kt`, `AppTotal.kt`, `ServiceHealthState.kt` | ✅ Verified on device | S1 | ☑ |
 | Room database | `room/ScrollaDatabase.kt` | ✅ Verified on device | S1 | ☑ |
-| Room DAOs | `room/dao/` | 🔴 Not started | S1 | ☐ |
-| Batch flush logic | inside `ScrollAccessibilityService.kt` | 🔴 Not started | S1 | ☐ |
+| Room DAOs | `room/dao/` | ✅ Verified on device | S1 | ☑ |
+| Batch flush logic | inside `ScrollAccessibilityService.kt` | ✅ Verified on device | S1 |   ☑ |
 | Foreground service setup | inside `ScrollAccessibilityService.kt` | 🔴 Not started | S1 | ☐ |
 | ServiceHealthState updates | `room/ServiceHealthState.kt` + service | 🔴 Not started | S1 | ☐ |
 | BOOT_COMPLETED receiver | `device/BootReceiver.kt` | 🔴 Not started | S1 | ☐ |

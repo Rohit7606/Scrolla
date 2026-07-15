@@ -45,3 +45,5 @@ build
 gradle/gradle-daemon-jvm.properties
 
 *.logcat
+
+scrolla_database*.db*
