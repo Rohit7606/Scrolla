@@ -6,7 +6,14 @@ import android.util.Log
 import android.view.accessibility.AccessibilityEvent
 import com.scrolla.model.DistanceFormatter
 import com.scrolla.model.ScrollaConstants
+import com.scrolla.room.ScrollEvent
+import com.scrolla.room.ScrollaDatabase
 import java.util.HashMap
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
+import java.time.LocalDate
 
 class ScrollAccessibilityService : AccessibilityService() {
 
@@ -15,6 +22,12 @@ class ScrollAccessibilityService : AccessibilityService() {
     // Assumption: AccessibilityService callbacks run on a single background thread by default,
     // so no explicit synchronization is required. This is safe per Android docs.
     private val lastKnownScrollY = HashMap<String, Int>()
+
+    // S1.A3: In-memory batch buffer for accumulating scroll distance
+    private val batchBuffer = HashMap<String, Float>() // key: "day:appPackage:hourBucket", value: accumulated scrollCm
+    private var eventCountSinceFlush = 0
+    private var lastFlushTimestamp = 0L
+    private val serviceScope = CoroutineScope(Dispatchers.IO + Job())
 
     override fun onServiceConnected() {
         super.onServiceConnected()
@@ -73,6 +86,60 @@ class ScrollAccessibilityService : AccessibilityService() {
 
         // Log the event (reset detection already logged above if applicable)
         Log.d(TAG, "pkg=$pkg delta=$delta deltaCm=$deltaCm scrollY=$scrollY key=$compositeKey")
+
+        // ----- S1.A3: Batch accumulator flush logic -----
+        // Accumulate scrollCm into batch buffer keyed by (day, appPackage, hourBucket)
+        val day = LocalDate.now().toString()
+        val hourBucket = java.time.LocalTime.now().hour
+        val batchKey = "$day:$pkg:$hourBucket"
+        batchBuffer[batchKey] = (batchBuffer[batchKey] ?: 0f) + deltaCm
+
+        eventCountSinceFlush++
+
+        // Check flush condition: event count OR elapsed time
+        val currentTime = System.currentTimeMillis()
+        val timeSinceLastFlush = currentTime - lastFlushTimestamp
+        val shouldFlushByCount = eventCountSinceFlush >= ScrollaConstants.BATCH_FLUSH_EVENT_COUNT
+        val shouldFlushByTime = timeSinceLastFlush >= ScrollaConstants.BATCH_FLUSH_INTERVAL_MS
+
+        if (shouldFlushByCount || shouldFlushByTime) {
+            // Take snapshot and clear buffer synchronously BEFORE launching coroutine
+            val snapshot = HashMap(batchBuffer)
+            batchBuffer.clear()
+            flushBatch(snapshot)
+            eventCountSinceFlush = 0
+            lastFlushTimestamp = currentTime
+        }
+    }
+
+    private fun flushBatch(snapshot: HashMap<String, Float>) {
+        serviceScope.launch {
+            try {
+                val db = ScrollaDatabase.getDatabase(applicationContext)
+                val timestamp = System.currentTimeMillis()
+
+                for ((key, scrollCm) in snapshot) {
+                    if (scrollCm > 0f) {
+                        val parts = key.split(":")
+                        if (parts.size == 3) {
+                            val day = parts[0]
+                            val appPackage = parts[1]
+                            val hourBucket = parts[2].toInt()
+                            val event = ScrollEvent(
+                                day = day,
+                                appPackage = appPackage,
+                                scrollCm = scrollCm,
+                                hourBucket = hourBucket,
+                                timestamp = timestamp
+                            )
+                            db.scrollEventDao().insert(event)
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("BatchFlush", "Batch flush failed", e)
+            }
+        }
     }
 
     override fun onInterrupt() {
