@@ -52,9 +52,8 @@
 
 | # | Milestone | Verified? | Date | Notes |
 |---|---|---|---|---|
-<<<<<<< HEAD
 | S1.B1 | Firebase project configured (Auth + Firestore in same project). Firebase config file added to the Android project. | ☑ | 2026-07-15 | R — Added debug SHA-1 fingerprint to Firebase, replaced google-services.json, built debug APK and installed on real device. |
-| S1.B2 | Google Sign-In implemented. User's Firebase Auth UID confirmed as the stable `userId` — not a randomly generated string, not a device ID. | ☐ | | |
+| S1.B2 | Google Sign-In implemented. User's Firebase Auth UID confirmed as the stable `userId` — not a randomly generated string, not a device ID. | ☑ | 2026-07-15 | R — Verified Google Sign-In returns stable Firebase Auth UID on device. |
 | S1.B3 | Sign-in flow leads correctly into the onboarding sequence (Screen 1 → 2 → 3 → 4 per `scrolla_project_summary.md` Section 8). | ☐ | | |
 | S1.B4 | Phone number linking implemented in Profile page (Screen 15) via `linkWithCredential()`. Framed as "add a backup way to sign in," not a separate account. Tested: sign in with Google, link phone, sign out, sign back in with phone — same UID returned. | ☐ | | |
 | S1.B5 | Firestore security rules written per `scrolla_project_summary.md` Section 10. **Not deployed yet — A must review first (cross-review rule).** | ☐ | | |
@@ -63,18 +62,6 @@
 | S1.B8 | Group create flow: generates a `ScrollaConstants.GROUP_CODE_LENGTH`-digit code, writes group metadata document to `/groups/{groupId}` per `DATA_CONTRACT.md` Section 3.2. | ☐ | | |
 | S1.B9 | Group join flow: validates code exists, writes `/users/{userId}/groups/{groupId}` membership document with `isPrimary = true` if it's the user's first group. | ☐ | | |
 | S1.B10 | `DistanceFormatter` utility confirmed imported and used everywhere km/cm values appear — no inline formatting, no re-implementation. | ☐ | | |
-=======
-| S1.B1 | Firebase project configured (Auth + Firestore same project). Firebase config file added Android project. | ☑ | 2026-07-15 | R — Added debug SHA‑1 fingerprint to Firebase, replaced google-services.json, built debug APK and installed on real device. |
-| S1.B2 | Google Sign‑In implemented. User's Firebase Auth UID stable `userId` — not random string nor device ID. | ☐ | | |
-| S1.B3 | Sign‑in flow leads correctly into onboarding sequence (Screen 1 → 2 → 3 → 4 per `scrolla_project_summary.md` Sec 8). | ☐ | | |
-| S1.B4 | Phone‑number linking in Profile page (Screen 15) via `linkWithCredential()`. Framed “add backup way to sign in”, not separate account. Tested: sign‑in Google, link phone, sign out, sign back with phone → same UID. | ☐ | | |
-| S1.B5 | Firestore security rules per `scrolla_project_summary.md` Sec 10. **Not deployed yet — A must review first (cross‑review rule).** | ☐ | | |
-| S1.B6 | A reviewed B's Firestore security rules. Logged in `REVIEW_LOG.md`. | ☐ | | |
-| S1.B7 | Firestore security rules deployed. Tested Firebase Rules Playground: ≥1 “should succeed” and ≥1 “should fail” per `AGENTS.md` Sec 5.3. | ☐ | | |
-| S1.B8 | Group create flow: generates `ScrollaConstants.GROUP_CODE_LENGTH`‑digit code, writes group metadata doc to `/groups/{groupId}` per `DATA_CONTRACT.md` Sec 3.2. | ☐ | | |
-| S1.B9 | Group join flow: validates code exists, writes `/users/{userId}/groups/{groupId}` membership doc with `isPrimary = true` if user's first group. | ☐ | | |
-| S1.B10 | `DistanceFormatter` utility confirmed imported/used everywhere km/cm appear — no inline formatting, no re‑implementation. | ☐ | | |
->>>>>>> 2ea20b0 (feat: implement Google Sign-In authentication using Firebase and Android activity flow)
 
 ---
 
@@ -125,12 +112,8 @@
 | Sprint | Status | Gate cleared? |
 |---|---|---|
 | Sprint 0 | Complete | ☑ |
-| Sprint 1 | Not started | — |
+| Sprint 1 | In progress | — |
 | Sprint 2 | Not started | ☐ (needs S1.A9) |
 | Sprint 3 | Not started | — |
 
-<<<<<<< HEAD
-> Update the Status column to "In progress" or "Complete" as you go. The "Gate cleared?" column for Sprint 0 and Sprint 2 must be checked before the next sprint begins — do not skip this.
-=======
 > Update Status column to "In progress" or "Complete" as you go. The "Gate cleared?" column for Sprint 0 and Sprint 2 must be checked before next sprint begins — do not skip this.
->>>>>>> 2ea20b0 (feat: implement Google Sign-In authentication using Firebase and Android activity flow)
