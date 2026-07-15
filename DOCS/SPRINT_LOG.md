@@ -50,7 +50,7 @@
 
 | # | Milestone | Verified? | Date | Notes |
 |---|---|---|---|---|
-| S1.B1 | Firebase project configured (Auth + Firestore in same project). Firebase config file added to the Android project. | ☐ | | |
+| S1.B1 | Firebase project configured (Auth + Firestore in same project). Firebase config file added to the Android project. | ☑ | 2026-07-15 | R — Added debug SHA-1 fingerprint to Firebase, replaced google-services.json, built debug APK and installed on real device. |
 | S1.B2 | Google Sign-In implemented. User's Firebase Auth UID confirmed as the stable `userId` — not a randomly generated string, not a device ID. | ☐ | | |
 | S1.B3 | Sign-in flow leads correctly into the onboarding sequence (Screen 1 → 2 → 3 → 4 per `scrolla_project_summary.md` Section 8). | ☐ | | |
 | S1.B4 | Phone number linking implemented in Profile page (Screen 15) via `linkWithCredential()`. Framed as "add a backup way to sign in," not a separate account. Tested: sign in with Google, link phone, sign out, sign back in with phone — same UID returned. | ☐ | | |

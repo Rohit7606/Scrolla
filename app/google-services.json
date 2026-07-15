@@ -12,7 +12,20 @@
           "package_name": "com.scrolla"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "166613112223-nsobc6fglva685tccjb9edu20js1cash.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.scrolla",
+            "certificate_hash": "b0a693bff26656b2bbd130bd180ae92e8ecf95e7"
+          }
+        },
+        {
+          "client_id": "166613112223-0pnkdgp4cfhlnsih9fskt9hhpk38vub3.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyC8CHs2vaaT7zMJsq6LrJ_0EZRbe5Sd4cg"
@@ -20,15 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
-        },
-        "auth": {
-          "services": {
-            "sign_in_method_providers": []
-          }
-        },
-        "firestore": {
-          "rules_export_enabled": false
+          "other_platform_oauth_client": [
+            {
+              "client_id": "166613112223-0pnkdgp4cfhlnsih9fskt9hhpk38vub3.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
