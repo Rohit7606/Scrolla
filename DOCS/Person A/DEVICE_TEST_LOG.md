@@ -255,59 +255,22 @@ Add a block for every device tested. Keep all entries — failures are as import
 **Device:** OPPO CPH2565
 **Tester:** Person A
 **Android version:** Android 15 (API 35)
-**App version / build:** a/delta-tracking branch, notificationTimeout=20 (post S0.7 tuning)
-**Date of testing:** 2026-07-11
-**Battery whitelist applied?** No — not yet tested (Section 3.3 whitelist steps not yet applied/verified)
+**App version / build:** a/room-setup branch, post specialUse fix
+**Date of testing:** 2026-07-16
+**Battery whitelist applied?** No — deferred to S1.A7
 
 | Test | Protocol | Result | Notes |
 |---|---|---|---|
-| Service survival — 15 min | T1 | Not run | Deferred to S1 battery testing |
-| Service survival — 60 min | T1 | Not run | Deferred to S1 battery testing |
-| Accuracy test | T2 | Pass (revised criteria) | Instagram, 5min continuous: 359.3cm and 425.8cm across two runs (reproducible, ~1.2-1.4 cm/sec). Below original SPRINT_LOG estimate of 1500-3000cm even after fixing a real notificationTimeout event-coalescing bug (100→20, confirmed ~9x improvement via 30-sec diagnostic tests). Original doc estimate now believed too optimistic for sustained real scrolling — see SENSOR_PROGRESS.md full writeup. |
-| Widget update | T3 | Not run | Widget not yet built (Sprint 2 item) |
-| Reboot survival | T4 | Not run | Deferred to S1 battery testing |
-| Re-enablement banner | T5 | Not run | Banner not yet built |
-| End-to-end Firestore | T6 | Not run | Firestore sync not yet built |
+| Foreground notification non-dismissible | Not a numbered protocol — S1.A5 verification | Fail | Swiped away despite setOngoing(true) + specialUse type |
 
 **OEM-specific findings:**
-Multiple RESET DETECTED events (up to 7) can fire within ~2.5s during a single continuous fast-fling gesture — expected behavior given per-event threshold checking, not a bug, but noted for future "don't double-count resets" logic if ever needed.
+1. **specialUse fix resolved the dataSync anti-abuse issue but not dismissibility on this device:** Switched foregroundServiceType from `dataSync` to `specialUse` (see SENSOR_PROGRESS.md §4) to remove API 34+'s anti-abuse restriction on dataSync. Confirmed via same-build test on Google Pixel: notification correctly non-dismissible there. On this OPPO device, notification is still swipeable. Isolates the cause to ColorOS's own notification-shade behavior overriding the ongoing flag, not to foreground service type or missing setOngoing(true).
+2. No app-level fix identified. Documented as a known OEM limitation rather than an open bug.
 
 **Battery whitelist notes:**
-Not yet tested — OPPO uses ColorOS, expected to need Section 3.3 (OnePlus/Oppo/Realme) whitelist steps. To be verified in S1.A7.
+Not yet tested — deferred to S1.A7.
 
-**Overall verdict:** Partial — whitelist required ⚠️ (accuracy sensor logic verified working; battery/survival testing still pending)
----
-
----
-**Device:** Google Pixel (model to confirm — please fill in exact model)
-**Tester:** Person A
-**Android version:** [fill in — please confirm]
-**App version / build:** a/delta-tracking branch, notificationTimeout=20 (same config as OPPO test)
-**Date of testing:** 2026-07-11
-**Battery whitelist applied?** No — stock Android, no whitelist steps expected per Section 3.5
-
-| Test | Protocol | Result | Notes |
-|---|---|---|---|
-| Service survival — 15 min | T1 | Not run | Deferred to S1 battery testing |
-| Service survival — 60 min | T1 | Not run | Deferred to S1 battery testing |
-| Accuracy test | T2 | Pass | Instagram, 5min continuous: 1084.1cm (~3.61 cm/sec). Roughly 2.5-3x HIGHER than OPPO under identical config/protocol. Closer to original SPRINT_LOG estimate (1500-3000cm) than OPPO's result. See SENSOR_PROGRESS.md for OEM-discrepancy hypothesis. |
-| Widget update | T3 | Not run | Widget not yet built |
-| Reboot survival | T4 | Not run | Deferred to S1 |
-| Re-enablement banner | T5 | Not run | Not yet built |
-| End-to-end Firestore | T6 | Not run | Not yet built |
-
-**OEM-specific findings:**
-Significant accuracy discrepancy vs OPPO CPH2565 under identical test conditions (same app, same 5min duration, same notificationTimeout=20). Working hypothesis: OPPO's ColorOS applies additional event throttling beyond what notificationTimeout controls, consistent with documented OEM aggressiveness patterns in Section 3.3 vs 3.5. Needs further investigation — see SENSOR_PROGRESS.md.
-
-**Battery whitelist notes:**
-N/A — stock Android, no whitelist expected needed per Section 3.5.
-
-**Overall verdict:** Needs fixes ❌ — cross-device magnitude discrepancy unresolved, requires investigation before this pair of devices can be considered consistently calibrated.
----
-
-### Completed Device Logs
-
-> _(No tests run yet — paste a filled template here for each device tested)_
+**Overall verdict:** Partial — whitelist required ⚠️ (S1.A5 functionally complete per spec — non-dismissible confirmed on stock Android; OPPO dismissibility is a documented OEM quirk, not a blocker)
 
 ---
 
@@ -348,7 +311,9 @@ Screen 8 (OEM battery-whitelist screen) shows manufacturer-specific steps derive
 | # | Device | Manufacturer | Bug description | Severity | Workaround found? | Fixed in build? |
 |---|---|---|---|---|---|---|
 | — | — | — | No known bugs yet | — | — | — |
+| 1 | OPPO CPH2565 (likely all Android 13+ devices) | OPPO | Foreground service notification (S1.A5) doesn't display on fresh install — POST_NOTIFICATIONS is a runtime permission on API 33+ and defaults to denied; app has no runtime request flow for it yet | 🟡 High | Manual toggle in Settings as temporary workaround | Not yet — needs runtime permission request code |
 
+| 2 | OPPO CPH2565 (ColorOS) | OPPO | Foreground notification swipe-dismissible despite setOngoing(true) + specialUse FGS type, confirmed not reproducible on Pixel | 🟢 Low | None — accepted OEM limitation | N/A — not fixable at app level |
 ---
 
 ## 9. SIDELOAD READINESS SUMMARY

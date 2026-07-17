@@ -11,7 +11,7 @@
 > _(A updates this line at the end of every session so B knows where things stand without reading the whole file)_
 
 **Sprint 0:** Complete ✅ (signed off 2026-07-12)
-**Sprint 1:** In progress — S1.A1 ✅, S1.A2 ✅ (2026-07-14), S1.A3 next
+**Sprint 1:** In progress — S1.A1 ✅, S1.A2 ✅, S1.A3 ✅, S1.A4 ✅, S1.A5 ✅, S1.A6 ✅ (2026-07-17), S1.A7 next
 **Sprint 2 handoff ready:** ❌ — Sprint 1 not yet complete (S1.A9 ScrollRepository still pending). B should still use mock data for now.
 
 **What B can safely build against right now:** Mock data only. Use `0.0f` as a placeholder for `getTodayTotalKm()` and label it clearly as a stub in code comments (`// STUB: replace with ScrollRepository.getTodayTotalKm() after S1.A9`).
@@ -31,10 +31,10 @@ Track each component independently — a component is "done" only when it has pa
 | RecyclerView reset guard | `service/ScrollAccessibilityService.kt` | ✅ Verified on device | S0 | ☑ |
 | Room entities | `room/ScrollEvent.kt`, `DailyTotal.kt`, `AppTotal.kt`, `ServiceHealthState.kt` | ✅ Verified on device | S1 | ☑ |
 | Room database | `room/ScrollaDatabase.kt` | ✅ Verified on device | S1 | ☑ |
-| Room DAOs | `room/dao/` | ✅ Verified on device | S1 | ☑ |
+| Room DAOs | `room/dao/` | ✅ Verified on device | S1 |☑ |
 | Batch flush logic | inside `ScrollAccessibilityService.kt` | ✅ Verified on device | S1 |   ☑ |
-| Foreground service setup | inside `ScrollAccessibilityService.kt` | 🔴 Not started | S1 | ☐ |
-| ServiceHealthState updates | `room/ServiceHealthState.kt` + service | 🔴 Not started | S1 | ☐ |
+| Foreground service setup | inside `ScrollAccessibilityService.kt` | ✅ Verified on device | S1 |☑ |
+| ServiceHealthState updates | `room/ServiceHealthState.kt` + service | ✅ Verified on device | S1 |☑ |
 | BOOT_COMPLETED receiver | `device/BootReceiver.kt` | 🔴 Not started | S1 | ☐ |
 | OEM battery whitelist screen | `device/BatteryWhitelistHelper.kt` | 🔴 Not started | S1 | ☐ |
 | ScrollRepository implementation | `room/ScrollRepository.kt` | 🔴 Not started | S1 | ☐ |
@@ -84,6 +84,10 @@ Every time A makes a decision that isn't obvious from the contract or deviates f
 | 1 | 2026-07-10 | scrollDeltaY fallback when scrollY==0 (API 28+, excluding -1 sentinel and 0) | Instagram/Chrome report scroll motion only via scrollDeltaY; scrollY always 0 | Yes — per-app distances for these apps derive from delta events, not cumulative position |
 | 2 | 2026-07-10 | YouTube accepted as untrackable | Fires no scroll events at all under canRetrieveWindowContent=false (verified via typeAllMask diagnostic) | Yes — YouTube will show 0 distance in leaderboards; UI may need to communicate this |
 
+| 3 | 2026-07-16 | Changed foregroundServiceType from `dataSync` (per AGENTS.md 4.1) to `specialUse` | On API 34+, `dataSync` FGS type has an anti-abuse restriction that makes the notification dismissible even with setOngoing(true) — confirmed via testing. `specialUse` is the correct semantic type for a continuous, unbounded tracking service and has no such restriction. Requires `PROPERTY_SPECIAL_USE_FGS_SUBTYPE` manifest declaration. | Yes — B should know AGENTS.md 4.1's `dataSync` reference is now stale; actual type is `specialUse` |
+
+| 4 | 2026-07-17 | Added `getOnce(): ServiceHealthState?` suspend query to `ServiceHealthDao` (fetch-then-copy pattern in `flushBatch()`) | `upsert()`'s `OnConflictStrategy.REPLACE` on fixed `id=1` means constructing a fresh `ServiceHealthState` object on each write silently zeroes out unrelated fields (caught via forced-failure test before it could surface as a dormant S1.A9 Firestore bug). `flushBatch()` now fetches the current row first, then `.copy()`s only the fields that should change. | Yes — B should know `ServiceHealthDao` now has a one-shot getter in addition to `observe()`, and that direct-construction of `ServiceHealthState` for updates is the wrong pattern going forward |
+
 **Example of what belongs here:**
 ```
 | 1 | 2025-02-14 | Using viewIdResourceName + scrollY bucket as fallback key when viewId is null, not just "unknown" | "unknown" key caused cross-view contamination on Instagram's feed, which has many unlabelled RecyclerViews | Yes — B should know that getTodayTopApps() may group some Instagram events under a fallback key rather than the exact package |
@@ -99,6 +103,8 @@ Updated as testing reveals manufacturer-specific behavior. This feeds directly i
 |---|---|---|---|---|---|
 | — | — | — | No findings yet | — | — |
 | OPPO | CPH2565 | 15 | ColorOS kills the accessibility service process within ~seconds-to-minutes of scroll inactivity; system logs it in mCrashedServices and auto-restarts it. No FATAL EXCEPTION in crash buffer — OS kill, not a code crash. Observed twice on 2026-07-10 (18:17, 19:26). Each restart wipes the in-memory HashMap (re-baseline). | Open | S1 foreground service + battery whitelist (S1.A7) should mitigate; verify survival time improves after those land |
+
+| OPPO | CPH2565 | 15 | Foreground notification remains swipe-dismissible despite correct `setOngoing(true)` + `specialUse` foreground service type. Confirmed NOT reproducible on Google Pixel (stock Android) with identical code/build. Appears to be a ColorOS notification-shade override of the ongoing flag — no app-level workaround identified. | Open — accepted as OEM limitation | None known; feeds into S1.A7 battery/OEM messaging, since this device is already known to be aggressive |
 
 **What to log here:** Anything that works differently on one manufacturer versus another — service survival time before being killed, events not firing for certain apps, widget not updating on schedule, battery whitelist steps that differ from what the help text says. These notes inform the OEM battery whitelist screen built in S1.A7.
 

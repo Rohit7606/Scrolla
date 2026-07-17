@@ -11,6 +11,9 @@ interface ServiceHealthDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(state: ServiceHealthState)
 
+    @Query("SELECT * FROM service_health WHERE id = 1 LIMIT 1")
+    suspend fun getOnce(): ServiceHealthState?   // ADDED
+
     @Query("SELECT * FROM service_health WHERE id = 1")
-    fun observe(): Flow<ServiceHealthState?>   // Flow, not suspend — Screen 8 observes this continuously
+    fun observe(): Flow<ServiceHealthState?>   // unchanged
 }
