@@ -11,6 +11,7 @@ import android.view.accessibility.AccessibilityEvent
 import androidx.core.app.NotificationCompat
 import com.scrolla.model.DistanceFormatter
 import com.scrolla.model.ScrollaConstants
+import com.scrolla.room.DailyTotal
 import com.scrolla.room.ScrollEvent
 import com.scrolla.room.ScrollaDatabase
 import com.scrolla.room.ServiceHealthState
@@ -172,6 +173,31 @@ class ScrollAccessibilityService : AccessibilityService() {
                             db.scrollEventDao().insert(event)
                         }
                     }
+                }
+                // S1.A10: Recompute daily_totals for every distinct day touched by
+                // this flush. Usually one day, but a flush can span midnight and
+                // touch two. Collect distinct day strings from the snapshot keys
+                // (first ":"-delimited segment, same parsing as the insert loop),
+                // then upsert a DailyTotal per day using the authoritative current
+                // sum queried from the table — this runs AFTER the inserts above,
+                // so getTotalCmForDay() reflects the true up-to-date total, not just
+                // this batch's contribution. Falls through to the catch block below
+                // like any other failure in this try.
+                val distinctDays = snapshot.keys.mapNotNull { key ->
+                    val parts = key.split(":")
+                    if (parts.size == 3) parts[0] else null
+                }.toSet()
+                for (day in distinctDays) {
+                    val totalCm = db.scrollEventDao().getTotalCmForDay(day) ?: 0f
+                    val totalKm = totalCm / ScrollaConstants.CM_PER_KM
+                    db.dailyTotalDao().upsert(
+                        DailyTotal(
+                            day = day,
+                            totalCm = totalCm,
+                            totalKm = totalKm,
+                            lastUpdated = timestamp
+                        )
+                    )
                 }
                 // S1.A6: Mark service as healthy on successful flush
                 val updatedState = currentState.copy(
