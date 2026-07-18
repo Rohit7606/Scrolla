@@ -335,3 +335,8 @@ that test was run before the Logcat buffer fix. Re-tested with the 16MB buffer:
 confirmed at this point; both devices produce comparable results once the 
 measurement artifact is removed.
 
+S1.A7 note: this task touches ui/screens/BatteryWhitelistScreen.kt, which falls under Person B's owned folder per AGENTS.md Section 2. This is a deliberate, documented exception — S1.A7 is explicitly assigned to Person A in the sprint plan because it's tightly coupled to device/manufacturer-detection logic in device/, not general product UI. B should be aware ui/screens/ now exists with this one file before starting Sprint 2 NavHost work. MainActivity.kt's current direct-screen wiring is temporary and marked as such — B will need to replace it with proper navigation when the NavHost is built.
+Also: the try-catch blocks in BatteryWhitelistHelper.kt (OEM intent fallbacks) don't cleanly fit either of AGENTS.md 4.8's two error-handling patterns (A's "fail loud internally, invisible to user" vs B's "fail visible to user, recoverable") — this is device/OEM plumbing, not sensor tracking or social/UI state. Chose a third pattern: silently cascade to the next fallback (Xiaomi intent → generic battery settings → app details settings), since a user looking at a battery-whitelist help screen has no meaningful "retry" action if an intent fails — the only real action is trying the next fallback automatically, which the code already does.
+
+3. REVIEW_LOG.md — since this isn't a mandatory M1/M2 review (doesn't touch tracking/ or firestore/), no log entry is strictly required. Optional: you could log it as informal awareness for B, but not necessary per the doc's own rules.
+
