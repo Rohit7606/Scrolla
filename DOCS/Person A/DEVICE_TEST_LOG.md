@@ -247,6 +247,7 @@ Add a block for every device tested. Keep all entries — failures are as import
 [Did the UI steps in Section 3 match what actually existed on this device? Any steps that were wrong/missing?]
 
 **Overall verdict:** Ready for friend group ✅ / Needs fixes ❌ / Partial — whitelist required ⚠️
+
 ---
 ```
 ### Completed Device Logs
@@ -272,6 +273,17 @@ Not yet tested — deferred to S1.A7.
 
 **Overall verdict:** Partial — whitelist required ⚠️ (S1.A5 functionally complete per spec — non-dismissible confirmed on stock Android; OPPO dismissibility is a documented OEM quirk, not a blocker)
 
+**Update — 2026-07-18 (Protocol T4, Reboot Survival Test / S1.A8):**
+
+| Test | Protocol | Result | Notes |
+|---|---|---|---|
+| Reboot survival | T4 | Pass | `isAccessibilityServiceEnabled` correctly showed `1` after reboot, matching pre-reboot state (service was left enabled). Confirmed via `dumpsys package` correct manifest registration and Logcat line `BootCompletedReceiver: BOOT_COMPLETED: ScrollAccessibilityService enabled = true`. |
+
+**OEM-specific findings (T4):**
+1. **Boot broadcast timing is slow on this device — not a failure, just a delay.** `com.scrolla`'s process wasn't started by the system until ~35 seconds post-boot, and `BootCompletedReceiver` didn't complete until ~75 seconds post-boot — over a minute after `adb reboot` completed. Checking Logcat immediately after reboot gives a false negative; other apps' boot receivers (Google Play, dynsystem) fired within the first few seconds, so this delay is specific to how this app/receiver gets scheduled, not a system-wide slowdown.
+   - **Test protocol correction:** Protocol T4 above doesn't currently specify a wait time before checking. Recommend adding: "wait at least 90 seconds after reboot before checking Logcat/DB state" to avoid false failures in future testing.
+2. Manually toggled OPPO's "Allow background activity" (Settings → App info → Battery usage) OFF then ON while investigating — this did not appear to be the actual fix, since the receiver fired successfully on a later reboot regardless of this toggle's state. Not conclusively ruled out as a factor; worth re-testing with it OFF if boot-receiver issues resurface later.
+3. Confirmed (platform-level, not OEM-specific): `adb shell am broadcast -a android.intent.action.BOOT_COMPLETED` cannot be used to manually trigger boot receivers for testing on Android 15 — blocked with `SecurityException: not allowed to send broadcast`. Real reboots are the only way to test this receiver; no manual shortcut exists.
 ---
 
 ## 6. SERVICE SURVIVAL TIME LOG

@@ -14,7 +14,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         AppTotal::class,
         ServiceHealthState::class
     ],
-    version = 1
+    version = 2
 )
 abstract class ScrollaDatabase : RoomDatabase() {
     // S1.A2: DAO accessors
@@ -30,8 +30,7 @@ abstract class ScrollaDatabase : RoomDatabase() {
         // When the schema changes, bump `version` and implement the migrate() body.
         private val MIGRATION_1_2 = object : Migration(1, 2) {
             override fun migrate(database: SupportSQLiteDatabase) {
-                // No schema changes yet — database is still at version 1.
-                // Future migrations implement ALTER/CREATE statements here.
+                database.execSQL("ALTER TABLE service_health ADD COLUMN isAccessibilityServiceEnabled INTEGER NOT NULL DEFAULT 1")
             }
         }
 

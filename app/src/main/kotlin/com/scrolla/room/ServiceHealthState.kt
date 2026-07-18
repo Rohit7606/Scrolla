@@ -9,6 +9,7 @@ data class ServiceHealthState(
     val id: Int = 1,            // always 1, singleton row
 
     val isServiceRunning: Boolean,
+    val isAccessibilityServiceEnabled: Boolean = true,
     val lastEventTimestamp: Long,       // timestamp of last scroll event received
     val lastRoomFlushTimestamp: Long,   // timestamp of last successful Room write
     val lastFirestoreSyncTimestamp: Long,
