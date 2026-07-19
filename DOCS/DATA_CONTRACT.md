@@ -103,7 +103,7 @@ data class ServiceHealthState(
     val id: Int = 1,            // always 1, singleton row
 
     val isServiceRunning: Boolean,
-    val isAccessibilityServiceEnabled: Boolean,   // NEW: tracks OS/OEM-level enablement, separate from isServiceRunning's internal-health meaning. Checked on BOOT_COMPLETED and MainActivity.onCreate() (S1.A8).
+    val isAccessibilityServiceEnabled: Boolean = true,  // default added because ScrollAccessibilityService's flushBatch() fallback constructor predates this field; checked/updated by BootCompletedReceiver and MainActivity.onCreate() (S1.A8).
     val lastEventTimestamp: Long,       // timestamp of last scroll event received
     val lastRoomFlushTimestamp: Long,   // timestamp of last successful Room write
     val lastFirestoreSyncTimestamp: Long,
@@ -434,6 +434,6 @@ These are the specific things that would silently break A's data layer, listed h
 | Version | Date | Changed by | What changed |
 |---|---|---|---|
 | 1.0 | — | Both | Initial contract — Room schema, Firestore paths, ScrollRepository interface, DistanceFormatter |
-| 1.1 | 2026-07-18 | A | Added `isAccessibilityServiceEnabled: Boolean` to `ServiceHealthState` — tracks whether the OS has disabled the accessibility service (distinct from `isServiceRunning`'s internal-health meaning). For S1.A8 (boot receiver + MainActivity re-check per scrolla_project_summary.md Section 16). |
+| 1.1 | 2026-07-18 | A | Added `isAccessibilityServiceEnabled: Boolean` to `ServiceHealthState` — tracks whether the OS has disabled the accessibility service (distinct from `isServiceRunning`'s internal-health meaning). For S1.A8 (boot receiver + MainActivity re-check per scrolla_project_summary.md Section 16). Field carries a `= true` default in code (not in the original spec) because ScrollAccessibilityService's existing flushBatch() fallback constructor predates this field. |
 
 > When updating: bump the version at the top of this file, add a row here, and update the `Version` field in AGENTS.md Section 7's reference to this file if the shape of any exposed function changed.
