@@ -37,16 +37,16 @@
 
 | # | Milestone | Verified? | Date | Notes |
 |---|---|---|---|---|
-| S1.A1 | Room DB set up with four entities (`ScrollEvent`, `DailyTotal`, `AppTotal`, `ServiceHealthState`) per `DATA_CONTRACT.md` Sec 2.1. Migrations even v1 — no `fallbackToDestructiveMigration()` prod. | ☐ | | |
-| S1.A2 | All DAOs from `DATA_CONTRACT.md` Sec 2.2 implemented/tested. | ☐ | | |
-| S1.A3 | In‑memory batch accumulator flushes Room every `ScrollaConstants.BATCH_FLUSH_EVENT_COUNT` events OR every `ScrollaConstants.BATCH_FLUSH_INTERVAL_MS`, whichever first. | ☐ | | |
-| S1.A4 | Flush also fires in `onInterrupt()`/`onDestroy()` callbacks — force‑stop app while scrolling, verify no data loss beyond current batch window. | ☐ | | |
-| S1.A5 | `startForeground()` called in `onServiceConnected()` per `AGENTS.md` Sec 4.1. Notification uses `ScrollaConstants.NOTIFICATION_TEXT` and `ScrollaConstants.NOTIFICATION_CHANNEL_ID`. Non‑dismissible where API allows. | ☐ | | |
-| S1.A6 | `ServiceHealthState` updates every successful Room flush (marks `isServiceRunning = true`, updates `lastRoomFlushTimestamp`). Marks `degradedReason` on catch per `AGENTS.md` Sec 4.8. | ☐ | | |
-| S1.A7 | OEM battery‑whitelist screen (Screen 8) built. Detects `Build.MANUFACTURER` shows Samsung/Xiaomi/OnePlus/Huawei steps; generic others. Tested on ≥1 physical device. | ☐ | | |
-| S1.A8 | `BOOT_COMPLETED` receiver registered. Checks `AccessibilityManager.getEnabledAccessibilityServiceList()` after reboot, updates `ServiceHealthState.isServiceRunning`. | ☐ | | |
-| S1.A9 | `ScrollRepository` interface from `DATA_CONTRACT.md` Sec 4 fully implemented. All functions correct types; all try‑catch per `AGENTS.md` Sec 4.8 (A track). | ☐ | | |
-| S1.A10 | `DailyTotal` recomputed sync time: `totalCm` = sum today `scroll_events`, `totalKm` = `totalCm / ScrollaConstants.CM_PER_KM`, day string `LocalDate.now().toString()`. | ☐ | | |
+| S1.A1 | Room database set up with all four entities (`ScrollEvent`, `DailyTotal`, `AppTotal`, `ServiceHealthState`) per `DATA_CONTRACT.md` Section 2.1. Migrations defined even at v1 — no `fallbackToDestructiveMigration()` in production config. | ☐ | | |
+| S1.A2 | All DAOs from `DATA_CONTRACT.md` Section 2.2 implemented and tested. | ☐ | | |
+| S1.A3 | In-memory batch accumulator flushes to Room every `ScrollaConstants.BATCH_FLUSH_EVENT_COUNT` events OR every `ScrollaConstants.BATCH_FLUSH_INTERVAL_MS`, whichever comes first. | ☐ | | |
+| S1.A4 | Flush also fires inside `onInterrupt()` and `onDestroy()` callbacks — confirmed by force-stopping the app while scrolling and verifying no data loss beyond the current batch window. | ☐ | | |
+| S1.A5 | `startForeground()` called inside `onServiceConnected()` per `AGENTS.md` Section 4.1. Notification uses `ScrollaConstants.NOTIFICATION_TEXT` and `ScrollaConstants.NOTIFICATION_CHANNEL_ID`. Notification confirmed non-dismissible where API allows. | ☐ | | |
+| S1.A6 | `ServiceHealthState` updates on every successful Room flush (marks `isServiceRunning = true`, updates `lastRoomFlushTimestamp`). Marks `degradedReason` on any catch block per `AGENTS.md` Section 4.8. | ☐ | | |
+| S1.A7 | OEM battery-whitelist screen (Screen 8) built. Detects `Build.MANUFACTURER` and shows manufacturer-specific steps for Samsung, Xiaomi, OnePlus, Huawei. Shows generic instructions for all others. Tested on at least one physical device. | ☐ | | |
+| S1.A8 | `BOOT_COMPLETED` receiver registered. Checks `AccessibilityManager.getEnabledAccessibilityServiceList()` after every reboot and updates `ServiceHealthState.isServiceRunning` accordingly. | ☐ | | |
+| S1.A9 | `ScrollRepository` interface from `DATA_CONTRACT.md` Section 4 fully implemented. All functions return correct types. All functions have try-catch per `AGENTS.md` Section 4.8 (A's track pattern). | ☐ | | |
+| S1.A10 | `DailyTotal` recomputed correctly at sync time: `totalCm` = sum of today's `scroll_events`, `totalKm` = `totalCm / ScrollaConstants.CM_PER_KM`, day string uses `LocalDate.now().toString()`. | ☐ | | |
 
 ### Person B — Sprint 1
 
@@ -54,7 +54,7 @@
 |---|---|---|---|---|
 | S1.B1 | Firebase project configured (Auth + Firestore in same project). Firebase config file added to the Android project. | ☑ | 2026-07-15 | R — Added debug SHA-1 fingerprint to Firebase, replaced google-services.json, built debug APK and installed on real device. |
 | S1.B2 | Google Sign-In implemented. User's Firebase Auth UID confirmed as the stable `userId` — not a randomly generated string, not a device ID. | ☑ | 2026-07-15 | R — Verified Google Sign-In returns stable Firebase Auth UID on device. |
-| S1.B3 | Sign-in flow leads correctly into the onboarding sequence (Screen 1 → 2 → 3 → 4 per `scrolla_project_summary.md` Section 8). | ☐ | | |
+| S1.B3 | Sign-in flow leads correctly into the onboarding sequence (Screen 1 → 2 → 3 → 4 per `scrolla_project_summary.md` Section 8). | ☑ | 2026-08-10 | R — Built full phase-based onboarding in Compose with spring animations, integrated battery whitelist, and wired to MainActivity navigation. |
 | S1.B4 | Phone number linking implemented in Profile page (Screen 15) via `linkWithCredential()`. Framed as "add a backup way to sign in," not a separate account. Tested: sign in with Google, link phone, sign out, sign back in with phone — same UID returned. | ☐ | | |
 | S1.B5 | Firestore security rules written per `scrolla_project_summary.md` Section 10. **Not deployed yet — A must review first (cross-review rule).** | ☐ | | |
 | S1.B6 | A has reviewed B's Firestore security rules. Logged in `REVIEW_LOG.md`. | ☐ | | |

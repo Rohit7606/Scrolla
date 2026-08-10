@@ -1,4 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <style name="Theme.MyApplication" parent="Theme.AppCompat.Light.NoActionBar" />
+    <!-- Main application theme -->
+    <style name="Theme.MyApplication" parent="Theme.AppCompat.Light.NoActionBar">
+        <!-- Customize your light theme here. -->
+        <item name="android:windowNoTitle">true</item>
+    </style>
+
+    <!-- Splash Screen theme for Android 12+ -->
+    <style name="Theme.App.Starting" parent="Theme.SplashScreen">
+        <!-- Background color of the splash screen -->
+        <item name="windowSplashScreenBackground">#ED6A5A</item> <!-- Accent500 -->
+        <!-- Icon to display in the center -->
+        <item name="windowSplashScreenAnimatedIcon">@drawable/scrolla_logo_small</item>
+        <!-- Theme to switch to after the splash screen -->
+        <item name="postSplashScreenTheme">@style/Theme.MyApplication</item>
+    </style>
 </resources>

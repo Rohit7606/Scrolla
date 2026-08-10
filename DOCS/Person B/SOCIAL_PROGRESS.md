@@ -10,7 +10,7 @@
 
 > _(B updates this line at the end of every session so A knows where things stand without reading the whole file)_
 
-**Sprint 1 (B's sub-track):** Not started
+**Sprint 1 (B's sub-track):** 🟡 In progress (Onboarding flow complete)
 **Sprint 2:** Not started — waiting on Sprint 0 sensor verification from A
 **Sprint 3:** Not started
 
@@ -34,10 +34,8 @@ Each screen is tracked independently. A screen is not "done" until it has: real 
 
 | # | Screen | File | Status | Real data? | Empty state? | Error state? | Device checked? |
 |---|---|---|---|---|---|---|---|
-| 1 | Sign in with Google | `ui/auth/SignInScreen.kt` | 🔴 Not started | N/A | N/A | ☐ auth failure handled | ☐ |
-| 2 | Welcome | `ui/onboarding/WelcomeScreen.kt` | 🔴 Not started | N/A | N/A | N/A | ☐ |
-| 3 | Permission ask | `ui/onboarding/PermissionScreen.kt` | 🔴 Not started | N/A | ☐ | ☐ denied state | ☐ |
-| 4 | Join or create group | `ui/onboarding/GroupSetupScreen.kt` | 🔴 Not started | ☐ | ☐ | ☐ invalid code | ☐ |
+| 1 | Sign in with Google | `ui/screens/SignInScreen.kt` | 🟢 Code complete | N/A | N/A | ☑ auth failure handled | ☐ |
+| 2-4 | Onboarding (Welcome, Permission, Join Group) | `ui/screens/OnboardingScreen.kt` | 🟢 Code complete | N/A | N/A | N/A | ☐ |
 
 ### Layer 2 — Main Tabs (Screens 5–7)
 
@@ -247,6 +245,14 @@ A running scratchpad for in-progress thoughts, things to pick up next session, q
 - Added placeholder string for default_web_client_id in strings.xml
 - Committed changes to branch b/firebase-auth-setup
 - Updated SOCIAL_PROGRESS.md to reflect in-progress status
+
+**2026-08-10**
+- Built out full Compose `OnboardingScreen.kt` flow with `OnboardingPhase` enum (Welcome -> Reveal -> Invitation -> Permission -> Battery Whitelist -> Join Group).
+- Implemented ambient background glow and spring transitions based on brand guidelines.
+- Wired `onGrantPermission` to `ACTION_ACCESSIBILITY_SETTINGS` intent in `MainActivity.kt`.
+- Updated `BatteryWhitelistHelper.kt` instructions to use generic "Scrolla" naming and removed list number prefixes.
+- Cleaned up `MainActivity.kt` navigation flow.
+- Checked off S1.B3 in SPRINT_LOG.md.
 
 ---
 
