@@ -60,6 +60,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.DisposableEffect
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -258,10 +262,10 @@ fun OnboardingScreen(
                             )
                             
                             OnboardingPhase.PERMISSION -> PermissionPhase(
-                                onGrantPermission = {
+                                onLaunchSettings = {
                                     onGrantPermission()
-                                    phase = OnboardingPhase.BATTERY_WHITELIST
-                                }
+                                },
+                                onNext = { phase = OnboardingPhase.BATTERY_WHITELIST }
                             )
 
                             OnboardingPhase.BATTERY_WHITELIST -> BatteryWhitelistPhase(
@@ -823,8 +827,27 @@ private fun LeaderboardPreviewRow(
 
 @Composable
 private fun PermissionPhase(
-    onGrantPermission: () -> Unit
+    onLaunchSettings: () -> Unit,
+    onNext: () -> Unit
 ) {
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+    var hasLaunchedSettings by remember { mutableStateOf(false) }
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                if (com.scrolla.device.isScrollAccessibilityServiceEnabled(context)) {
+                    onNext()
+                }
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
     var animationTrigger by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         delay(100)
@@ -889,8 +912,15 @@ private fun PermissionPhase(
             Spacer(modifier = Modifier.weight(1f))
 
             ScrollaPrimaryButton(
-                text = ScrollaStrings.PERMISSION_BUTTON,
-                onClick = onGrantPermission,
+                text = if (com.scrolla.device.isScrollAccessibilityServiceEnabled(context)) "Permission Granted - Continue" else ScrollaStrings.PERMISSION_BUTTON,
+                onClick = {
+                    if (com.scrolla.device.isScrollAccessibilityServiceEnabled(context)) {
+                        onNext()
+                    } else {
+                        hasLaunchedSettings = true
+                        onLaunchSettings()
+                    }
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .alpha(alpha3)
@@ -960,8 +990,23 @@ private fun BatteryWhitelistPhase(
     onNext: () -> Unit
 ) {
     val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
     val helper = remember { BatteryWhitelistHelper() }
     val instructions = helper.getInstructions(Build.MANUFACTURER)
+    var hasLaunchedSettings by remember { mutableStateOf(false) }
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME && hasLaunchedSettings) {
+                // When they return from settings, auto-advance for smoother UX
+                onNext()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
 
     var animationTrigger by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
@@ -1043,7 +1088,10 @@ private fun BatteryWhitelistPhase(
 
             ScrollaPrimaryButton(
                 text = ScrollaStrings.BATTERY_OPEN_SETTINGS_BUTTON,
-                onClick = { helper.openBatterySettings(context) },
+                onClick = { 
+                    hasLaunchedSettings = true
+                    helper.openBatterySettings(context) 
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .alpha(alpha3)
