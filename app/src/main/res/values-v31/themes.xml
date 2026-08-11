@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Splash screen theme for API 31+. Controls the system-drawn splash that
+         appears before setContent() renders. postSplashScreenTheme hands off to
+         the app's normal theme once the Compose UI is ready. -->
+    <style name="Theme.Scrolla.Splash" parent="Theme.SplashScreen">
+        <!-- Full-screen background: Accent500 coral — matches MaterialTheme primary -->
+        <item name="windowSplashScreenBackground">#ED6A5A</item>
+        <!-- Transparent 1x1 drawable = no icon in the splash circle, clean full-bleed -->
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_icon_empty</item>
+        <!-- Hand off to the main app theme after splash exits -->
+        <item name="postSplashScreenTheme">@style/Theme.MyApplication</item>
+    </style>
+</resources>

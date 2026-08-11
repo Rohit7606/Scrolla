@@ -1,7 +1,7 @@
 # SOCIAL_PROGRESS.md — Person B (Social & Experience Track)
 **Owner:** Person B
 **Track:** `ui/`, `firestore/`, `auth/`, `leaderboard/`, `gamification/`
-**Last updated:** _(update this date every session)_
+**Last updated:** 2026-07-14
 **AI agents reading this:** This is Person B's working file. Before suggesting any implementation in B's folders, read the current status, known issues, and dependency sections. Never suggest wiring a Compose screen to real sensor data until Section 1's handoff status shows ✅. Cross-reference `DATA_CONTRACT.md` Section 4 for every function B calls from `ScrollRepository`. Never write to Firestore daily totals directly — only `triggerFirestoreSync()` does that (A's function, B calls it on a timer).
 
 ---
@@ -10,7 +10,7 @@
 
 > _(B updates this line at the end of every session so A knows where things stand without reading the whole file)_
 
-**Sprint 1 (B's sub-track):** Not started
+**Sprint 1 (B's sub-track):** 🟡 In progress (Onboarding flow complete)
 **Sprint 2:** Not started — waiting on Sprint 0 sensor verification from A
 **Sprint 3:** Not started
 
@@ -34,10 +34,8 @@ Each screen is tracked independently. A screen is not "done" until it has: real 
 
 | # | Screen | File | Status | Real data? | Empty state? | Error state? | Device checked? |
 |---|---|---|---|---|---|---|---|
-| 1 | Sign in with Google | `ui/auth/SignInScreen.kt` | 🔴 Not started | N/A | N/A | ☐ auth failure handled | ☐ |
-| 2 | Welcome | `ui/onboarding/WelcomeScreen.kt` | 🔴 Not started | N/A | N/A | N/A | ☐ |
-| 3 | Permission ask | `ui/onboarding/PermissionScreen.kt` | 🔴 Not started | N/A | ☐ | ☐ denied state | ☐ |
-| 4 | Join or create group | `ui/onboarding/GroupSetupScreen.kt` | 🔴 Not started | ☐ | ☐ | ☐ invalid code | ☐ |
+| 1 | Sign in with Google | `ui/screens/SignInScreen.kt` | 🟢 Code complete | N/A | N/A | ☑ auth failure handled | ☐ |
+| 2-4 | Onboarding (Welcome, Permission, Join Group) | `ui/screens/OnboardingScreen.kt` | 🟢 Code complete | N/A | N/A | N/A | ☐ |
 
 ### Layer 2 — Main Tabs (Screens 5–7)
 
@@ -68,8 +66,8 @@ Each screen is tracked independently. A screen is not "done" until it has: real 
 
 | Component | File(s) | Status | Verified? | Notes |
 |---|---|---|---|---|
-| Firebase project config | `google-services.json` + `build.gradle` | 🔴 Not started | ☐ | |
-| Firebase Auth — Google sign-in | `auth/AuthRepository.kt` | 🔴 Not started | ☐ | |
+| Firebase project config | `google-services.json` + `build.gradle` | 🟡 In progress | ☐ | Firebase Auth + Firestore configured, Google Sign-In implemented |
+| Firebase Auth — Google sign-in | `auth/AuthRepository.kt` | 🟡 In progress | ☐ | Google Sign-In flow implemented with Firebase credential exchange |
 | Firebase Auth — phone linking | `auth/AuthRepository.kt` | 🔴 Not started | ☐ | Test: same UID before and after linking |
 | Firestore security rules | `firestore/firestore.rules` | 🔴 Not started | ☐ | A must review before deploy — log in REVIEW_LOG.md |
 | Group create flow | `firestore/GroupRepository.kt` | 🔴 Not started | ☐ | |
@@ -233,6 +231,28 @@ Full list in `AGENTS.md` Section 4 and `DATA_CONTRACT.md` Section 7. The most co
 A running scratchpad for in-progress thoughts, things to pick up next session, questions for A. Not structured — just useful.
 
 > _(Add dated notes here as you work. Archive completed notes to a collapsible section once resolved.)_
+
+**2026-07-14**
+- Configured Firebase project with Auth and Firestore dependencies
+- Updated gradle/libs.versions.toml with Firebase BOM and library versions
+- Updated app/build.gradle.kts to implement Firebase Auth and Firestore
+- Verified and updated google-services.json to include auth and festore services
+- Created ScrollaApplication.kt to initialize Firebase (though auto-initialized via plugin)
+- Set android:name=".auth.ScrollaApplication" in AndroidManifest.xml
+- Created AuthRepository.kt with Google Sign-In credential handling
+- Created SignInActivity.kt with complete Google Sign-In flow
+- Updated AndroidManifest.xml to set SignInActivity as launcher
+- Added placeholder string for default_web_client_id in strings.xml
+- Committed changes to branch b/firebase-auth-setup
+- Updated SOCIAL_PROGRESS.md to reflect in-progress status
+
+**2026-08-10**
+- Built out full Compose `OnboardingScreen.kt` flow with `OnboardingPhase` enum (Welcome -> Reveal -> Invitation -> Permission -> Battery Whitelist -> Join Group).
+- Implemented ambient background glow and spring transitions based on brand guidelines.
+- Wired `onGrantPermission` to `ACTION_ACCESSIBILITY_SETTINGS` intent in `MainActivity.kt`.
+- Updated `BatteryWhitelistHelper.kt` instructions to use generic "Scrolla" naming and removed list number prefixes.
+- Cleaned up `MainActivity.kt` navigation flow.
+- Checked off S1.B3 in SPRINT_LOG.md.
 
 ---
 
