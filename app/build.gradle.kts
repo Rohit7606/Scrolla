@@ -68,5 +68,4 @@ dependencies {
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
     coreLibraryDesugaring(libs.desugar.jdk.libs)
-    implementation(libs.androidx.core.splashscreen)
 }

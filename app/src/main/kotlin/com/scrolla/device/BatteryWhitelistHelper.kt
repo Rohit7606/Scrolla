@@ -21,56 +21,56 @@ class BatteryWhitelistHelper {
     private val MANUFACTURER_SPECIFIC = mapOf(
         "samsung" to BatteryInstructions(
             manufacturer = "Samsung",
-            title = "Enable Scrolla in Battery Optimization",
+            title = "Enable Scroll in Battery Optimization",
             steps = listOf(
-                "Open Settings → Battery → Battery optimization",
-                "Find 'Scrolla' from the list of apps",
-                "Select 'Scrolla' and choose 'Don't optimize'",
-                "Re-enable the Accessibility service if prompted"
+                "1. Open Settings → Battery → Battery optimization",
+                "2. Find 'Scroll' from the list of apps",
+                "3. Select 'Scroll' and choose 'Don't optimize'",
+                "4. Re-enable the Accessibility service if prompted"
             )
         ),
         "xiaomi" to BatteryInstructions(
             manufacturer = "Xiaomi",
-            title = "Allow Autostart for Scrolla",
+            title = "Allow Autostart for Scroll",
             steps = listOf(
-                "Open Settings → Apps → Autostart",
-                "Find 'Scrolla' app",
-                "Enable 'Start in background'",
-                "Exit Settings, then enable Accessibility service in 'Privacy & Security' section"
+                "1. Open Settings → Apps → Autostart",
+                "2. Find 'Scroll' app",
+                "3. Enable 'Start in background'",
+                "4. Exit Settings, then enable Accessibility service in 'Privacy & Security' section"
             )
         ),
         "oneplus" to BatteryInstructions(
             manufacturer = "OnePlus",
-            title = "Whitelist Scrolla in Do Not Disturb",
+            title = "Whitelist Scroll in Do Not Disturb",
             steps = listOf(
-                "Open Settings → Notifications & status bar",
-                "Select 'App notifications' → 'Scrolla'",
-                "Enable 'Allow notifications' and 'Override Do Not Disturb'",
-                "Also add Scrolla to battery optimization exceptions"
+                "1. Open Settings → Notifications & status bar",
+                "2. Select 'App notifications' → 'Scroll'",
+                "3. Enable 'Allow notifications' and 'Override Do Not Disturb'",
+                "4. Also add Scroll to battery optimization exceptions"
             )
         ),
         "huawei" to BatteryInstructions(
             manufacturer = "Huawei",
-            title = "Disable Battery Optimization for Scrolla",
+            title = "Disable Battery Optimization for Scroll",
             steps = listOf(
-                "Open Settings → Battery manager → Junk cleaner → Auto-start manager",
-                "Find 'Scrolla' app",
-                "Allow it to start when system boots",
-                "Return to Settings → Security → App permissions → Battery optimization, select 'Allow'",
-                "Re-enable Accessibility service if prompted"
+                "1. Open Settings → Battery manager → Junk cleaner → Auto-start manager",
+                "2. Find 'Scroll' app",
+                "3. Allow it to start when system boots",
+                "4. Return to Settings → Security → App permissions → Battery optimization, select 'Allow'",
+                "5. Re-enable Accessibility service if prompted"
             )
         )
     )
 
     private val GENERIC = BatteryInstructions(
         manufacturer = "Generic",
-        title = "Enable Scrolla in Battery Optimization",
+        title = "Enable Scroll in Battery Optimization",
         steps = listOf(
-            "Open Settings → Battery",
-            "Select 'Battery optimization' (or 'Optimize battery usage')",
-            "Find 'Scrolla' from the list of apps",
-            "Select 'Scrolla' and choose 'Don't optimize' (or similar)",
-            "Re-enable the Accessibility service if prompted"
+            "1. Open Settings → Battery",
+            "2. Select 'Battery optimization' (or 'Optimize battery usage')",
+            "3. Find 'Scroll' from the list of apps",
+            "4. Select 'Scroll' and choose 'Don't optimize' (or similar)",
+            "5. Re-enable the Accessibility service if prompted"
         )
     )
 
