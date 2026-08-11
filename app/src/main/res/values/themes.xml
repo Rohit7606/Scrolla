@@ -15,4 +15,14 @@
         <!-- Theme to switch to after the splash screen -->
         <item name="postSplashScreenTheme">@style/Theme.MyApplication</item>
     </style>
-</resources>
+
+    <!-- Fallback for pre-API 31 devices. The manifest references Theme.Scrolla.Splash
+         but values-v31/ has the real SplashScreen API definition. On older devices
+         the compat SplashScreen library handles the splash, so this just needs to
+         exist and hand off to the main theme. -->
+    <style name="Theme.Scrolla.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">#ED6A5A</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/scrolla_logo_small</item>
+        <item name="postSplashScreenTheme">@style/Theme.MyApplication</item>
+    </style>
+</resources>
