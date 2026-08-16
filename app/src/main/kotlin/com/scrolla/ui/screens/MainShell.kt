@@ -1,5 +1,6 @@
 ﻿package com.scrolla.ui.screens
-
+import kotlinx.parcelize.Parcelize
+import android.os.Parcelable
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.tween
@@ -35,16 +36,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 
-sealed class ScreenRoute {
-    object MainTabs : ScreenRoute()
-    object Settings : ScreenRoute()
-    object PersonalRecords : ScreenRoute()
-    object HallOfFame : ScreenRoute()
-    object ManageGroups : ScreenRoute()
-    object JoinGroup : ScreenRoute()
-    object CreateGroup : ScreenRoute()
-    object WeeklyRecap : ScreenRoute()
-    object AppBreakdown : ScreenRoute()
+sealed class ScreenRoute : Parcelable {
+    @Parcelize object MainTabs : ScreenRoute()
+    @Parcelize object Settings : ScreenRoute()
+    @Parcelize object PersonalRecords : ScreenRoute()
+    @Parcelize object HallOfFame : ScreenRoute()
+    @Parcelize object ManageGroups : ScreenRoute()
+    @Parcelize object JoinGroup : ScreenRoute()
+    @Parcelize object CreateGroup : ScreenRoute()
+    @Parcelize object WeeklyRecap : ScreenRoute()
+    @Parcelize object AppBreakdown : ScreenRoute()
 }
 
 /**
