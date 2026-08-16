@@ -102,7 +102,7 @@ object ScrollaStrings {
     const val LEADERBOARD_STAT_WEEK_AVG = "7-day avg"
     const val LEADERBOARD_SELF_NAME = "You"
     const val LEADERBOARD_HALL_OF_FAME_PREFIX = "group's best day:"
-    const val LEADERBOARD_HALL_OF_FAME_LINK = "Hall of fame →"
+    const val LEADERBOARD_HALL_OF_FAME_LINK = "Hall of fame"
     const val LEADERBOARD_EMPTY_SOLO_HEADLINE = "You're the only one here"
     const val LEADERBOARD_EMPTY_SOLO_BODY = "Share your group code to invite friends. Until then, here's your personal progress."
     const val LEADERBOARD_NO_DATA = "No data yet — start scrolling"
@@ -135,11 +135,11 @@ object ScrollaStrings {
     // =========================================
     const val PROFILE_PERSONAL_BEST_LABEL = "personal best"
     const val PROFILE_PERSONAL_BEST_EMPTY = "Keep scrolling to set your first record"
-    const val PROFILE_PERSONAL_BEST_LINK = "Personal records →"
-    const val PROFILE_HALL_OF_FAME_LINK = "Hall of fame →"
+    const val PROFILE_PERSONAL_BEST_LINK = "Personal records"
+    const val PROFILE_HALL_OF_FAME_LINK = "Hall of fame"
     const val PROFILE_HALL_OF_FAME_RECORD_HOLDER = "You hold the group's best day"
     const val PROFILE_HALL_OF_FAME_EMPTY = "No record set yet — be the first"
-    const val PROFILE_GROUPS_LINK = "Manage groups →"
+    const val PROFILE_GROUPS_LINK = "Manage groups"
 
     // =========================================
     // Screen 9: Settings
