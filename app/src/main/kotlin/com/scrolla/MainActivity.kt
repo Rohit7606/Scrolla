@@ -88,9 +88,15 @@ class MainActivity : ComponentActivity() {
                         }
                         "signin" -> {
                             SignInScreen(
-                                onSignInSuccess = {
+                                onSignInSuccess = { isNewUser ->
                                     isSignedIn = true
-                                    currentScreen = if (isFirstLaunch) "onboarding" else "home"
+                                    if (isNewUser) {
+                                        currentScreen = "onboarding"
+                                    } else {
+                                        prefs.edit().putBoolean("is_first_launch", false).apply()
+                                        isFirstLaunch = false
+                                        currentScreen = "home"
+                                    }
                                 },
                                 onSignInError = { msg ->
                                     // Person B track: fail visible — surface error in a future snackbar.

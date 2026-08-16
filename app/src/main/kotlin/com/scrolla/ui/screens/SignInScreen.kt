@@ -54,7 +54,7 @@ import kotlinx.coroutines.tasks.await
 
 @Composable
 fun SignInScreen(
-    onSignInSuccess: () -> Unit = {},
+    onSignInSuccess: (isNewUser: Boolean) -> Unit = {},
     onSignInError: (String) -> Unit = {}
 ) {
     val context = LocalContext.current
@@ -80,9 +80,10 @@ fun SignInScreen(
                 val account = task.getResult(ApiException::class.java)
                 val idToken = account?.idToken
                 if (idToken != null) {
-                    AuthRepository().signInWithGoogleCredential(idToken).await()
+                    val authResult = AuthRepository().signInWithGoogleCredential(idToken).await()
+                    val isNewUser = authResult.additionalUserInfo?.isNewUser == true
                     isLoading = false
-                    onSignInSuccess()
+                    onSignInSuccess(isNewUser)
                 } else {
                     isLoading = false
                     Log.w("SignInScreen", "ID token is null after Google sign-in")
