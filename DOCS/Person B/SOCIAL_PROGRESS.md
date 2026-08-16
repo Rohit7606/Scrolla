@@ -69,7 +69,7 @@ Each screen is tracked independently. A screen is not "done" until it has: real 
 | Firebase project config | `google-services.json` + `build.gradle.kts` | 🟢 Complete | ☑ | Firebase Auth + Firestore deps configured, SHA-1 fingerprint added |
 | Firebase Auth — Google sign-in | `auth/AuthRepository.kt` + `ui/auth/SignInActivity.kt` + `ui/screens/SignInScreen.kt` | 🟢 Complete | ☑ | Google Sign-In flow implemented with Firebase credential exchange. Dual path: `SignInActivity` (legacy activity-based) and `SignInScreen` (Compose-based, used in current flow) |
 | Firebase Auth — phone linking | `auth/AuthRepository.kt` | 🔴 Not started | ☐ | Test: same UID before and after linking |
-| Firestore security rules | — | 🔴 Not started | ☐ | No rules file exists yet. A must review before deploy — log in REVIEW_LOG.md |
+| Firestore security rules | `firestore/firestore.rules` | 🟢 Complete | ☑ | Deployed to Firebase Console and verified in Rules Playground. M2 Review logged. |
 | Group create flow | — | 🔴 Not started | ☐ | UI shell exists (`CreateGroupScreen.kt`), no backend `GroupRepository` |
 | Group join flow | — | 🔴 Not started | ☐ | UI shell exists (`JoinGroupScreen.kt`), no backend |
 | Group membership list | — | 🔴 Not started | ☐ | UI shell exists (`GroupSwitcherScreen.kt`), no backend |
@@ -209,7 +209,7 @@ Same purpose as A's decisions log — prevents an AI agent from "correcting" an 
 | 2 | 2026-08-16 | `SettingsScreen.kt` defines its own `ServiceHealthState` enum (`ACTIVE`, `STOPPED`, `DEGRADED`, `INTERRUPTED`) which shadows A's Room entity `com.scrolla.room.ServiceHealthState`. When wiring real data, must reconcile or map between them. | 🟡 High | S2 | ☐ |
 | 3 | 2026-08-16 | `SignInActivity.kt` in `ui/auth/` is a legacy activity-based sign-in flow. The current app uses `SignInScreen.kt` (Compose) instead. `SignInActivity` may be dead code — verify before deleting. | 🟢 Low | Cleanup | ☐ |
 | 4 | 2026-08-16 | `ScrollaFormatters.kt` has a remaining encoding artifact: line 13 shows `â‰¥` instead of `≥` and line 27 shows `Â§` instead of `§`. | 🟢 Low | Cleanup | ☐ |
-| 5 | 2026-08-16 | No `firestore/` directory exists yet — no security rules, no `GroupRepository`, no `SyncManager`, no `LeaderboardRepository`. This is the single biggest gap in B's track. | 🔴 Critical | S1-S2 | ☐ |
+| 5 | 2026-08-16 | `GroupRepository`, `SyncManager`, and `LeaderboardRepository` missing. | 🔴 Critical | S1-S2 | ☐ |
 | 6 | 2026-08-16 | `GoogleSignInOptions` API used in `SignInScreen.kt` and `SignInActivity.kt` is deprecated by Google. Should migrate to Credential Manager API before v1 release. | 🟡 High | S3 | ☐ |
 
 **Severity guide:**
@@ -278,7 +278,7 @@ A running scratchpad for in-progress thoughts, things to pick up next session, q
 - Added `isFirstLaunch` persistence via SharedPreferences so returning users skip onboarding: Splash → Home directly.
 - Confirmed `BatteryWhitelistScreen.kt` is now dead code (battery whitelist is handled by `OnboardingScreen`'s `BatteryWhitelistPhase`).
 - **Next session priorities:**
-  1. Write Firestore security rules (S1.B5) — the #1 blocker for all social features.
+  1. Write Firestore security rules (S1.B5) — ✅ Done.
   2. Build `GroupRepository.kt` for create/join flows (S1.B8, S1.B9).
   3. Delete dead code: `BatteryWhitelistScreen.kt`, possibly `SignInActivity.kt`.
   4. Fix remaining encoding artifacts in `ScrollaFormatters.kt`.

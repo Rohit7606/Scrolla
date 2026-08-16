@@ -76,6 +76,7 @@ Add a row every time a review happens — mandatory or optional. One row per PR,
 | # | Date | PR / Branch | Type | Reviewer | Verdict | Issues found | Resolved? |
 |---|---|---|---|---|---|---|---|
 | 1 | 2026-07-10 | a/delta-tracking | M1 | B | Approved | None — see notes above regarding the viewId finding, which is informational only and does not block approval | Yes |
+| 2 | 2026-08-16 | Firebase Console | M2 | A | Approved | None — Firebase Rules tested in Rules Playground and deployed in Production Mode. | Yes |
 
 ---
 
