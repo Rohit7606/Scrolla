@@ -27,7 +27,9 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -125,16 +127,47 @@ fun MainShell(modifier: Modifier = Modifier) {
                 )
             }
             is ScreenRoute.JoinGroup -> {
+                val groupViewModel: GroupViewModel = viewModel()
+                val isLoading by groupViewModel.isLoading.collectAsState()
+                val errorMessage by groupViewModel.errorMessage.collectAsState()
+                
                 JoinGroupScreen(
-                    onBackClick = popBackStack,
-                    onJoinClick = { popBackStack() }, // Mock joining success
-                    onCreateGroupClick = { navigateTo(ScreenRoute.CreateGroup) }
+                    isLoading = isLoading,
+                    errorMessage = errorMessage,
+                    onBackClick = {
+                        groupViewModel.clearError()
+                        popBackStack()
+                    },
+                    onJoinClick = { code ->
+                        groupViewModel.joinGroup(code) {
+                            groupViewModel.clearError()
+                            popBackStack() // Go back to groups list or home on success
+                        }
+                    },
+                    onCreateGroupClick = { 
+                        groupViewModel.clearError()
+                        navigateTo(ScreenRoute.CreateGroup) 
+                    }
                 )
             }
             is ScreenRoute.CreateGroup -> {
+                val groupViewModel: GroupViewModel = viewModel()
+                val isLoading by groupViewModel.isLoading.collectAsState()
+                val errorMessage by groupViewModel.errorMessage.collectAsState()
+
                 CreateGroupScreen(
-                    onBackClick = popBackStack,
-                    onCreateClick = { popBackStack() } // Mock creating success
+                    isLoading = isLoading,
+                    errorMessage = errorMessage,
+                    onBackClick = {
+                        groupViewModel.clearError()
+                        popBackStack()
+                    },
+                    onCreateClick = { name -> 
+                        groupViewModel.createGroup(name) {
+                            groupViewModel.clearError()
+                            popBackStack() // Go back on success
+                        }
+                    }
                 )
             }
             is ScreenRoute.WeeklyRecap -> {
