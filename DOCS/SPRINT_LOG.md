@@ -55,13 +55,14 @@
 | S1.B1 | Firebase project configured (Auth + Firestore in same project). Firebase config file added to the Android project. | ☑ | 2026-07-15 | R — Added debug SHA-1 fingerprint to Firebase, replaced google-services.json, built debug APK and installed on real device. |
 | S1.B2 | Google Sign-In implemented. User's Firebase Auth UID confirmed as the stable `userId` — not a randomly generated string, not a device ID. | ☑ | 2026-07-15 | R — Verified Google Sign-In returns stable Firebase Auth UID on device. |
 | S1.B3 | Sign-in flow leads correctly into the onboarding sequence (Screen 1 → 2 → 3 → 4 per `scrolla_project_summary.md` Section 8). | ☑ | 2026-08-10 | R — Built full phase-based onboarding in Compose with spring animations, integrated battery whitelist, and wired to MainActivity navigation. |
+| S1.B3a | _(Added)_ All 15 Compose UI shells built and integrated into main project. MainShell navigation wired. Splash → SignIn → Onboarding → Home flow persisted via SharedPreferences. | ☑ | 2026-08-16 | R — Integrated from UI Lab prototype. All screens render with mock data, all navigation routes functional. Encoding artifacts fixed. Branch `b/integrate-ui-lab-screens` merged (PR #4). |
 | S1.B4 | Phone number linking implemented in Profile page (Screen 15) via `linkWithCredential()`. Framed as "add a backup way to sign in," not a separate account. Tested: sign in with Google, link phone, sign out, sign back in with phone — same UID returned. | ☐ | | |
-| S1.B5 | Firestore security rules written per `scrolla_project_summary.md` Section 10. **Not deployed yet — A must review first (cross-review rule).** | ☐ | | |
+| S1.B5 | Firestore security rules written per `scrolla_project_summary.md` Section 10. **Not deployed yet — A must review first (cross-review rule).** | ☐ | | **Next priority.** No `firestore/` directory or rules file exists yet. |
 | S1.B6 | A has reviewed B's Firestore security rules. Logged in `REVIEW_LOG.md`. | ☐ | | |
 | S1.B7 | Firestore security rules deployed. Tested in Firebase Rules Playground: at least one "should succeed" case and one "should fail" case per `AGENTS.md` Section 5.3. | ☐ | | |
-| S1.B8 | Group create flow: generates a `ScrollaConstants.GROUP_CODE_LENGTH`-digit code, writes group metadata document to `/groups/{groupId}` per `DATA_CONTRACT.md` Section 3.2. | ☐ | | |
-| S1.B9 | Group join flow: validates code exists, writes `/users/{userId}/groups/{groupId}` membership document with `isPrimary = true` if it's the user's first group. | ☐ | | |
-| S1.B10 | `DistanceFormatter` utility confirmed imported and used everywhere km/cm values appear — no inline formatting, no re-implementation. | ☐ | | |
+| S1.B8 | Group create flow: generates a `ScrollaConstants.GROUP_CODE_LENGTH`-digit code, writes group metadata document to `/groups/{groupId}` per `DATA_CONTRACT.md` Section 3.2. | ☐ | | UI shell exists (`CreateGroupScreen.kt`), backend `GroupRepository` not started. |
+| S1.B9 | Group join flow: validates code exists, writes `/users/{userId}/groups/{groupId}` membership document with `isPrimary = true` if it's the user's first group. | ☐ | | UI shell exists (`JoinGroupScreen.kt`), backend not started. |
+| S1.B10 | `DistanceFormatter` utility confirmed imported and used everywhere km/cm values appear — no inline formatting, no re-implementation. | ☐ | | Presentation formatting done via `ScrollaFormatters.kt` as stopgap. `model/DistanceFormatter.kt` still missing `cmToKm()` — flagged to A. |
 
 ---
 
@@ -112,8 +113,10 @@
 | Sprint | Status | Gate cleared? |
 |---|---|---|
 | Sprint 0 | Complete | ☑ |
-| Sprint 1 | In progress | — |
-| Sprint 2 | Not started | ☐ (needs S1.A9) |
+| Sprint 1 | In progress — A complete (S1.A1–A10 ☑), B partially complete (S1.B1–B3a ☑, S1.B4–B10 remaining) | — |
+| Sprint 2 | Partially unblocked — S1.A9 gate cleared ☑ (ScrollRepository implemented). B's UI shells exist with mock data. Firestore backend (S1.B5–B9) blocks real data wiring. | ☑ (S1.A9) |
 | Sprint 3 | Not started | — |
 
-> Update Status column to "In progress" or "Complete" as you go. The "Gate cleared?" column for Sprint 0 and Sprint 2 must be checked before next sprint begins — do not skip this.
+> Update Status column to "In progress" or "Complete" as you go. The "Gate cleared?" column for Sprint 0 and Sprint 2 must be checked before next sprint begins — do not skip this.
+>
+> **2026-08-16 assessment (Person B):** Sprint 1 A-track is fully complete. Sprint 1 B-track has 3 of 10 milestones done plus a bonus (S1.B3a — all UI shells). The S1.A9 gate for Sprint 2 is cleared, meaning B can start wiring real sensor data into screens. However, the Firestore backend (rules, repositories, sync) is the #1 blocker — no `firestore/` directory exists yet. B's immediate priorities: S1.B5 (security rules) → S1.B8/B9 (group flows) → S2.1 (Home with real data).

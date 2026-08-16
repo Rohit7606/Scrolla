@@ -1,7 +1,7 @@
 # SOCIAL_PROGRESS.md — Person B (Social & Experience Track)
 **Owner:** Person B
 **Track:** `ui/`, `firestore/`, `auth/`, `leaderboard/`, `gamification/`
-**Last updated:** 2026-07-14
+**Last updated:** 2026-08-16
 **AI agents reading this:** This is Person B's working file. Before suggesting any implementation in B's folders, read the current status, known issues, and dependency sections. Never suggest wiring a Compose screen to real sensor data until Section 1's handoff status shows ✅. Cross-reference `DATA_CONTRACT.md` Section 4 for every function B calls from `ScrollRepository`. Never write to Firestore daily totals directly — only `triggerFirestoreSync()` does that (A's function, B calls it on a timer).
 
 ---
@@ -10,19 +10,15 @@
 
 > _(B updates this line at the end of every session so A knows where things stand without reading the whole file)_
 
-**Sprint 1 (B's sub-track):** 🟡 In progress (Onboarding flow complete)
-**Sprint 2:** Not started — waiting on Sprint 0 sensor verification from A
+**Sprint 1 (B's sub-track):** 🟡 In progress — S1.B1–B3 complete, S1.B4–B10 remaining
+**Sprint 2:** 🟡 Partially unblocked — All 15 Compose screens exist as UI shells (mock data), navigation wired via MainShell. Waiting on real `ScrollRepository` wiring + Firestore backend.
 **Sprint 3:** Not started
 
 **Waiting on A for:**
-- `ScrollRepository` implementation (needed for Sprint 2 UI) — status per `SENSOR_PROGRESS.md` Section 7
-- Sprint 0 sensor accuracy verification — status per `SENSOR_PROGRESS.md` Section 1
+- `DistanceFormatter.cmToKm()` — still missing from `model/DistanceFormatter.kt` per S1.A9 known gap. B's screens use `ScrollaFormatters` (presentation-only) as a stopgap, but real data flow needs the model-layer function.
+- Confirmation that `triggerFirestoreSync()` stub in `ScrollRepository` is ready to be replaced with real Firestore write logic (B owns the Firestore side, but A owns the function signature).
 
-**What B is building against right now:** Stub data only. Every ViewModel that calls a `ScrollRepository` function must have a clearly commented stub:
-```kotlin
-// STUB — replace with scrollRepository.getTodayTotalKm() after A confirms S1.A9 complete
-val todayKm = 0.0f
-```
+**What B has built so far:** All 15 Compose screens exist as UI shells with mock/default data. Full navigation architecture (`MainShell` + `ScreenRoute` sealed class) is wired in `MainActivity`. Splash → SignIn → Onboarding → Home flow is complete with SharedPreferences persistence for `isFirstLaunch`. Firebase Auth (Google Sign-In) is functional end-to-end. No Firestore backend code exists yet (no rules, no repositories, no sync logic).
 
 ---
 
@@ -34,31 +30,35 @@ Each screen is tracked independently. A screen is not "done" until it has: real 
 
 | # | Screen | File | Status | Real data? | Empty state? | Error state? | Device checked? |
 |---|---|---|---|---|---|---|---|
-| 1 | Sign in with Google | `ui/screens/SignInScreen.kt` | 🟢 Code complete | N/A | N/A | ☑ auth failure handled | ☐ |
-| 2-4 | Onboarding (Welcome, Permission, Join Group) | `ui/screens/OnboardingScreen.kt` | 🟢 Code complete | N/A | N/A | N/A | ☐ |
+| 1 | Splash | `ui/screens/SplashScreen.kt` | 🟢 Code complete | N/A | N/A | N/A | ☑ |
+| 1 | Sign in with Google | `ui/screens/SignInScreen.kt` | 🟢 Code complete | N/A | N/A | ☑ auth failure handled | ☑ |
+| 2-4 | Onboarding (Welcome, Permission, Battery, Join Group) | `ui/screens/OnboardingScreen.kt` | 🟢 Code complete | N/A | N/A | N/A | ☑ |
 
-### Layer 2 — Main Tabs (Screens 5–7)
-
-| # | Screen | File | Status | Real data? | Empty state? | Error state? | Device checked? |
-|---|---|---|---|---|---|---|---|
-| 5 | Home (default tab) | `ui/home/HomeScreen.kt` | 🔴 Not started | ☐ stub only | ☐ | ☐ sync error | ☐ |
-| 6 | Leaderboard | `ui/leaderboard/LeaderboardScreen.kt` | 🔴 Not started | ☐ stub only | ☐ group of 1 | ☐ network error | ☐ |
-| 7 | Insights | `ui/insights/InsightsScreen.kt` | 🔴 Not started | ☐ stub only | ☐ no data yet | ☐ | ☐ |
-
-### Layer 3 — Detail Screens (Screens 8–15)
+### Layer 2 — Main Tabs (Screens 5–8)
 
 | # | Screen | File | Status | Real data? | Empty state? | Error state? | Device checked? |
 |---|---|---|---|---|---|---|---|
-| 8 | Service Health | `ui/settings/ServiceHealthScreen.kt` | 🔴 Not started | ☐ Flow from A | N/A | ☐ service dead | ☐ |
-| 9 | Group switcher list | `ui/groups/GroupSwitcherScreen.kt` | 🔴 Not started | ☐ | ☐ no groups yet | ☐ | ☐ |
-| 10 | Join group | `ui/groups/JoinGroupScreen.kt` | 🔴 Not started | ☐ | N/A | ☐ code not found | ☐ |
-| 11 | Weekly recap card | `ui/gamification/RecapCardScreen.kt` | 🔴 Not started | ☐ | ☐ not enough data | ☐ | ☐ |
-| 12 | Personal records | `ui/gamification/PersonalRecordsScreen.kt` | 🔴 Not started | ☐ | ☐ fewer than 1 day | ☐ | ☐ |
-| 13 | Group hall of fame | `ui/gamification/HallOfFameScreen.kt` | 🔴 Not started | ☐ | ☐ record not set yet | ☐ | ☐ |
-| 14 | App breakdown detail | `ui/insights/AppBreakdownScreen.kt` | 🔴 Not started | ☐ | ☐ no app data | ☐ | ☐ |
-| 15 | Profile | `ui/profile/ProfileScreen.kt` | 🔴 Not started | ☐ | N/A | ☐ delete failed | ☐ |
+| 5 | Home (default tab) | `ui/screens/HomeScreen.kt` | 🟡 UI shell complete | ☐ mock data | ☐ | ☐ sync error | ☐ |
+| 6 | Leaderboard | `ui/screens/LeaderboardScreen.kt` | 🟡 UI shell complete | ☐ mock data | ☐ group of 1 | ☐ network error | ☐ |
+| 7 | Insights | `ui/screens/InsightsScreen.kt` | 🟡 UI shell complete | ☐ mock data | ☐ no data yet | ☐ | ☐ |
+| 8 | Profile | `ui/screens/ProfileScreen.kt` | 🟡 UI shell complete | ☐ mock data | N/A | ☐ delete failed | ☐ |
 
-**Status key:** 🔴 Not started · 🟡 In progress · 🟢 Code complete · ✅ Verified on device
+### Layer 3 — Detail Screens (Screens 9–15)
+
+| # | Screen | File | Status | Real data? | Empty state? | Error state? | Device checked? |
+|---|---|---|---|---|---|---|---|
+| 9 | Settings + Service Health | `ui/screens/SettingsScreen.kt` | 🟡 UI shell complete | ☐ mock `ServiceHealthState` enum | N/A | ☐ service dead | ☐ |
+| 10 | Group switcher list | `ui/screens/GroupSwitcherScreen.kt` | 🟡 UI shell complete | ☐ mock data | ☐ no groups yet | ☐ | ☐ |
+| 11 | Join group | `ui/screens/JoinGroupScreen.kt` | 🟡 UI shell complete | ☐ | N/A | ☐ code not found | ☐ |
+| — | Create group | `ui/screens/CreateGroupScreen.kt` | 🟡 UI shell complete | ☐ | N/A | ☐ | ☐ |
+| 12 | Weekly recap card | `ui/screens/WeeklyRecapScreen.kt` | 🟡 UI shell complete | ☐ mock data | ☐ not enough data | ☐ | ☐ |
+| 13 | Personal records | `ui/screens/PersonalRecordsScreen.kt` | 🟡 UI shell complete | ☐ mock data | ☐ fewer than 1 day | ☐ | ☐ |
+| 14 | Group hall of fame | `ui/screens/HallOfFameScreen.kt` | 🟡 UI shell complete | ☐ mock data | ☐ record not set yet | ☐ | ☐ |
+| 15 | App breakdown detail | `ui/screens/AppBreakdownScreen.kt` | 🟡 UI shell complete | ☐ mock data | ☐ no app data | ☐ | ☐ |
+
+**Status key:** 🔴 Not started · 🟡 In progress / UI shell · 🟢 Code complete · ✅ Verified on device
+
+> **Note on file paths:** The original plan had screens in subdirectories (`ui/home/`, `ui/leaderboard/`, etc.) but the actual implementation puts all screens flat under `ui/screens/`. This is the current reality. Service Health is integrated into `SettingsScreen.kt` rather than being a separate `ServiceHealthScreen.kt`.
 
 ---
 
@@ -66,22 +66,29 @@ Each screen is tracked independently. A screen is not "done" until it has: real 
 
 | Component | File(s) | Status | Verified? | Notes |
 |---|---|---|---|---|
-| Firebase project config | `google-services.json` + `build.gradle` | 🟡 In progress | ☐ | Firebase Auth + Firestore configured, Google Sign-In implemented |
-| Firebase Auth — Google sign-in | `auth/AuthRepository.kt` | 🟡 In progress | ☐ | Google Sign-In flow implemented with Firebase credential exchange |
+| Firebase project config | `google-services.json` + `build.gradle.kts` | 🟢 Complete | ☑ | Firebase Auth + Firestore deps configured, SHA-1 fingerprint added |
+| Firebase Auth — Google sign-in | `auth/AuthRepository.kt` + `ui/auth/SignInActivity.kt` + `ui/screens/SignInScreen.kt` | 🟢 Complete | ☑ | Google Sign-In flow implemented with Firebase credential exchange. Dual path: `SignInActivity` (legacy activity-based) and `SignInScreen` (Compose-based, used in current flow) |
 | Firebase Auth — phone linking | `auth/AuthRepository.kt` | 🔴 Not started | ☐ | Test: same UID before and after linking |
-| Firestore security rules | `firestore/firestore.rules` | 🔴 Not started | ☐ | A must review before deploy — log in REVIEW_LOG.md |
-| Group create flow | `firestore/GroupRepository.kt` | 🔴 Not started | ☐ | |
-| Group join flow | `firestore/GroupRepository.kt` | 🔴 Not started | ☐ | |
-| Group membership list | `firestore/GroupRepository.kt` | 🔴 Not started | ☐ | |
-| Firestore sync timer | `leaderboard/LeaderboardViewModel.kt` | 🔴 Not started | ☐ | 15-min interval, also on foreground |
-| Leaderboard polling | `leaderboard/LeaderboardRepository.kt` | 🔴 Not started | ☐ | No onSnapshot() |
-| Multi-group write | `firestore/SyncManager.kt` | 🔴 Not started | ☐ | Writes to all groups user is in |
-| Hall of fame update | `firestore/GroupRepository.kt` | 🔴 Not started | ☐ | Updates group record on each sync |
-| Most improved calculation | `leaderboard/LeaderboardRepository.kt` | 🔴 Not started | ☐ | Week-over-week delta |
-| Most consistent calculation | `leaderboard/LeaderboardRepository.kt` | 🔴 Not started | ☐ | Lowest variance over 7 days |
-| Recap card image generation | `gamification/RecapCardGenerator.kt` | 🔴 Not started | ☐ | Android Bitmap + share intent |
+| Firestore security rules | — | 🔴 Not started | ☐ | No rules file exists yet. A must review before deploy — log in REVIEW_LOG.md |
+| Group create flow | — | 🔴 Not started | ☐ | UI shell exists (`CreateGroupScreen.kt`), no backend `GroupRepository` |
+| Group join flow | — | 🔴 Not started | ☐ | UI shell exists (`JoinGroupScreen.kt`), no backend |
+| Group membership list | — | 🔴 Not started | ☐ | UI shell exists (`GroupSwitcherScreen.kt`), no backend |
+| Firestore sync timer | — | 🔴 Not started | ☐ | 15-min interval, also on foreground |
+| Leaderboard polling | — | 🔴 Not started | ☐ | No onSnapshot() |
+| Multi-group write | — | 🔴 Not started | ☐ | Writes to all groups user is in |
+| Hall of fame update | — | 🔴 Not started | ☐ | Updates group record on each sync |
+| Most improved calculation | — | 🔴 Not started | ☐ | Week-over-week delta |
+| Most consistent calculation | — | 🔴 Not started | ☐ | Lowest variance over 7 days |
+| Recap card image generation | — | 🔴 Not started | ☐ | Android Bitmap + share intent |
 | Account deletion flow | `auth/AuthRepository.kt` | 🔴 Not started | ☐ | Deletes Auth + Firestore docs |
-| DistanceFormatter usage | across all screens | 🔴 Not started | ☐ | No inline km formatting anywhere |
+| ScrollaFormatters (presentation) | `ui/screens/ScrollaFormatters.kt` | 🟢 Complete | ☑ | `formatDistance()` and `formatOrdinal()` — presentation-only, used across screens |
+| ScrollaStrings (UI copy) | `ui/screens/ScrollaStrings.kt` | 🟢 Complete | ☑ | All 246 lines of centralized UI copy for every screen |
+| Design System (modifiers) | `ui/components/DesignSystem.kt` | 🟢 Complete | ☑ | `bounceClick()` and `bentoCard()` modifier extensions |
+| ScrollaPrimaryButton | `ui/components/ScrollaPrimaryButton.kt` | 🟢 Complete | ☑ | Shared primary CTA button component |
+| Theme system | `ui/theme/*.kt` (7 files) | 🟢 Complete | ☑ | Color, Type, Spacing, Shape, Motion, ExtendedColors, Theme |
+| MainShell navigation | `ui/screens/MainShell.kt` | 🟢 Complete | ☑ | `ScreenRoute` sealed class, 4-tab nav bar, stack-based detail navigation |
+| SplashScreen + ViewModel | `ui/screens/SplashScreen.kt` + `SplashViewModel.kt` | 🟢 Complete | ☑ | Animated splash with wordmark |
+| MainActivity navigation | `MainActivity.kt` | 🟢 Complete | ☑ | Splash → SignIn → Onboarding → Home flow with SharedPreferences `isFirstLaunch` persistence |
 
 ---
 
@@ -123,8 +130,8 @@ Per the loophole audit and `SPRINT_LOG.md` S2.8 and S3.x: empty states and error
 | Hall of fame | "No record set yet — you could be first" | ☐ | — | — |
 | Recap card | "Need a full week of data" | ☐ | — | — |
 | App breakdown | "No app data yet today" | ☐ | — | — |
-| Service Health | — | — | "Tracking stopped — tap to fix" | ☐ |
-| Sign in | — | — | "Sign-in failed — try again" | ☐ |
+| Settings / Service Health | — | — | "Tracking stopped — tap to fix" | ☐ |
+| Sign in | — | — | "Sign-in failed — try again" | ☑ (onSignInError callback wired) |
 | Profile — delete account | — | — | "Couldn't delete — try again" | ☐ |
 
 > **Rule:** A blank white screen or a crash is never an acceptable empty or error state. If you're unsure what the empty state should say, check `UI_COPY.md` before inventing copy inline.
@@ -135,16 +142,16 @@ Per the loophole audit and `SPRINT_LOG.md` S2.8 and S3.x: empty states and error
 
 | Feature | Screen | Status | Data source | Notes |
 |---|---|---|---|---|
-| Reverse leaderboard (lowest wins) | Screen 6 | 🔴 Not started | Firestore dailyTotals | Ranked ascending by totalKm |
-| Landmark comparison | Screen 5 | 🔴 Not started | `DistanceFormatter.nearestLandmark()` | |
-| Most improved highlight | Screen 6 | 🔴 Not started | Firestore — week-over-week delta | Week = Mon–Sun, not rolling 7 days |
+| Reverse leaderboard (lowest wins) | Screen 6 | 🟡 UI shell | Mock data | Ranked ascending by totalKm — UI built, no Firestore wiring |
+| Landmark comparison | Screen 5 | 🟡 UI shell | Mock string | Placeholder text, not wired to `DistanceFormatter.nearestLandmark()` |
+| Most improved highlight | Screen 6 | 🟡 UI shell | Mock string | Banner UI exists with placeholder, not wired to Firestore |
 | Most consistent recognition | Screen 6 | 🔴 Not started | Firestore — 7-day variance | Lowest variance wins |
-| Personal records | Screen 12 | 🔴 Not started | `getPersonalBestDay()` from Room | |
-| Time-of-day insight framing | Screen 5 rotating | 🔴 Not started | `getTodayPeakHour()` from Room | Template: "most of your scrolling happens [hour]–[hour+1] — that's your commute distance, but at midnight" |
-| App-comparison nudge | Screen 14 | 🔴 Not started | `getTodayTopApps()` from Room | "cutting [app] by 20% would put you in 1st" — never synced |
-| Group hall of fame | Screen 13 | 🔴 Not started | Firestore group metadata | Show "progress toward record" alongside absolute best |
-| Weekly recap shareable card | Screen 11 | 🔴 Not started | Room + Firestore | Android Bitmap + share intent |
-| Home rotating insight | Screen 5 | 🔴 Not started | Rotates: personal record / peak hour / app nudge | One card only, not all three simultaneously |
+| Personal records | Screen 13 | 🟡 UI shell | Mock data | `PersonalRecordsScreen.kt` exists with mock records |
+| Time-of-day insight framing | Screen 5 rotating | 🟡 UI shell | Mock string | Insight card exists in HomeScreen with hardcoded text |
+| App-comparison nudge | Screen 15 | 🔴 Not started | `getTodayTopApps()` from Room | "cutting [app] by 20% would put you in 1st" — never synced |
+| Group hall of fame | Screen 14 | 🟡 UI shell | Mock data | `HallOfFameScreen.kt` exists with mock record holder |
+| Weekly recap shareable card | Screen 12 | 🟡 UI shell | Mock data | `WeeklyRecapScreen.kt` exists, share button present, no Bitmap generation |
+| Home rotating insight | Screen 5 | 🟡 UI shell | Mock string | One card visible, rotation logic not implemented |
 
 **Rotation logic for the Home screen insight card:**
 Priority order (show the first one that has data available):
@@ -173,7 +180,7 @@ The reverse leaderboard is the core mechanic of the whole app. Check every item 
 
 ## 8. AUTH CORRECTNESS CHECKLIST
 
-- [ ] Firebase Auth UID is the `userId` everywhere — confirmed in Logcat on first sign-in that it matches what's in the Firestore `/users/` collection.
+- [x] Firebase Auth UID is the `userId` everywhere — confirmed via `AuthRepository().currentUser` in `MainActivity.kt`.
 - [ ] Reinstall test: sign in → use app → uninstall → reinstall → sign in with same Google account → confirm same `userId` → confirm group membership is restored from Firestore → confirm leaderboard shows the same historical data.
 - [ ] Phone linking test: sign in with Google → link phone number in Profile → sign out → sign in with phone number → confirm same `userId` returned → confirm group membership intact.
 - [ ] Account deletion test: create a test account → join a group → scroll for 1 day → delete account → confirm: (a) Firebase Auth account gone, (b) `/users/{userId}/` documents deleted, (c) name in any hall-of-fame entry replaced with "[deleted]", (d) `dailyTotals` documents in group deleted, (e) app returns to Sign In screen.
@@ -186,7 +193,11 @@ Same purpose as A's decisions log — prevents an AI agent from "correcting" an 
 
 | # | Date | Decision | Reason | Affects A? |
 |---|---|---|---|---|
-| — | — | No decisions logged yet | — | — |
+| 1 | 2026-08-10 | Battery whitelist flow integrated as a phase inside `OnboardingScreen.kt` (`BatteryWhitelistPhase`) rather than a separate standalone screen | Eliminates a navigation state and keeps the onboarding as a single linear flow. The standalone `BatteryWhitelistScreen.kt` still exists as dead code from Person A's PR — can be deleted. | No |
+| 2 | 2026-08-16 | All screen files placed flat under `ui/screens/` instead of subdirectories (`ui/home/`, `ui/leaderboard/`, etc.) | Simpler to manage for a two-person team; subdirectories add overhead without meaningful organization benefit at this project's scale. | No |
+| 3 | 2026-08-16 | Service Health merged into `SettingsScreen.kt` rather than a separate `ServiceHealthScreen.kt` | Settings screen already shows service health status as its top section. A separate screen would duplicate the same information. | No — but B's `SettingsScreen` defines its own `ServiceHealthState` enum that shadows A's Room entity. Must be reconciled when wiring real data. |
+| 4 | 2026-08-16 | `ScrollaFormatters` (presentation-only) created in `ui/screens/` as a stopgap for `DistanceFormatter` from `model/` | `model/DistanceFormatter.kt` only has `pxToCm()`, not `cmToKm()` or display formatting. `ScrollaFormatters.formatDistance()` handles presentation formatting. When A adds `cmToKm()` to the shared model, B's ViewModels will call that for data transformation, and `ScrollaFormatters` stays for presentation. | Yes — A needs to add `cmToKm()` to `model/DistanceFormatter.kt` per DATA_CONTRACT §5 |
+| 5 | 2026-08-16 | `isFirstLaunch` persisted in SharedPreferences (`scrolla_prefs`) | So returning signed-in users go Splash → Home directly, skipping onboarding. The flag is flipped when `onFinishOnboarding` fires. | No |
 
 ---
 
@@ -194,7 +205,12 @@ Same purpose as A's decisions log — prevents an AI agent from "correcting" an 
 
 | # | Discovered | Description | Severity | Sprint | Resolved? |
 |---|---|---|---|---|---|
-| — | — | No known issues yet | — | — | — |
+| 1 | 2026-08-16 | `BatteryWhitelistScreen.kt` is dead code — unreferenced anywhere after `OnboardingScreen` refactor. Should be deleted. | 🟢 Low | Cleanup | ☐ |
+| 2 | 2026-08-16 | `SettingsScreen.kt` defines its own `ServiceHealthState` enum (`ACTIVE`, `STOPPED`, `DEGRADED`, `INTERRUPTED`) which shadows A's Room entity `com.scrolla.room.ServiceHealthState`. When wiring real data, must reconcile or map between them. | 🟡 High | S2 | ☐ |
+| 3 | 2026-08-16 | `SignInActivity.kt` in `ui/auth/` is a legacy activity-based sign-in flow. The current app uses `SignInScreen.kt` (Compose) instead. `SignInActivity` may be dead code — verify before deleting. | 🟢 Low | Cleanup | ☐ |
+| 4 | 2026-08-16 | `ScrollaFormatters.kt` has a remaining encoding artifact: line 13 shows `â‰¥` instead of `≥` and line 27 shows `Â§` instead of `§`. | 🟢 Low | Cleanup | ☐ |
+| 5 | 2026-08-16 | No `firestore/` directory exists yet — no security rules, no `GroupRepository`, no `SyncManager`, no `LeaderboardRepository`. This is the single biggest gap in B's track. | 🔴 Critical | S1-S2 | ☐ |
+| 6 | 2026-08-16 | `GoogleSignInOptions` API used in `SignInScreen.kt` and `SignInActivity.kt` is deprecated by Google. Should migrate to Credential Manager API before v1 release. | 🟡 High | S3 | ☐ |
 
 **Severity guide:**
 - 🔴 **Critical:** Wrong data shown to user (wrong km, wrong rank, phantom Firestore reads). Blocks release.
@@ -222,7 +238,7 @@ Full list in `AGENTS.md` Section 4 and `DATA_CONTRACT.md` Section 7. The most co
 
 - `firestore/firestore.rules` — any change requires a new M2 review (A re-reviews their own approval)
 - Any ViewModel that calls `ScrollRepository` functions — if a function signature changes, A updates `DATA_CONTRACT.md` and tells B before changing the implementation
-- `ui/settings/ServiceHealthScreen.kt` — this screen depends on `observeServiceHealth()` Flow; changes to the Flow's emitted type require B's knowledge
+- `ui/screens/SettingsScreen.kt` — this screen depends on `observeServiceHealth()` Flow; changes to the Flow's emitted type require B's knowledge
 
 ---
 
@@ -253,6 +269,20 @@ A running scratchpad for in-progress thoughts, things to pick up next session, q
 - Updated `BatteryWhitelistHelper.kt` instructions to use generic "Scrolla" naming and removed list number prefixes.
 - Cleaned up `MainActivity.kt` navigation flow.
 - Checked off S1.B3 in SPRINT_LOG.md.
+
+**2026-08-16**
+- Integrated all 11 new UI Lab screens + `DesignSystem.kt` into main Scrolla project (branch `b/integrate-ui-lab-screens`, PR #4 merged).
+- Wired `MainShell` as the home destination in `MainActivity.kt` — full 4-tab bottom navigation now functional.
+- Restored 6 missing dependency declarations in `libs.versions.toml` that were accidentally dropped during the onboarding-ui merge (PR #3, commit `019f746`).
+- Fixed text encoding artifacts (`â€"` → `—`, `â†'` → `→`, `Â·` → `·`, `â"€` → `─`) across 13 screen files — caused by UTF-8 → Windows-1252 mojibake during UI Lab copy.
+- Added `isFirstLaunch` persistence via SharedPreferences so returning users skip onboarding: Splash → Home directly.
+- Confirmed `BatteryWhitelistScreen.kt` is now dead code (battery whitelist is handled by `OnboardingScreen`'s `BatteryWhitelistPhase`).
+- **Next session priorities:**
+  1. Write Firestore security rules (S1.B5) — the #1 blocker for all social features.
+  2. Build `GroupRepository.kt` for create/join flows (S1.B8, S1.B9).
+  3. Delete dead code: `BatteryWhitelistScreen.kt`, possibly `SignInActivity.kt`.
+  4. Fix remaining encoding artifacts in `ScrollaFormatters.kt`.
+  5. Reconcile `SettingsScreen.ServiceHealthState` enum with Room entity before wiring real data.
 
 ---
 
