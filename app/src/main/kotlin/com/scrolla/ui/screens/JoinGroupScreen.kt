@@ -45,7 +45,7 @@ import com.scrolla.ui.theme.ScrollaUILabTheme
 import com.scrolla.ui.theme.spacing
 
 /**
- * Screen 11 â€” Join Group
+ * Screen 11 — Join Group
  */
 @Composable
 fun JoinGroupScreen(

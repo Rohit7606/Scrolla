@@ -51,7 +51,7 @@ data class BreakdownAppUsage(
 )
 
 /**
- * Screen 15 â€” App Breakdown
+ * Screen 15 — App Breakdown
  * 
  * Shows which apps contribute most to the total scroll distance.
  * Crucially, reiterates the privacy promise.

@@ -63,12 +63,12 @@ import com.scrolla.ui.components.bentoCard
 import com.scrolla.ui.components.bounceClick
 
 /**
- * Screen 5 â€” Home
+ * Screen 5 — Home
  *
- * Purpose: Show the user their scroll distance today â€” clearly, instantly, without asking them to think.
+ * Purpose: Show the user their scroll distance today — clearly, instantly, without asking them to think.
  * User Question: "How much have I scrolled today?"
  *
- * Visual hierarchy (top â†’ bottom):
+ * Visual hierarchy (top → bottom):
  *   1. Large Title App Bar: "Scrolla" + Settings gear
  *   2. Hero metric: displayLarge number in Primary coral
  *   3. Unit label: "km"
@@ -81,14 +81,14 @@ import com.scrolla.ui.components.bounceClick
 @Composable
 fun HomeScreen(
     modifier: Modifier = Modifier,
-    // Mock data â€” these will be replaced by ViewModel
+    // Mock data — these will be replaced by ViewModel
     scrollDistanceKm: Float = 2.3f,
     landmarkText: String = "about the height of 3 Burj Khalifas",
     rankPosition: Int = 2,
     groupSize: Int = 5,
     groupName: String = "College Friends",
     insightLabel: String = "peak scroll time",
-    insightBody: String = "Most of your scrolling happens 10pmâ€“11pm â€” that's your commute distance, but at 10pm",
+    insightBody: String = "Most of your scrolling happens 10pmâ€“11pm — that's your commute distance, but at 10pm",
     onSettingsClick: () -> Unit = {},
     onRankChipClick: () -> Unit = {}
 ) {
@@ -343,7 +343,7 @@ fun HomeScreen(
                 }
             }
 
-            // Bottom clearance above nav bar â€” xxl (48dp)
+            // Bottom clearance above nav bar — xxl (48dp)
             Spacer(modifier = Modifier.height(spacing.extraExtraLarge))
         }
     }

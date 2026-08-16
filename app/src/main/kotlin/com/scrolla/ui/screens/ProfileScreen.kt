@@ -58,7 +58,7 @@ import com.scrolla.ui.components.bentoCard
 import com.scrolla.ui.components.bounceClick
 
 /**
- * Screen 8 â€” Profile Tab
+ * Screen 8 — Profile Tab
  *
  * Identity/achievement hub in the Strava/Duolingo mold.
  * Teaser hub: every card reuses copy and data already defined
@@ -73,7 +73,7 @@ import com.scrolla.ui.components.bounceClick
 @Composable
 fun ProfileScreen(
     modifier: Modifier = Modifier,
-    // Mock data â€” will come from ViewModel
+    // Mock data — will come from ViewModel
     displayName: String = "Rohit",
     personalBestKm: Float = 0.4f,
     personalBestRelativeDate: String = "3 weeks ago",

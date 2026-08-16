@@ -3,15 +3,15 @@
 /**
  * Shared formatting utilities for Scrolla screens.
  *
- * These pure functions format data for display. They own presentation logic only â€”
+ * These pure functions format data for display. They own presentation logic only —
  * never business logic or data transformation.
  */
 object ScrollaFormatters {
 
     /**
      * Format distance to one decimal place.
-     * â‰¥ 10 km â†’ no decimal (e.g. "12")
-     * < 10 km â†’ one decimal (e.g. "2.3")
+     * â‰¥ 10 km → no decimal (e.g. "12")
+     * < 10 km → one decimal (e.g. "2.3")
      */
     fun formatDistance(km: Float): String {
         return if (km >= 10f) {

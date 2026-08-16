@@ -42,7 +42,7 @@ import com.scrolla.ui.components.bentoCard
 import com.scrolla.ui.components.bounceClick
 
 /**
- * Screen 13 â€” Personal Records
+ * Screen 13 — Personal Records
  * 
  * Displays the user's best (lowest) achievements.
  */

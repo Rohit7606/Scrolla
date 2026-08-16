@@ -62,12 +62,12 @@ import com.scrolla.ui.theme.spacing
 import com.scrolla.ui.components.bentoCard
 
 /**
- * Screen 7 â€” Insights
+ * Screen 7 — Insights
  *
  * Purpose: Give the user a deeper, private look at their scrolling patterns.
  * User Question: "What patterns exist in my scrolling?"
  *
- * Coral budget: 1 thread (today's bar â†’ #1 app progress fill)
+ * Coral budget: 1 thread (today's bar → #1 app progress fill)
  */
 
 data class DayData(
@@ -85,7 +85,7 @@ data class AppUsage(
 @Composable
 fun InsightsScreen(
     modifier: Modifier = Modifier,
-    // Mock data â€” will be replaced by ViewModel
+    // Mock data — will be replaced by ViewModel
     weekData: List<DayData> = listOf(
         DayData("M", 1.8f),
         DayData("T", 2.5f),
@@ -102,7 +102,7 @@ fun InsightsScreen(
         AppUsage("YouTube", 0.2f),
         AppUsage("Chrome", 0.1f)
     ),
-    peakTimeText: String = "Most of your scrolling happens 10pmâ€“11pm â€” that's your commute distance, but at 10pm",
+    peakTimeText: String = "Most of your scrolling happens 10pmâ€“11pm — that's your commute distance, but at 10pm",
     onAppBreakdownClick: () -> Unit = {},
     onShowRecapClick: () -> Unit = {}
 ) {
@@ -235,7 +235,7 @@ fun InsightsScreen(
         )
 
         // â”€â”€â”€ PRIVACY NOTE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-        // Per blueprint: MUST always be visible â€” trust signal
+        // Per blueprint: MUST always be visible — trust signal
         Spacer(modifier = Modifier.height(spacing.medium))
 
         Row(
@@ -272,12 +272,12 @@ fun InsightsScreen(
 /**
  * Per blueprint:
  * - 7 bars, Mon-Sun
- * - Today's bar: Primary (#ED6A5A) â€” coral moment
+ * - Today's bar: Primary (#ED6A5A) — coral moment
  * - Past bars: Accent/200 (#F7C1BA)
  * - Future/no-data: Neutral/200 (#E1E1E1)
  * - Bar width: 28dp, gap: 8dp, radius: ExtraSmall (4dp) top only
  * - Tapping a bar shows that day's stat below
- * - No Y-axis labels â€” proportional
+ * - No Y-axis labels — proportional
  */
 @Composable
 private fun WeeklyBarChart(
@@ -465,7 +465,7 @@ private fun AppRow(
 ) {
     val spacing = MaterialTheme.spacing
     val barColor = if (isTopApp) {
-        MaterialTheme.colorScheme.primary // Coral for #1 app â€” same thread
+        MaterialTheme.colorScheme.primary // Coral for #1 app — same thread
     } else {
         MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
     }
@@ -510,7 +510,7 @@ private fun AppRow(
                 )
             }
         }
-        // Progress bar â€” 2dp height, full pill radius
+        // Progress bar — 2dp height, full pill radius
         LinearProgressIndicator(
             progress = { progress },
             modifier = Modifier

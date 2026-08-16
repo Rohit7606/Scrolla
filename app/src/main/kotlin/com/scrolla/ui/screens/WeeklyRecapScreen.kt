@@ -36,7 +36,7 @@ import com.scrolla.ui.theme.ScrollaUILabTheme
 import com.scrolla.ui.theme.spacing
 
 /**
- * Screen 12 â€” Weekly Recap (Interstitial / Spotify Wrapped style)
+ * Screen 12 — Weekly Recap (Interstitial / Spotify Wrapped style)
  * 
  * Pops up once a week. Extremely high visual impact.
  * Heavily relies on the ambient glow and large typography.

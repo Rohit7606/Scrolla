@@ -56,12 +56,12 @@ import com.scrolla.ui.theme.ScrollaUILabTheme
 import com.scrolla.ui.theme.spacing
 
 /**
- * Screen 6 â€” Leaderboard
+ * Screen 6 — Leaderboard
  *
- * Purpose: Show the user where they stand among friends today â€” with context, without shame.
+ * Purpose: Show the user where they stand among friends today — with context, without shame.
  * User Question: "How does my scrolling compare to my group?"
  *
- * Coral budget: 1 thread (Most Improved banner â†’ self-row â†’ Hall of Fame link)
+ * Coral budget: 1 thread (Most Improved banner → self-row → Hall of Fame link)
  */
 
 data class LeaderboardEntry(
@@ -79,7 +79,7 @@ data class GroupStats(
 @Composable
 fun LeaderboardScreen(
     modifier: Modifier = Modifier,
-    // Mock data â€” will be replaced by ViewModel
+    // Mock data — will be replaced by ViewModel
     mostImprovedName: String? = "Priya",
     entries: List<LeaderboardEntry> = listOf(
         LeaderboardEntry("Priya", 1.2f),
@@ -153,7 +153,7 @@ fun LeaderboardScreen(
 
         // â”€â”€â”€ MOST IMPROVED BANNER (Conditional) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         // Per blueprint: only show if â‰¥ 10% improvement this week
-        // Uses PrimaryContainer â€” THE coral moment for this screen
+        // Uses PrimaryContainer — THE coral moment for this screen
         if (mostImprovedName != null) {
             androidx.compose.animation.AnimatedVisibility(
                 visible = isVisible,
@@ -269,7 +269,7 @@ fun LeaderboardScreen(
         }
 
         // â”€â”€â”€ HALL OF FAME TEASER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-        // Per blueprint: Card (Interactive), "Hall of fame â†’" in Primary coral
+        // Per blueprint: Card (Interactive), "Hall of fame →" in Primary coral
         Spacer(modifier = Modifier.height(spacing.extraLarge))
 
         androidx.compose.animation.AnimatedVisibility(
@@ -392,7 +392,7 @@ private fun LeaderboardRow(
             .semantics { contentDescription = semanticLabel },
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Rank ordinal â€” massive, thin, transparent
+        // Rank ordinal — massive, thin, transparent
         Text(
             text = "$rank",
             style = MaterialTheme.typography.displayMedium.copy(
@@ -414,7 +414,7 @@ private fun LeaderboardRow(
             modifier = Modifier.weight(1f)
         )
 
-        // Distance â€” right-aligned, tabular figures
+        // Distance — right-aligned, tabular figures
         Text(
             text = "%.1f".format(distanceKm),
             style = MaterialTheme.typography.headlineSmall.copy(

@@ -45,7 +45,7 @@ import com.scrolla.ui.components.bentoCard
 import com.scrolla.ui.components.bounceClick
 
 /**
- * Screen 14 â€” Hall of Fame
+ * Screen 14 — Hall of Fame
  * 
  * Displays the all-time group records.
  */

@@ -61,7 +61,7 @@ enum class ServiceHealthState {
 }
 
 /**
- * Screen 9 â€” Settings
+ * Screen 9 — Settings
  *
  * Focuses heavily on Service Health (tracking permissions and battery restrictions)
  * and Account Management (Name, Backup, Sign out, Delete).

@@ -51,7 +51,7 @@ data class GroupInfo(
 )
 
 /**
- * Screen 10 â€” Group Switcher
+ * Screen 10 — Group Switcher
  */
 @Composable
 fun GroupSwitcherScreen(
