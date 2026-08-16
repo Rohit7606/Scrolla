@@ -87,7 +87,7 @@ fun AppBreakdownScreen(
                 .fillMaxSize()
                 .windowInsetsPadding(WindowInsets.statusBars)
         ) {
-            // â”€â”€â”€ TOP APP BAR â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            // ─── TOP APP BAR ──────────────────────────────────────────
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -123,7 +123,7 @@ fun AppBreakdownScreen(
 
             Spacer(modifier = Modifier.height(spacing.large))
 
-            // â”€â”€â”€ CONTENT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            // ─── CONTENT ──────────────────────────────────────────────
             if (!hasData) {
                 Column(
                     modifier = Modifier

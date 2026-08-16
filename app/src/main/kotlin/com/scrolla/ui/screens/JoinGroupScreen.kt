@@ -74,7 +74,7 @@ fun JoinGroupScreen(
                 .fillMaxSize()
                 .windowInsetsPadding(WindowInsets.statusBars)
         ) {
-            // â”€â”€â”€ TOP APP BAR â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            // ─── TOP APP BAR ──────────────────────────────────────────
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -103,7 +103,7 @@ fun JoinGroupScreen(
 
             Spacer(modifier = Modifier.height(spacing.extraLarge))
 
-            // â”€â”€â”€ CONTENT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            // ─── CONTENT ──────────────────────────────────────────────
             androidx.compose.animation.AnimatedVisibility(
                 visible = isVisible,
                 enter = androidx.compose.animation.fadeIn(tween(400)) + androidx.compose.animation.slideInVertically(tween(400), initialOffsetY = { 50 })

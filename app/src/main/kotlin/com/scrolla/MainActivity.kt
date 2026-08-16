@@ -65,9 +65,12 @@ class MainActivity : ComponentActivity() {
                 androidx.compose.material3.Surface {
                     // Real sign-in state: check Firebase session at startup so
                     // returning users skip the sign-in screen entirely.
+                    val context = androidx.compose.ui.platform.LocalContext.current
+                    val prefs = remember { context.getSharedPreferences("scrolla_prefs", android.content.Context.MODE_PRIVATE) }
+                    
                     var currentScreen by remember { mutableStateOf("splash") }
                     var isSignedIn by remember { mutableStateOf(AuthRepository().currentUser != null) }
-                    var isFirstLaunch by remember { mutableStateOf(true) }
+                    var isFirstLaunch by remember { mutableStateOf(prefs.getBoolean("is_first_launch", true)) }
 
                     when (currentScreen) {
                         "splash" -> {
@@ -97,6 +100,7 @@ class MainActivity : ComponentActivity() {
                         "onboarding" -> {
                             OnboardingScreen(
                                 onFinishOnboarding = {
+                                    prefs.edit().putBoolean("is_first_launch", false).apply()
                                     isFirstLaunch = false
                                     currentScreen = "home"
                                 },

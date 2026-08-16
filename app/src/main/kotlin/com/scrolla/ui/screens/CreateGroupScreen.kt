@@ -73,7 +73,7 @@ fun CreateGroupScreen(
                 .fillMaxSize()
                 .windowInsetsPadding(WindowInsets.statusBars)
         ) {
-            // â”€â”€â”€ TOP APP BAR â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            // ─── TOP APP BAR ──────────────────────────────────────────
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -102,7 +102,7 @@ fun CreateGroupScreen(
 
             Spacer(modifier = Modifier.height(spacing.extraLarge))
 
-            // â”€â”€â”€ CONTENT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            // ─── CONTENT ──────────────────────────────────────────────
             AnimatedVisibility(
                 visible = isVisible,
                 enter = fadeIn(tween(400)) + slideInVertically(tween(400), initialOffsetY = { 50 })

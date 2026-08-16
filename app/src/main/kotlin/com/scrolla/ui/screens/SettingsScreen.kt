@@ -99,7 +99,7 @@ fun SettingsScreen(
                 .windowInsetsPadding(WindowInsets.statusBars)
                 .verticalScroll(scrollState)
         ) {
-            // â”€â”€â”€ TOP APP BAR â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            // ─── TOP APP BAR ──────────────────────────────────────────
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -128,7 +128,7 @@ fun SettingsScreen(
 
             Spacer(modifier = Modifier.height(spacing.medium))
 
-            // â”€â”€â”€ SERVICE HEALTH SECTION â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            // ─── SERVICE HEALTH SECTION ──────────────────────────────
             androidx.compose.animation.AnimatedVisibility(
                 visible = isVisible,
                 enter = androidx.compose.animation.fadeIn(tween(400, delayMillis = 100)) + androidx.compose.animation.slideInVertically(tween(400, delayMillis = 100), initialOffsetY = { 20 })
@@ -177,7 +177,7 @@ fun SettingsScreen(
 
             Spacer(modifier = Modifier.height(spacing.extraLarge))
 
-            // â”€â”€â”€ ACCOUNT SECTION â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            // ─── ACCOUNT SECTION ─────────────────────────────────────
             androidx.compose.animation.AnimatedVisibility(
                 visible = isVisible,
                 enter = androidx.compose.animation.fadeIn(tween(400, delayMillis = 200)) + androidx.compose.animation.slideInVertically(tween(400, delayMillis = 200), initialOffsetY = { 20 })

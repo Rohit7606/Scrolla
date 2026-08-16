@@ -83,7 +83,7 @@ fun GroupSwitcherScreen(
                 .fillMaxSize()
                 .windowInsetsPadding(WindowInsets.statusBars)
         ) {
-            // â”€â”€â”€ TOP APP BAR â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            // ─── TOP APP BAR ──────────────────────────────────────────
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -112,7 +112,7 @@ fun GroupSwitcherScreen(
 
             Spacer(modifier = Modifier.height(spacing.medium))
 
-            // â”€â”€â”€ CONTENT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            // ─── CONTENT ──────────────────────────────────────────────
             if (groups.isEmpty()) {
                 // Empty State
                 Column(
@@ -225,7 +225,7 @@ private fun GroupCard(
             Spacer(modifier = Modifier.height(4.dp))
             
             Text(
-                text = "${group.memberCount} members" + if (group.isWidgetGroup) " Â· ${ScrollaStrings.GROUP_SWITCHER_WIDGET_LABEL}" else "",
+                text = "${group.memberCount} members" + if (group.isWidgetGroup) " · ${ScrollaStrings.GROUP_SWITCHER_WIDGET_LABEL}" else "",
                 style = MaterialTheme.typography.bodyMedium,
                 color = if (isActive) contentColor.copy(alpha = 0.8f) else MaterialTheme.colorScheme.onSurfaceVariant
             )

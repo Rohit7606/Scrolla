@@ -88,7 +88,7 @@ fun HomeScreen(
     groupSize: Int = 5,
     groupName: String = "College Friends",
     insightLabel: String = "peak scroll time",
-    insightBody: String = "Most of your scrolling happens 10pmâ€“11pm — that's your commute distance, but at 10pm",
+    insightBody: String = "Most of your scrolling happens 10pm–11pm — that's your commute distance, but at 10pm",
     onSettingsClick: () -> Unit = {},
     onRankChipClick: () -> Unit = {}
 ) {
@@ -150,7 +150,7 @@ fun HomeScreen(
                 .windowInsetsPadding(WindowInsets.statusBars)
                 .verticalScroll(scrollState)
         ) {
-            // â”€â”€â”€ TOP APP BAR (Large Title) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            // ─── TOP APP BAR (Large Title) ─────────────────────────────
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -177,7 +177,7 @@ fun HomeScreen(
                 }
             }
 
-            // â”€â”€â”€ HERO METRIC SECTION â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            // ─── HERO METRIC SECTION ───────────────────────────────────
             androidx.compose.animation.AnimatedVisibility(
                 visible = isVisible,
                 enter = androidx.compose.animation.fadeIn(tween(400, delayMillis = 100)) + androidx.compose.animation.slideInVertically(tween(400, delayMillis = 100), initialOffsetY = { 30 })
@@ -236,7 +236,7 @@ fun HomeScreen(
                 }
             }
 
-            // â”€â”€â”€ RANK ROW â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            // ─── RANK ROW ─────────────────────────────────────────────
             Spacer(modifier = Modifier.height(spacing.extraLarge))
 
             androidx.compose.animation.AnimatedVisibility(
@@ -299,7 +299,7 @@ fun HomeScreen(
                 }
             }
 
-            // â”€â”€â”€ INSIGHT CARD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            // ─── INSIGHT CARD ──────────────────────────────────────────
             Spacer(modifier = Modifier.height(spacing.medium))
 
             androidx.compose.animation.AnimatedVisibility(

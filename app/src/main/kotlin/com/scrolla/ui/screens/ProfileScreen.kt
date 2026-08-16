@@ -126,7 +126,7 @@ fun ProfileScreen(
                 .windowInsetsPadding(WindowInsets.statusBars)
                 .verticalScroll(scrollState)
         ) {
-            // â”€â”€â”€ IDENTITY HEADER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            // ─── IDENTITY HEADER ─────────────────────────────────────
             androidx.compose.animation.AnimatedVisibility(
                 visible = isVisible,
                 enter = androidx.compose.animation.fadeIn(tween(400)) + androidx.compose.animation.slideInVertically(tween(400), initialOffsetY = { 20 })
@@ -186,7 +186,7 @@ fun ProfileScreen(
 
             Spacer(modifier = Modifier.height(spacing.extraLarge))
 
-            // â”€â”€â”€ PERSONAL BEST TEASER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            // ─── PERSONAL BEST TEASER ────────────────────────────────
             androidx.compose.animation.AnimatedVisibility(
                 visible = isVisible,
                 enter = androidx.compose.animation.fadeIn(tween(400, delayMillis = 100)) + androidx.compose.animation.slideInVertically(tween(400, delayMillis = 100), initialOffsetY = { 20 })
@@ -219,7 +219,7 @@ fun ProfileScreen(
                                 modifier = Modifier.alignByBaseline()
                             )
                             Text(
-                                text = " Â· $personalBestRelativeDate",
+                                text = " · $personalBestRelativeDate",
                                 style = MaterialTheme.typography.titleMedium.copy(
                                     fontWeight = FontWeight.Normal
                                 ),
@@ -239,7 +239,7 @@ fun ProfileScreen(
 
             Spacer(modifier = Modifier.height(spacing.medium))
 
-            // â”€â”€â”€ HALL OF FAME STATUS TEASER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            // ─── HALL OF FAME STATUS TEASER ──────────────────────────
             androidx.compose.animation.AnimatedVisibility(
                 visible = isVisible,
                 enter = androidx.compose.animation.fadeIn(tween(400, delayMillis = 200)) + androidx.compose.animation.slideInVertically(tween(400, delayMillis = 200), initialOffsetY = { 20 })
@@ -271,7 +271,7 @@ fun ProfileScreen(
 
             Spacer(modifier = Modifier.height(spacing.medium))
 
-            // â”€â”€â”€ GROUPS TEASER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            // ─── GROUPS TEASER ───────────────────────────────────────
             androidx.compose.animation.AnimatedVisibility(
                 visible = isVisible,
                 enter = androidx.compose.animation.fadeIn(tween(400, delayMillis = 300)) + androidx.compose.animation.slideInVertically(tween(400, delayMillis = 300), initialOffsetY = { 20 })
@@ -284,7 +284,7 @@ fun ProfileScreen(
                     modifier = Modifier.padding(horizontal = spacing.medium)
                 ) {
                     Text(
-                        text = "$groupCount groups Â· $primaryGroupName on widget",
+                        text = "$groupCount groups · $primaryGroupName on widget",
                         style = MaterialTheme.typography.bodyLarge.copy(
                             lineHeight = 24.sp,
                             letterSpacing = (-0.01).em

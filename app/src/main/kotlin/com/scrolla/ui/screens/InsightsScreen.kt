@@ -102,7 +102,7 @@ fun InsightsScreen(
         AppUsage("YouTube", 0.2f),
         AppUsage("Chrome", 0.1f)
     ),
-    peakTimeText: String = "Most of your scrolling happens 10pmâ€“11pm — that's your commute distance, but at 10pm",
+    peakTimeText: String = "Most of your scrolling happens 10pm–11pm — that's your commute distance, but at 10pm",
     onAppBreakdownClick: () -> Unit = {},
     onShowRecapClick: () -> Unit = {}
 ) {
@@ -156,7 +156,7 @@ fun InsightsScreen(
             }
         }
 
-        // â”€â”€â”€ SECTION: WEEKLY CHART â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ─── SECTION: WEEKLY CHART ─────────────────────────────────
         Spacer(modifier = Modifier.height(spacing.large))
 
         Text(
@@ -178,7 +178,7 @@ fun InsightsScreen(
                 .padding(horizontal = spacing.medium)
         )
 
-        // â”€â”€â”€ SECTION: TOP APPS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ─── SECTION: TOP APPS ─────────────────────────────────────
         Spacer(modifier = Modifier.height(spacing.extraLarge))
 
         Row(
@@ -208,7 +208,7 @@ fun InsightsScreen(
                 .padding(horizontal = spacing.medium)
         )
 
-        // â”€â”€â”€ SECTION: PEAK SCROLL TIME â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ─── SECTION: PEAK SCROLL TIME ─────────────────────────────
         Spacer(modifier = Modifier.height(spacing.extraLarge))
 
         Text(
@@ -234,7 +234,7 @@ fun InsightsScreen(
             modifier = Modifier.padding(horizontal = spacing.medium)
         )
 
-        // â”€â”€â”€ PRIVACY NOTE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ─── PRIVACY NOTE ──────────────────────────────────────────
         // Per blueprint: MUST always be visible — trust signal
         Spacer(modifier = Modifier.height(spacing.medium))
 
@@ -267,7 +267,7 @@ fun InsightsScreen(
     }
 }
 
-// â”€â”€â”€ WEEKLY BAR CHART COMPONENT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── WEEKLY BAR CHART COMPONENT ──────────────────────────────────
 
 /**
  * Per blueprint:
@@ -414,7 +414,7 @@ private fun WeeklyBarChart(
     }
 }
 
-// â”€â”€â”€ TOP APPS LIST COMPONENT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── TOP APPS LIST COMPONENT ─────────────────────────────────────
 
 /**
  * Per blueprint:

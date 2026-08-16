@@ -132,7 +132,7 @@ fun LeaderboardScreen(
                 .windowInsetsPadding(WindowInsets.statusBars)
                 .verticalScroll(scrollState)
         ) {
-        // â”€â”€â”€ TOP APP BAR (Large Title) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ─── TOP APP BAR (Large Title) ─────────────────────────────
         androidx.compose.animation.AnimatedVisibility(
             visible = isVisible,
             enter = androidx.compose.animation.fadeIn(tween(400)) + androidx.compose.animation.slideInVertically(tween(400), initialOffsetY = { 20 })
@@ -151,7 +151,7 @@ fun LeaderboardScreen(
             )
         }
 
-        // â”€â”€â”€ MOST IMPROVED BANNER (Conditional) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ─── MOST IMPROVED BANNER (Conditional) ───────────────────
         // Per blueprint: only show if â‰¥ 10% improvement this week
         // Uses PrimaryContainer — THE coral moment for this screen
         if (mostImprovedName != null) {
@@ -182,7 +182,7 @@ fun LeaderboardScreen(
             }
         }
 
-        // â”€â”€â”€ GROUP STATS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ─── GROUP STATS ───────────────────────────────────────
         Spacer(modifier = Modifier.height(spacing.medium))
 
         androidx.compose.animation.AnimatedVisibility(
@@ -236,7 +236,7 @@ fun LeaderboardScreen(
             }
         }
 
-        // â”€â”€â”€ LEADERBOARD LIST â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ─── LEADERBOARD LIST ──────────────────────────────────────
         // Per blueprint: ListItem rows, self-row highlighted with PrimaryContainer wash
         Spacer(modifier = Modifier.height(spacing.extraLarge))
 
@@ -268,7 +268,7 @@ fun LeaderboardScreen(
             }
         }
 
-        // â”€â”€â”€ HALL OF FAME TEASER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ─── HALL OF FAME TEASER ───────────────────────────────────
         // Per blueprint: Card (Interactive), "Hall of fame →" in Primary coral
         Spacer(modifier = Modifier.height(spacing.extraLarge))
 
