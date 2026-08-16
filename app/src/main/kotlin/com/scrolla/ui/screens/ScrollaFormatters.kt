@@ -1,4 +1,4 @@
-﻿package com.scrolla.ui.screens
+package com.scrolla.ui.screens
 
 /**
  * Shared formatting utilities for Scrolla screens.
@@ -10,7 +10,7 @@ object ScrollaFormatters {
 
     /**
      * Format distance to one decimal place.
-     * â‰¥ 10 km → no decimal (e.g. "12")
+     * ≥ 10 km → no decimal (e.g. "12")
      * < 10 km → one decimal (e.g. "2.3")
      */
     fun formatDistance(km: Float): String {
@@ -24,7 +24,7 @@ object ScrollaFormatters {
     /**
      * Format rank position as English ordinal: 1st, 2nd, 3rd, 4th, etc.
      *
-     * Per Typography.md Â§2.4: ordinal suffix is same size (no superscript).
+     * Per Typography.md §2.4: ordinal suffix is same size (no superscript).
      * This ensures screen readers correctly read "2nd" not "2" + "nd" separately.
      */
     fun formatOrdinal(position: Int): String {
