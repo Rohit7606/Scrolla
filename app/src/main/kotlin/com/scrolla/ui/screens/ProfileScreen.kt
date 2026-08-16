@@ -152,7 +152,7 @@ fun ProfileScreen(
                             modifier = Modifier
                                 .size(48.dp)
                                 .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.primaryContainer),
+                                .background(MaterialTheme.colorScheme.secondaryContainer),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
@@ -160,7 +160,7 @@ fun ProfileScreen(
                                 style = MaterialTheme.typography.titleLarge.copy(
                                     fontWeight = FontWeight.SemiBold
                                 ),
-                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                                color = MaterialTheme.colorScheme.onSecondaryContainer
                             )
                         }
 

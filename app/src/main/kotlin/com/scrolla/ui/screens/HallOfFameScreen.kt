@@ -1,4 +1,4 @@
-﻿package com.scrolla.ui.screens
+package com.scrolla.ui.screens
 
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
@@ -53,9 +53,9 @@ import com.scrolla.ui.components.bounceClick
 fun HallOfFameScreen(
     modifier: Modifier = Modifier,
     hasRecord: Boolean = true,
-    recordHolderName: String = "Sarah",
-    recordDistanceKm: Float = 0.2f,
-    recordDate: String = "Sep 28",
+    recordHolderName: String = "Priya",
+    recordDistanceKm: Float = 0.4f,
+    recordDate: String = "July 12",
     isCurrentUserHolder: Boolean = false,
     gapToRecordKm: Float = 1.9f,
     onBackClick: () -> Unit = {}
@@ -169,7 +169,7 @@ fun HallOfFameScreen(
                                 modifier = Modifier
                                     .size(40.dp)
                                     .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.primaryContainer),
+                                    .background(MaterialTheme.colorScheme.secondaryContainer),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
@@ -177,7 +177,7 @@ fun HallOfFameScreen(
                                     style = MaterialTheme.typography.titleMedium.copy(
                                         fontWeight = FontWeight.SemiBold
                                     ),
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer
                                 )
                             }
                             Text(
