@@ -1,0 +1,27 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Users can only read/write their own profile and their own group membership list
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      match /groups/{groupId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+    
+    // 2. Daily totals: anyone authenticated can read, but you can only write your own
+    // The docId must start with your UID (e.g., "uid_2026-08-16")
+    match /groups/{groupId}/dailyTotals/{docId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null
+                    && docId.matches(request.auth.uid + '_.*')
+                    && request.resource.data.userId == request.auth.uid;
+    }
+    
+    // 3. Group metadata: anyone authenticated can read a group or create a new one
+    match /groups/{groupId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+    }
+  }
+}

@@ -1,4 +1,4 @@
-﻿package com.scrolla.ui.screens
+package com.scrolla.ui.screens
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
