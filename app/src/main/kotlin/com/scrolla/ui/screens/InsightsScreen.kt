@@ -1,4 +1,4 @@
-﻿package com.scrolla.ui.screens
+package com.scrolla.ui.screens
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -90,14 +90,14 @@ fun InsightsScreen(
         DayData("M", 1.8f),
         DayData("T", 2.5f),
         DayData("W", 1.2f),
-        DayData("T", 3.1f, isToday = true),
+        DayData("T", 2.3f, isToday = true),
         DayData("F", 0f, isFuture = true),
         DayData("S", 0f, isFuture = true),
         DayData("S", 0f, isFuture = true)
     ),
     topApps: List<AppUsage> = listOf(
-        AppUsage("Instagram", 1.2f),
-        AppUsage("Reddit", 0.8f),
+        AppUsage("Instagram", 1.0f),
+        AppUsage("Reddit", 0.6f),
         AppUsage("Twitter", 0.3f),
         AppUsage("YouTube", 0.2f),
         AppUsage("Chrome", 0.1f)

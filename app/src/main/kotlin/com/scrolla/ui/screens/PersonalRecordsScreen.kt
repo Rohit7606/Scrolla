@@ -1,4 +1,4 @@
-﻿package com.scrolla.ui.screens
+package com.scrolla.ui.screens
 
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
@@ -51,9 +51,9 @@ fun PersonalRecordsScreen(
     modifier: Modifier = Modifier,
     hasData: Boolean = true,
     bestDayKm: Float = 0.4f,
-    bestDayDate: String = "Oct 12",
+    bestDayDate: String = "July 12",
     bestAvgKm: Float = 1.2f,
-    bestAvgDate: String = "Oct 8 - 14",
+    bestAvgDate: String = "July 8 - 14",
     onBackClick: () -> Unit = {}
 ) {
     val spacing = MaterialTheme.spacing

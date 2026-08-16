@@ -1,4 +1,4 @@
-﻿package com.scrolla.ui.screens
+package com.scrolla.ui.screens
 
 import com.scrolla.ui.components.bentoCard
 import com.scrolla.ui.components.bounceClick
@@ -71,7 +71,7 @@ data class LeaderboardEntry(
 )
 
 data class GroupStats(
-    val todayKm: Float = 3.4f,
+    val todayKm: Float = 2.3f,
     val yesterdayKm: Float = 2.8f,
     val weekAvgKm: Float = 3.1f
 )
@@ -80,16 +80,16 @@ data class GroupStats(
 fun LeaderboardScreen(
     modifier: Modifier = Modifier,
     // Mock data — will be replaced by ViewModel
-    mostImprovedName: String? = "Priya",
+    mostImprovedName: String? = "Lewis",
     entries: List<LeaderboardEntry> = listOf(
-        LeaderboardEntry("Priya", 1.2f),
+        LeaderboardEntry("Lewis", 1.2f),
         LeaderboardEntry("You", 2.3f, isSelf = true),
-        LeaderboardEntry("Jordan", 3.1f),
+        LeaderboardEntry("Max", 3.1f),
         LeaderboardEntry("Alex", 4.5f),
-        LeaderboardEntry("Sam", 6.8f)
+        LeaderboardEntry("Stroll", 6.8f)
     ),
     groupStats: GroupStats = GroupStats(),
-    groupBestDay: String = "0.4 km by Priya",
+    groupBestDay: String = "0.4 km by Lewis",
     onHallOfFameClick: () -> Unit = {}
 ) {
     val spacing = MaterialTheme.spacing

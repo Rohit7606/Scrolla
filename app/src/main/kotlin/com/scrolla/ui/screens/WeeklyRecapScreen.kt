@@ -1,4 +1,4 @@
-﻿package com.scrolla.ui.screens
+package com.scrolla.ui.screens
 
 import androidx.compose.runtime.setValue
 
@@ -44,7 +44,7 @@ import com.scrolla.ui.theme.spacing
 @Composable
 fun WeeklyRecapScreen(
     modifier: Modifier = Modifier,
-    weeklyDistanceKm: Float = 14.2f,
+    weeklyDistanceKm: Float = 7.8f,
     landmarkText: String = "that's longer than a half marathon",
     onShareClick: () -> Unit = {},
     onSkipClick: () -> Unit = {}

@@ -1,4 +1,4 @@
-﻿package com.scrolla.ui.screens
+package com.scrolla.ui.screens
 
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -76,7 +76,7 @@ fun ProfileScreen(
     // Mock data — will come from ViewModel
     displayName: String = "Rohit",
     personalBestKm: Float = 0.4f,
-    personalBestRelativeDate: String = "3 weeks ago",
+    personalBestRelativeDate: String = "July 12",
     hallOfFameGapKm: Float = 1.9f,
     isRecordHolder: Boolean = false,
     groupCount: Int = 2,
