@@ -1,22 +1,23 @@
 package com.scrolla
 
-import android.os.Bundle
 import android.content.Intent
+import android.os.Bundle
 import android.provider.Settings
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.material3.MaterialTheme
-import androidx.lifecycle.lifecycleScope
-import com.scrolla.device.isScrollAccessibilityServiceEnabled
-import com.scrolla.room.ScrollaDatabase
-import com.scrolla.room.ServiceHealthState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.lifecycle.lifecycleScope
+import com.google.firebase.auth.FirebaseAuth
 import com.scrolla.auth.AuthRepository
+import com.scrolla.device.isScrollAccessibilityServiceEnabled
+import com.scrolla.room.ScrollaDatabase
+import com.scrolla.room.ServiceHealthState
 import com.scrolla.ui.screens.MainShell
 import com.scrolla.ui.screens.OnboardingScreen
 import com.scrolla.ui.screens.SignInScreen
@@ -25,6 +26,7 @@ import com.scrolla.ui.theme.ScrollaUILabTheme
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
+
     override fun onCreate(savedInstanceState: Bundle?) {
         // Must be called before super.onCreate() — hands off from the system splash
         // to the app's Compose UI without a white-flash transition.
@@ -67,7 +69,7 @@ class MainActivity : ComponentActivity() {
                     // returning users skip the sign-in screen entirely.
                     val context = androidx.compose.ui.platform.LocalContext.current
                     val prefs = remember { context.getSharedPreferences("scrolla_prefs", android.content.Context.MODE_PRIVATE) }
-                    
+
                     var currentScreen by remember { mutableStateOf("splash") }
                     var isSignedIn by remember { mutableStateOf(AuthRepository().currentUser != null) }
                     var isFirstLaunch by remember { mutableStateOf(prefs.getBoolean("is_first_launch", true)) }
@@ -118,6 +120,3 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
-
-// Note: ScrollaApp() and ScrollaAppPreview() removed - they were unused placeholders.
-// Will be re-created when NavHost is implemented.
