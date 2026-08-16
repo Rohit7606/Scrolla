@@ -1,4 +1,4 @@
-package com.scrolla.ui.components
+﻿package com.scrolla.ui.components
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -15,12 +15,18 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.scrolla.ui.screens.ScrollaStrings
 import com.scrolla.ui.theme.ScrollaUILabTheme
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
 
 @Composable
 fun ScrollaPrimaryButton(
@@ -37,11 +43,18 @@ fun ScrollaPrimaryButton(
     ),
     icon: @Composable (() -> Unit)? = null
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(if (isPressed) 0.95f else 1f, label = "buttonScale")
+
     Button(
         onClick = { if (!isLoading) onClick() },
-        modifier = modifier.heightIn(min = 56.dp), // Increased from 48dp for a premium, hit-friendly tactile feel
+        modifier = modifier
+            .scale(scale)
+            .heightIn(min = 56.dp), // Increased from 48dp for a premium, hit-friendly tactile feel
         enabled = enabled,
         shape = CircleShape,
+        interactionSource = interactionSource,
         elevation = ButtonDefaults.buttonElevation(
             defaultElevation = 0.dp,
             pressedElevation = 0.dp,
@@ -96,4 +109,5 @@ private fun ScrollaPrimaryButtonPreview() {
         )
     }
 }
+
 
