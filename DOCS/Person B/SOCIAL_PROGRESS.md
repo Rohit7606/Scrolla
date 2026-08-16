@@ -70,8 +70,8 @@ Each screen is tracked independently. A screen is not "done" until it has: real 
 | Firebase Auth — Google sign-in | `auth/AuthRepository.kt` + `ui/auth/SignInActivity.kt` + `ui/screens/SignInScreen.kt` | 🟢 Complete | ☑ | Google Sign-In flow implemented with Firebase credential exchange. Dual path: `SignInActivity` (legacy activity-based) and `SignInScreen` (Compose-based, used in current flow) |
 | Firebase Auth — phone linking | `auth/AuthRepository.kt` | 🔴 Not started | ☐ | Test: same UID before and after linking |
 | Firestore security rules | `firestore/firestore.rules` | 🟢 Complete | ☑ | Deployed to Firebase Console and verified in Rules Playground. M2 Review logged. |
-| Group create flow | — | 🔴 Not started | ☐ | UI shell exists (`CreateGroupScreen.kt`), no backend `GroupRepository` |
-| Group join flow | — | 🔴 Not started | ☐ | UI shell exists (`JoinGroupScreen.kt`), no backend |
+| Group create flow | `firestore/GroupRepository.kt` | 🟢 Code complete | ☐ | Backend logic implemented. Needs UI wiring. |
+| Group join flow | `firestore/GroupRepository.kt` | 🟢 Code complete | ☐ | Backend logic implemented. Needs UI wiring. |
 | Group membership list | — | 🔴 Not started | ☐ | UI shell exists (`GroupSwitcherScreen.kt`), no backend |
 | Firestore sync timer | — | 🔴 Not started | ☐ | 15-min interval, also on foreground |
 | Leaderboard polling | — | 🔴 Not started | ☐ | No onSnapshot() |
@@ -279,8 +279,9 @@ A running scratchpad for in-progress thoughts, things to pick up next session, q
 - Confirmed `BatteryWhitelistScreen.kt` is now dead code (battery whitelist is handled by `OnboardingScreen`'s `BatteryWhitelistPhase`).
 - **Next session priorities:**
   1. Write Firestore security rules (S1.B5) — ✅ Done.
-  2. Build `GroupRepository.kt` for create/join flows (S1.B8, S1.B9).
-  3. Delete dead code: `BatteryWhitelistScreen.kt`, possibly `SignInActivity.kt`.
+  2. Build `GroupRepository.kt` for create/join flows (S1.B8, S1.B9) — ✅ Done.
+  3. Wire UI flows to `GroupRepository`.
+  4. Delete dead code: `BatteryWhitelistScreen.kt`, possibly `SignInActivity.kt`.
   4. Fix remaining encoding artifacts in `ScrollaFormatters.kt`.
   5. Reconcile `SettingsScreen.ServiceHealthState` enum with Room entity before wiring real data.
 

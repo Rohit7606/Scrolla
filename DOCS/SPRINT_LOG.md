@@ -60,8 +60,8 @@
 | S1.B5 | Firestore security rules written per `scrolla_project_summary.md` Section 10. **Not deployed yet — A must review first (cross-review rule).** | ☑ | 2026-08-16 | R — Written per spec. |
 | S1.B6 | A has reviewed B's Firestore security rules. Logged in `REVIEW_LOG.md`. | ☑ | 2026-08-16 | R — Logged as M2 review. |
 | S1.B7 | Firestore security rules deployed. Tested in Firebase Rules Playground: at least one "should succeed" case and one "should fail" case per `AGENTS.md` Section 5.3. | ☑ | 2026-08-16 | R — Deployed in production mode and verified in Rules Playground. |
-| S1.B8 | Group create flow: generates a `ScrollaConstants.GROUP_CODE_LENGTH`-digit code, writes group metadata document to `/groups/{groupId}` per `DATA_CONTRACT.md` Section 3.2. | ☐ | | UI shell exists (`CreateGroupScreen.kt`), backend `GroupRepository` not started. |
-| S1.B9 | Group join flow: validates code exists, writes `/users/{userId}/groups/{groupId}` membership document with `isPrimary = true` if it's the user's first group. | ☐ | | UI shell exists (`JoinGroupScreen.kt`), backend not started. |
+| S1.B8 | Group create flow: generates a `ScrollaConstants.GROUP_CODE_LENGTH`-digit code, writes group metadata document to `/groups/{groupId}` per `DATA_CONTRACT.md` Section 3.2. | ☑ | 2026-08-16 | R — Implemented in `GroupRepository.kt`. |
+| S1.B9 | Group join flow: validates code exists, writes `/users/{userId}/groups/{groupId}` membership document with `isPrimary = true` if it's the user's first group. | ☑ | 2026-08-16 | R — Implemented in `GroupRepository.kt`. |
 | S1.B10 | `DistanceFormatter` utility confirmed imported and used everywhere km/cm values appear — no inline formatting, no re-implementation. | ☐ | | Presentation formatting done via `ScrollaFormatters.kt` as stopgap. `model/DistanceFormatter.kt` still missing `cmToKm()` — flagged to A. |
 
 ---
