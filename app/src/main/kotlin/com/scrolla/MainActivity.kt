@@ -11,7 +11,17 @@ import androidx.lifecycle.lifecycleScope
 import com.scrolla.device.isScrollAccessibilityServiceEnabled
 import com.scrolla.room.ScrollaDatabase
 import com.scrolla.room.ServiceHealthState
-import com.scrolla.ui.screens.BatteryWhitelistScreen
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import com.scrolla.auth.AuthRepository
+import com.scrolla.ui.screens.MainShell
+import com.scrolla.ui.screens.OnboardingScreen
+import com.scrolla.ui.screens.SignInScreen
+import com.scrolla.ui.screens.SplashScreen
+import com.scrolla.ui.theme.ScrollaUILabTheme
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -51,9 +61,55 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
-            MaterialTheme {
-                // TEMPORARY: direct screen for S1.A7 testing, replace when NavHost is built
-                BatteryWhitelistScreen()
+            ScrollaUILabTheme {
+                androidx.compose.material3.Surface {
+                    // Real sign-in state: check Firebase session at startup so
+                    // returning users skip the sign-in screen entirely.
+                    var currentScreen by remember { mutableStateOf("splash") }
+                    var isSignedIn by remember { mutableStateOf(AuthRepository().currentUser != null) }
+                    var isFirstLaunch by remember { mutableStateOf(true) }
+
+                    when (currentScreen) {
+                        "splash" -> {
+                            SplashScreen(
+                                onSplashFinished = {
+                                    currentScreen = if (isSignedIn) {
+                                        if (isFirstLaunch) "onboarding" else "home"
+                                    } else {
+                                        "signin"
+                                    }
+                                }
+                            )
+                        }
+                        "signin" -> {
+                            SignInScreen(
+                                onSignInSuccess = {
+                                    isSignedIn = true
+                                    currentScreen = if (isFirstLaunch) "onboarding" else "home"
+                                },
+                                onSignInError = { msg ->
+                                    // Person B track: fail visible — surface error in a future snackbar.
+                                    // For now, log so it's discoverable without crashing.
+                                    android.util.Log.e("MainActivity", "Sign-in failed: $msg")
+                                }
+                            )
+                        }
+                        "onboarding" -> {
+                            OnboardingScreen(
+                                onFinishOnboarding = {
+                                    isFirstLaunch = false
+                                    currentScreen = "home"
+                                },
+                                onGrantPermission = {
+                                    startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+                                }
+                            )
+                        }
+                        "home" -> {
+                            MainShell()
+                        }
+                    }
+                }
             }
         }
     }
