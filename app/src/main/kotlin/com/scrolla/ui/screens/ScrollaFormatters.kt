@@ -13,6 +13,26 @@ package com.scrolla.ui.screens
 object ScrollaFormatters {
 
     /**
+     * Format an hour bucket (0–23) as the hour range it covers: 22 → "10 and 11pm",
+     * 0 → "12 and 1am", 11 → "11am and 12pm". Used for the peak-hour insight.
+     */
+    fun formatHourRange(hour: Int): String {
+        val start = hour % 24
+        val end = (hour + 1) % 24
+        return "${clockLabel(start, showMeridiem = meridiem(start) != meridiem(end))} and ${clockLabel(end, showMeridiem = true)}"
+    }
+
+    private fun meridiem(hour: Int): String = if (hour < 12) "am" else "pm"
+
+    private fun clockLabel(hour: Int, showMeridiem: Boolean): String {
+        val twelve = when (hour % 12) {
+            0 -> 12
+            else -> hour % 12
+        }
+        return if (showMeridiem) "$twelve${meridiem(hour)}" else "$twelve"
+    }
+
+    /**
      * Format rank position as English ordinal: 1st, 2nd, 3rd, 4th, etc.
      *
      * Per Typography.md §2.4: ordinal suffix is same size (no superscript).

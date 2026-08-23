@@ -55,17 +55,18 @@ import com.scrolla.ui.theme.spacing
 @Composable
 fun ProfileScreen(
     modifier: Modifier = Modifier,
-    // Mock data — will come from ViewModel
     displayName: String = "Rohit",
-    memberSinceLabel: String = "Tracking since 6 July",
-    personalBestKm: Float = 0.4f,
-    personalBestRelativeDate: String = "12 July",
-    sevenDayAvgKm: Float = 3.1f,
+    memberSinceLabel: String? = "Tracking since 6 July",
+    /** Null until the sensor has produced at least one full day. */
+    personalBestKm: Float? = 0.4f,
+    personalBestRelativeDate: String? = "12 July",
+    sevenDayAvgKm: Float? = 3.1f,
     previousSevenDayAvgKm: Float? = 3.6f,
-    hallOfFameGapKm: Float = 1.9f,
+    /** Null until the group has a record to measure against. */
+    hallOfFameGapKm: Float? = 1.9f,
     isRecordHolder: Boolean = false,
     groupCount: Int = 2,
-    primaryGroupName: String = "College Friends",
+    primaryGroupName: String? = "College Friends",
     onSettingsClick: () -> Unit = {},
     onPersonalRecordsClick: () -> Unit = {},
     onHallOfFameClick: () -> Unit = {},
@@ -119,7 +120,7 @@ fun ProfileScreen(
                         modifier = Modifier.semantics { heading() }
                     )
                     Text(
-                        text = memberSinceLabel,
+                        text = memberSinceLabel ?: ScrollaStrings.PROFILE_TRACKING_SINCE_UNKNOWN,
                         style = ScrollaType.Caption,
                         color = colors.textLow
                     )
@@ -158,12 +159,11 @@ fun ProfileScreen(
                         .fillMaxHeight(),
                     onClick = onPersonalRecordsClick
                 ) {
+                    val best = personalBestKm?.takeIf { it > 0f }
                     StatBlock(
                         label = ScrollaStrings.RECORDS_BEST_DAY_LABEL,
-                        value = if (personalBestKm > 0f) {
-                            DistanceFormatter.formatKmValue(personalBestKm)
-                        } else null,
-                        footnote = if (personalBestKm > 0f) {
+                        value = best?.let { DistanceFormatter.formatKmValue(it) },
+                        footnote = if (best != null) {
                             personalBestRelativeDate
                         } else {
                             ScrollaStrings.PROFILE_PERSONAL_BEST_EMPTY
@@ -177,19 +177,26 @@ fun ProfileScreen(
                         .fillMaxHeight(),
                     onClick = onPersonalRecordsClick
                 ) {
-                    val trend = previousSevenDayAvgKm?.let { previous ->
-                        if (sevenDayAvgKm <= previous) {
-                            "down from ${DistanceFormatter.formatKmValue(previous)}"
+                    val trend = if (sevenDayAvgKm != null && previousSevenDayAvgKm != null) {
+                        if (sevenDayAvgKm <= previousSevenDayAvgKm) {
+                            "down from ${DistanceFormatter.formatKmValue(previousSevenDayAvgKm)}"
                         } else {
-                            "up from ${DistanceFormatter.formatKmValue(previous)}"
+                            "up from ${DistanceFormatter.formatKmValue(previousSevenDayAvgKm)}"
                         }
+                    } else {
+                        null
                     }
-                    val improving = previousSevenDayAvgKm == null || sevenDayAvgKm <= previousSevenDayAvgKm
+                    val improving = sevenDayAvgKm == null || previousSevenDayAvgKm == null ||
+                        sevenDayAvgKm <= previousSevenDayAvgKm
 
                     StatBlock(
                         label = ScrollaStrings.RECORDS_SEVEN_DAY_LABEL,
-                        value = DistanceFormatter.formatKmValue(sevenDayAvgKm),
-                        footnote = trend,
+                        value = sevenDayAvgKm?.let { DistanceFormatter.formatKmValue(it) },
+                        footnote = trend ?: if (sevenDayAvgKm == null) {
+                            ScrollaStrings.PROFILE_PERSONAL_BEST_EMPTY
+                        } else {
+                            null
+                        },
                         footnoteColor = if (improving) colors.improving else colors.worsening
                     )
                 }
@@ -223,7 +230,7 @@ fun ProfileScreen(
                     Text(
                         text = when {
                             isRecordHolder -> ScrollaStrings.PROFILE_HALL_OF_FAME_RECORD_HOLDER
-                            hallOfFameGapKm > 0f -> String.format(
+                            hallOfFameGapKm != null && hallOfFameGapKm > 0f -> String.format(
                                 ScrollaStrings.HALL_OF_FAME_PROGRESS_TEMPLATE,
                                 DistanceFormatter.formatKm(hallOfFameGapKm)
                             )
@@ -232,7 +239,7 @@ fun ProfileScreen(
                         style = ScrollaType.Body,
                         color = MaterialTheme.colorScheme.onSurface
                     )
-                    if (!isRecordHolder && hallOfFameGapKm > 0f) {
+                    if (!isRecordHolder && hallOfFameGapKm != null && hallOfFameGapKm > 0f) {
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -261,7 +268,9 @@ fun ProfileScreen(
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         SectionLabel(ScrollaStrings.GROUP_SWITCHER_TITLE)
                         Text(
-                            text = "$groupCount groups · $primaryGroupName on widget",
+                            text = primaryGroupName
+                                ?.let { "$groupCount groups · $it on widget" }
+                                ?: ScrollaStrings.PROFILE_NO_GROUPS,
                             style = ScrollaType.Body,
                             color = MaterialTheme.colorScheme.onSurface
                         )

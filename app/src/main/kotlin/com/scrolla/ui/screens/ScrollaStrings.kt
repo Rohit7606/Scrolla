@@ -91,6 +91,8 @@ object ScrollaStrings {
     const val HOME_UNIT = "km"
     const val HOME_LANDMARK_PREFIX = "about the height of"
     const val HOME_EMPTY_LANDMARK = "start scrolling to see your distance"
+    const val HOME_WAITING_FOR_SENSOR = "waiting for the first scroll to be measured"
+    const val HOME_STANDING_UNAVAILABLE = "no group results yet"
     const val HOME_INSIGHT_PLACEHOLDER_LABEL = "today's insight"
     const val HOME_INSIGHT_PLACEHOLDER_BODY = "Scroll today to see your insights here"
     const val HOME_INSIGHT_PERSONAL_BEST_LABEL = "personal best"
@@ -112,6 +114,12 @@ object ScrollaStrings {
     const val LEADERBOARD_EMPTY_SOLO_HEADLINE = "You're the only one here"
     const val LEADERBOARD_EMPTY_SOLO_BODY = "Share your group code to invite friends. Until then, here's your personal progress."
     const val LEADERBOARD_NO_DATA = "No data yet — start scrolling"
+    const val PROFILE_TRACKING_SINCE_UNKNOWN = "Tracking has not started yet"
+    const val PROFILE_NO_GROUPS = "Not in a group yet"
+    const val LEADERBOARD_NO_GROUP_TITLE = "No group yet"
+    const val LEADERBOARD_EMPTY_NO_GROUP = "Join a group to see how you compare."
+    const val LEADERBOARD_EMPTY_NO_TOTALS = "No totals have synced for today yet."
+    const val LEADERBOARD_NO_RECORD_YET = "No group record set yet"
     const val LEADERBOARD_LEFT_GROUP_SUFFIX = "(left)"
 
     // Error states (shared)

@@ -30,6 +30,7 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -44,6 +45,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.scrolla.ui.components.RefreshOnResume
 import com.scrolla.ui.theme.ScrollaType
 import com.scrolla.ui.theme.scrollaColors
 
@@ -83,7 +85,13 @@ private val destinations = listOf(
 fun MainShell(modifier: Modifier = Modifier) {
     var routeStack by rememberSaveable { mutableStateOf(listOf<ScreenRoute>(ScreenRoute.MainTabs)) }
     var selectedTab by rememberSaveable { mutableIntStateOf(0) }
-    
+
+    // S2.3 — sync on the interval timer for as long as the shell is composed,
+    // and again whenever the app returns to foreground.
+    val syncViewModel: SyncViewModel = viewModel()
+    LaunchedEffect(Unit) { syncViewModel.runPeriodicSync() }
+    RefreshOnResume { syncViewModel.syncNow("foreground") }
+
     val currentRoute = routeStack.last()
 
     val navigateTo: (ScreenRoute) -> Unit = { route ->
@@ -132,10 +140,25 @@ fun MainShell(modifier: Modifier = Modifier) {
                 HallOfFameScreen(onBackClick = popBackStack)
             }
             is ScreenRoute.ManageGroups -> {
+                val leaderboardViewModel: LeaderboardViewModel = viewModel()
+                val boardState by leaderboardViewModel.uiState.collectAsState()
+
                 GroupSwitcherScreen(
+                    groups = boardState.groups.map {
+                        GroupInfo(
+                            id = it.groupId,
+                            name = it.groupName,
+                            memberCount = it.memberCount,
+                            isWidgetGroup = it.isPrimary
+                        )
+                    },
+                    activeGroupId = boardState.activeGroup?.groupId.orEmpty(),
                     onBackClick = popBackStack,
                     onJoinAnotherClick = { navigateTo(ScreenRoute.JoinGroup) },
-                    onGroupClick = { popBackStack() }
+                    onGroupClick = { groupId ->
+                        leaderboardViewModel.selectGroup(groupId)
+                        popBackStack()
+                    }
                 )
             }
             is ScreenRoute.JoinGroup -> {
@@ -238,23 +261,91 @@ private fun MainTabsScreen(
             label = "tab_content"
         ) { tab ->
             when (tab) {
-                0 -> HomeScreen(
-                    onSettingsClick = onSettingsClick,
-                    onRankChipClick = { onTabSelected(1) } // Switch to leaderboard
-                )
-                1 -> LeaderboardScreen(
-                    onHallOfFameClick = onHallOfFameClick
-                )
-                2 -> InsightsScreen(
-                    onAppBreakdownClick = onAppBreakdownClick,
-                    onShowRecapClick = onShowRecapClick
-                )
-                3 -> ProfileScreen(
-                    onSettingsClick = onSettingsClick,
-                    onPersonalRecordsClick = onPersonalRecordsClick,
-                    onHallOfFameClick = onHallOfFameClick,
-                    onManageGroupsClick = onManageGroupsClick
-                )
+                0 -> {
+                    val homeViewModel: HomeViewModel = viewModel()
+                    val homeState by homeViewModel.uiState.collectAsState()
+
+                    RefreshOnResume { homeViewModel.refresh() }
+
+                    HomeScreen(
+                        scrollDistanceKm = homeState.todayKm,
+                        yesterdayKm = homeState.yesterdayKm,
+                        landmarkText = homeState.landmarkText,
+                        hasSensorData = homeState.hasSensorData,
+                        // Rank needs other members' totals from Firestore, which
+                        // only appear once A's triggerFirestoreSync() is implemented
+                        // (DATA_CONTRACT §3.3). Null until then — the card degrades.
+                        rankPosition = null,
+                        groupSize = null,
+                        groupName = null,
+                        insightLabel = ScrollaStrings.HOME_INSIGHT_PEAK_HOUR_LABEL,
+                        insightBody = homeState.peakHour?.let { hour ->
+                            "Most of it happens between ${ScrollaFormatters.formatHourRange(hour)}."
+                        },
+                        onSettingsClick = onSettingsClick,
+                        onRankChipClick = { onTabSelected(1) } // Switch to leaderboard
+                    )
+                }
+                1 -> {
+                    val leaderboardViewModel: LeaderboardViewModel = viewModel()
+                    val boardState by leaderboardViewModel.uiState.collectAsState()
+
+                    // Staleness check on tab open rather than a live listener (S2.4).
+                    LaunchedEffect(Unit) { leaderboardViewModel.refreshIfStale() }
+                    RefreshOnResume { leaderboardViewModel.refreshIfStale() }
+
+                    LeaderboardScreen(
+                        groupName = boardState.activeGroup?.groupName
+                            ?: ScrollaStrings.LEADERBOARD_NO_GROUP_TITLE,
+                        mostImprovedName = null,
+                        entries = boardState.entries,
+                        groupStats = boardState.groupStats ?: GroupStats(0f, 0f, 0f),
+                        groupBestDay = boardState.groupBestDay,
+                        emptyBoardMessage = if (boardState.activeGroup == null) {
+                            ScrollaStrings.LEADERBOARD_EMPTY_NO_GROUP
+                        } else {
+                            ScrollaStrings.LEADERBOARD_EMPTY_NO_TOTALS
+                        },
+                        onHallOfFameClick = onHallOfFameClick
+                    )
+                }
+                2 -> {
+                    val insightsViewModel: InsightsViewModel = viewModel()
+                    val insightsState by insightsViewModel.uiState.collectAsState()
+
+                    RefreshOnResume { insightsViewModel.refresh() }
+
+                    InsightsScreen(
+                        weekData = insightsState.weekData,
+                        topApps = insightsState.topApps,
+                        peakTimeText = insightsState.peakTimeText,
+                        onAppBreakdownClick = onAppBreakdownClick,
+                        onShowRecapClick = onShowRecapClick
+                    )
+                }
+                3 -> {
+                    val profileViewModel: ProfileViewModel = viewModel()
+                    val profileState by profileViewModel.uiState.collectAsState()
+
+                    RefreshOnResume { profileViewModel.refresh() }
+
+                    ProfileScreen(
+                        displayName = profileState.displayName,
+                        memberSinceLabel = null,
+                        personalBestKm = profileState.personalBestKm,
+                        personalBestRelativeDate = profileState.personalBestDate,
+                        sevenDayAvgKm = profileState.sevenDayAvgKm,
+                        previousSevenDayAvgKm = profileState.previousSevenDayAvgKm,
+                        hallOfFameGapKm = profileState.hallOfFameGapKm,
+                        isRecordHolder = profileState.isRecordHolder,
+                        groupCount = profileState.groupCount,
+                        primaryGroupName = profileState.primaryGroupName,
+                        onSettingsClick = onSettingsClick,
+                        onPersonalRecordsClick = onPersonalRecordsClick,
+                        onHallOfFameClick = onHallOfFameClick,
+                        onManageGroupsClick = onManageGroupsClick
+                    )
+                }
             }
         }
     }

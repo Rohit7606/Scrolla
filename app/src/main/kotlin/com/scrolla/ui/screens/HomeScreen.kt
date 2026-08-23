@@ -60,15 +60,17 @@ import java.util.Locale
 @Composable
 fun HomeScreen(
     modifier: Modifier = Modifier,
-    // Mock data — these will be replaced by ViewModel
     scrollDistanceKm: Float = 2.3f,
     yesterdayKm: Float? = 2.8f,
-    landmarkText: String = "about the height of three Burj Khalifas",
-    rankPosition: Int = 2,
-    groupSize: Int = 5,
-    groupName: String = "College Friends",
+    landmarkText: String? = "about the height of three Burj Khalifas",
+    /** False until the sensor has recorded anything — the figure shows a dash, not 0.0. */
+    hasSensorData: Boolean = true,
+    /** Null until the group leaderboard has data; the standing card degrades instead of inventing a rank. */
+    rankPosition: Int? = 2,
+    groupSize: Int? = 5,
+    groupName: String? = "College Friends",
     insightLabel: String = "peak scroll time",
-    insightBody: String = "Most of it happens between 10 and 11pm. A commute's worth of distance, at bedtime.",
+    insightBody: String? = "Most of it happens between 10 and 11pm. A commute's worth of distance, at bedtime.",
     onSettingsClick: () -> Unit = {},
     onRankChipClick: () -> Unit = {}
 ) {
@@ -130,11 +132,22 @@ fun HomeScreen(
         ) {
             SectionLabel("TODAY · $dateLabel")
 
-            val formatted = DistanceFormatter.formatKmValue(displayedDistance)
+            // Until the sensor has produced anything, the figure is a dash. A
+            // confident "0.0" would read as a measured result rather than an
+            // absence of one.
+            val formatted = if (hasSensorData) {
+                DistanceFormatter.formatKmValue(displayedDistance)
+            } else {
+                "—"
+            }
             Row(
                 verticalAlignment = Alignment.Bottom,
                 modifier = Modifier.semantics(mergeDescendants = true) {
-                    contentDescription = "$formatted kilometres today"
+                    contentDescription = if (hasSensorData) {
+                        "$formatted kilometres today"
+                    } else {
+                        "No scroll distance recorded yet today"
+                    }
                 }
             ) {
                 Text(
@@ -152,13 +165,20 @@ fun HomeScreen(
                 )
             }
 
-            Text(
-                text = landmarkText,
-                style = ScrollaType.Editorial,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            val editorialLine = landmarkText ?: if (hasSensorData) {
+                null
+            } else {
+                ScrollaStrings.HOME_WAITING_FOR_SENSOR
+            }
+            if (editorialLine != null) {
+                Text(
+                    text = editorialLine,
+                    style = ScrollaType.Editorial,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
 
-            if (yesterdayKm != null) {
+            if (hasSensorData && yesterdayKm != null) {
                 val delta = scrollDistanceKm - yesterdayKm
                 val improving = delta <= 0f
                 val magnitude = DistanceFormatter.formatKmValue(kotlin.math.abs(delta))
@@ -192,49 +212,61 @@ fun HomeScreen(
                         SectionLabel("STANDING")
                         Row(verticalAlignment = Alignment.Bottom) {
                             Text(
-                                text = ScrollaFormatters.formatOrdinal(rankPosition),
+                                text = if (rankPosition != null) {
+                                    ScrollaFormatters.formatOrdinal(rankPosition)
+                                } else {
+                                    "—"
+                                },
                                 style = ScrollaType.FigureMedium.copy(fontSize = 30.sp, lineHeight = 30.sp),
                                 color = MaterialTheme.colorScheme.onSurface,
                                 modifier = Modifier.alignByBaseline()
                             )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = "of $groupSize",
-                                style = ScrollaType.Caption,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.alignByBaseline()
-                            )
+                            if (rankPosition != null && groupSize != null) {
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "of $groupSize",
+                                    style = ScrollaType.Caption,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.alignByBaseline()
+                                )
+                            }
                         }
                         Text(
-                            text = groupName,
+                            text = groupName ?: ScrollaStrings.HOME_STANDING_UNAVAILABLE,
                             style = ScrollaType.Caption,
                             color = colors.textLow
                         )
                     }
 
-                    RankStrip(rankPosition = rankPosition, groupSize = groupSize)
+                    if (rankPosition != null && groupSize != null) {
+                        RankStrip(rankPosition = rankPosition, groupSize = groupSize)
+                    }
                 }
             }
 
-            ScrollaCard {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Schedule,
-                            contentDescription = null,
-                            modifier = Modifier.size(14.dp),
-                            tint = colors.textLow
+            // Hidden entirely until there is a real insight to show — an empty
+            // insight card is worse than no card.
+            if (insightBody != null) {
+                ScrollaCard {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.Schedule,
+                                contentDescription = null,
+                                modifier = Modifier.size(14.dp),
+                                tint = colors.textLow
+                            )
+                            SectionLabel(insightLabel)
+                        }
+                        Text(
+                            text = insightBody,
+                            style = ScrollaType.Body,
+                            color = MaterialTheme.colorScheme.onSurface
                         )
-                        SectionLabel(insightLabel)
                     }
-                    Text(
-                        text = insightBody,
-                        style = ScrollaType.Body,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
                 }
             }
         }

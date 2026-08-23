@@ -91,7 +91,7 @@ fun InsightsScreen(
         AppUsage("YouTube", 0.2f),
         AppUsage("Chrome", 0.1f)
     ),
-    peakTimeText: String = "Most of it happens between 10 and 11pm. A commute's worth of distance, at bedtime.",
+    peakTimeText: String? = "Most of it happens between 10 and 11pm. A commute's worth of distance, at bedtime.",
     onAppBreakdownClick: () -> Unit = {},
     onShowRecapClick: () -> Unit = {}
 ) {
@@ -244,19 +244,23 @@ fun InsightsScreen(
         }
 
         // ─── PEAK TIME ─────────────────────────────────────────────
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = spacing.screenInset)
-                .padding(top = spacing.sectionGap),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            SectionLabel(ScrollaStrings.INSIGHTS_SECTION_PEAK_TIME)
-            Text(
-                text = peakTimeText,
-                style = ScrollaType.Body,
-                color = MaterialTheme.colorScheme.onSurface
-            )
+        // Hidden until a peak hour actually exists — there is no honest peak
+        // to name before the first day of data lands.
+        if (peakTimeText != null) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = spacing.screenInset)
+                    .padding(top = spacing.sectionGap),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                SectionLabel(ScrollaStrings.INSIGHTS_SECTION_PEAK_TIME)
+                Text(
+                    text = peakTimeText,
+                    style = ScrollaType.Body,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
         }
 
         // ─── WEEKLY RECAP ──────────────────────────────────────────

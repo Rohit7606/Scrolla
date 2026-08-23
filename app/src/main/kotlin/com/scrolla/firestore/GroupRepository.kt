@@ -6,6 +6,29 @@ import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
 import kotlin.random.Random
 
+/** One group the user belongs to, joined with the group's own metadata. */
+data class GroupMembership(
+    val groupId: String,
+    val groupName: String,
+    val displayName: String,
+    val isPrimary: Boolean,
+    val memberCount: Int
+)
+
+/** One member's total for a single day, as stored under /groups/{id}/dailyTotals. */
+data class MemberDailyTotal(
+    val userId: String,
+    val displayName: String,
+    val totalKm: Float
+)
+
+/** A group's all-time best (lowest) single day, from the group metadata document. */
+data class GroupRecord(
+    val recordKm: Float,
+    val recordHolder: String,
+    val recordDate: String
+)
+
 class GroupRepository(
     private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
 ) {
@@ -106,6 +129,114 @@ class GroupRepository(
             Result.success(Unit)
         } catch (e: Exception) {
             Log.e(TAG, "Failed to join group", e)
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Every group the user belongs to, joined with each group's metadata so the
+     * switcher and profile can show a name and a member count.
+     */
+    suspend fun getUserGroups(userId: String): Result<List<GroupMembership>> {
+        return try {
+            val memberships = firestore.collection("users").document(userId)
+                .collection("groups").get().await()
+
+            val groups = memberships.documents.mapNotNull { membership ->
+                val groupId = membership.id
+                val groupDoc = firestore.collection("groups").document(groupId).get().await()
+                if (!groupDoc.exists()) {
+                    // Group deleted out from under the membership — skip rather than
+                    // render a ghost row.
+                    Log.w(TAG, "Membership for missing group $groupId, skipping")
+                    return@mapNotNull null
+                }
+                GroupMembership(
+                    groupId = groupId,
+                    groupName = groupDoc.getString("groupName") ?: groupId,
+                    displayName = membership.getString("displayName") ?: "Unknown",
+                    isPrimary = membership.getBoolean("isPrimary") ?: false,
+                    memberCount = (groupDoc.get("members") as? List<*>)?.size ?: 0
+                )
+            }
+            Result.success(groups)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to load groups for user: $userId", e)
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * One day's totals for a group, ranked ascending — lowest km wins, per
+     * `scrolla_project_summary.md`. A one-shot `get()`, never `onSnapshot()`
+     * (SPRINT_LOG S2.4), so a leaderboard tab cannot hold an open listener.
+     *
+     * B only ever reads this collection; A's sync owns the writes
+     * (`DATA_CONTRACT.md` §3.3).
+     */
+    suspend fun getGroupLeaderboard(groupId: String, date: String): Result<List<MemberDailyTotal>> {
+        return try {
+            val snapshot = firestore.collection("groups").document(groupId)
+                .collection("dailyTotals")
+                .whereEqualTo("date", date)
+                .get().await()
+
+            val totals = snapshot.documents.mapNotNull { doc ->
+                val userId = doc.getString("userId") ?: return@mapNotNull null
+                MemberDailyTotal(
+                    userId = userId,
+                    displayName = doc.getString("displayName") ?: "Unknown",
+                    totalKm = doc.getDouble("totalKm")?.toFloat() ?: return@mapNotNull null
+                )
+            }.sortedBy { it.totalKm }
+
+            Result.success(totals)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to load leaderboard for group: $groupId on $date", e)
+            Result.failure(e)
+        }
+    }
+
+    /** The group's all-time record, or null if no record has been set yet. */
+    suspend fun getGroupRecord(groupId: String): Result<GroupRecord?> {
+        return try {
+            val doc = firestore.collection("groups").document(groupId).get().await()
+            val recordKm = doc.getDouble("recordKm")?.toFloat()
+            val record = if (recordKm == null) {
+                null
+            } else {
+                GroupRecord(
+                    recordKm = recordKm,
+                    recordHolder = doc.getString("recordHolder") ?: "Unknown",
+                    recordDate = doc.getString("recordDate") ?: ""
+                )
+            }
+            Result.success(record)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to load record for group: $groupId", e)
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Moves the primary flag to [groupId]. The primary group is the one the
+     * widget shows, so exactly one membership may carry it.
+     */
+    suspend fun setPrimaryGroup(userId: String, groupId: String): Result<Unit> {
+        return try {
+            val memberships = firestore.collection("users").document(userId)
+                .collection("groups").get().await()
+
+            val batch = firestore.batch()
+            memberships.documents.forEach { doc ->
+                batch.update(doc.reference, "isPrimary", doc.id == groupId)
+            }
+            batch.commit().await()
+
+            Log.d(TAG, "Primary group set to $groupId for user: $userId")
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to set primary group $groupId for user: $userId", e)
             Result.failure(e)
         }
     }

@@ -80,7 +80,9 @@ fun LeaderboardScreen(
         LeaderboardEntry("Stroll", 6.8f)
     ),
     groupStats: GroupStats = GroupStats(),
-    groupBestDay: String = "0.4 km by Lewis",
+    groupBestDay: String? = "0.4 km by Lewis",
+    /** Shown in place of the rows — distinguishes "no group" from "no totals synced yet". */
+    emptyBoardMessage: String = ScrollaStrings.LEADERBOARD_EMPTY_NO_TOTALS,
     onHallOfFameClick: () -> Unit = {}
 ) {
     val spacing = MaterialTheme.spacing
@@ -159,13 +161,21 @@ fun LeaderboardScreen(
                 .padding(top = spacing.large),
             verticalArrangement = Arrangement.spacedBy(2.dp)
         ) {
-            entries.forEachIndexed { index, entry ->
-                LeaderboardRow(
-                    rank = index + 1,
-                    name = if (entry.isSelf) ScrollaStrings.LEADERBOARD_SELF_NAME else entry.displayName,
-                    distanceKm = entry.distanceKm,
-                    isSelf = entry.isSelf
+            if (entries.isEmpty()) {
+                Text(
+                    text = emptyBoardMessage,
+                    style = ScrollaType.Body,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+            } else {
+                entries.forEachIndexed { index, entry ->
+                    LeaderboardRow(
+                        rank = index + 1,
+                        name = if (entry.isSelf) ScrollaStrings.LEADERBOARD_SELF_NAME else entry.displayName,
+                        distanceKm = entry.distanceKm,
+                        isSelf = entry.isSelf
+                    )
+                }
             }
         }
 
@@ -209,7 +219,9 @@ fun LeaderboardScreen(
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         SectionLabel(ScrollaStrings.LEADERBOARD_HALL_OF_FAME_LINK)
                         Text(
-                            text = "${ScrollaStrings.LEADERBOARD_HALL_OF_FAME_PREFIX} $groupBestDay",
+                            text = groupBestDay
+                                ?.let { "${ScrollaStrings.LEADERBOARD_HALL_OF_FAME_PREFIX} $it" }
+                                ?: ScrollaStrings.LEADERBOARD_NO_RECORD_YET,
                             style = ScrollaType.Body,
                             color = MaterialTheme.colorScheme.onSurface
                         )
