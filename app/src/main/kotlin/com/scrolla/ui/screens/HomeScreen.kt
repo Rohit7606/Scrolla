@@ -190,12 +190,15 @@ fun HomeScreen(
             if (hasSensorData && yesterdayKm != null) {
                 val delta = scrollDistanceKm - yesterdayKm
                 val improving = delta <= 0f
-                val magnitude = DistanceFormatter.formatDisplayValue(kotlin.math.abs(delta))
+                // formatDistance, not formatDisplayValue plus a hardcoded "km":
+                // the value adapts to metres but the literal did not, so a 20 m
+                // change read as "20 km less than yesterday".
+                val magnitude = DistanceFormatter.formatDistance(kotlin.math.abs(delta))
                 DeltaChip(
                     text = if (improving) {
-                        "$magnitude km less than yesterday"
+                        "$magnitude less than yesterday"
                     } else {
-                        "$magnitude km more than yesterday"
+                        "$magnitude more than yesterday"
                     },
                     improving = improving
                 )
