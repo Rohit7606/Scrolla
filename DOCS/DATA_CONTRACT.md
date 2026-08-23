@@ -1,5 +1,5 @@
 # DATA_CONTRACT.md — Scrolla
-**Version:** 1.1
+**Version:** 1.2
 **Owned by:** Both people — never edit this file solo. Any change must be agreed on, committed on a shared branch, and communicated to the other person before any code that depends on it is written.
 **Why this file exists:** Person A owns the data layer (`service/`, `tracking/`, `room/`). Person B owns the UI and sync layer (`ui/`, `firestore/`, `leaderboard/`). This file is the exact interface between them. B calls what A exposes. If something isn't defined here, B should not assume it exists and should ask A to add it — not invent a workaround.
 
@@ -183,7 +183,7 @@ data class HourBucketCm(
 
 ---
 
-## 3. FIRESTORE — CLOUD SYNC (Person B owns the sync code, Person A defines what gets written)
+## 3. FIRESTORE — CLOUD SYNC (Person A owns the daily total sync write; Person B owns group lifecycle and leaderboard reads)
 
 ### 3.1 Document paths — exact, no deviations
 
@@ -455,5 +455,6 @@ These are the specific things that would silently break A's data layer, listed h
 |---|---|---|---|
 | 1.0 | — | Both | Initial contract — Room schema, Firestore paths, ScrollRepository interface, DistanceFormatter |
 | 1.1 | 2026-07-18 | A | Added `isAccessibilityServiceEnabled: Boolean` to `ServiceHealthState` — tracks whether the OS has disabled the accessibility service (distinct from `isServiceRunning`'s internal-health meaning). For S1.A8 (boot receiver + MainActivity re-check per scrolla_project_summary.md Section 16). Field carries a `= true` default in code (not in the original spec) because ScrollAccessibilityService's existing flushBatch() fallback constructor predates this field. |
+| 1.2 | 2026-08-23 | A | Resolved sync ownership contradiction in Section 3 header: clarified that Person A owns the daily total sync write (triggerFirestoreSync()), while Person B owns group lifecycle and leaderboard reads. |
 
 > When updating: bump the version at the top of this file, add a row here, and update the `Version` field in AGENTS.md Section 7's reference to this file if the shape of any exposed function changed.

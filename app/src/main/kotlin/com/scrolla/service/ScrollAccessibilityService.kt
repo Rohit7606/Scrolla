@@ -189,7 +189,7 @@ class ScrollAccessibilityService : AccessibilityService() {
                 }.toSet()
                 for (day in distinctDays) {
                     val totalCm = db.scrollEventDao().getTotalCmForDay(day) ?: 0f
-                    val totalKm = totalCm / ScrollaConstants.CM_PER_KM
+                    val totalKm = DistanceFormatter.cmToKm(totalCm)
                     db.dailyTotalDao().upsert(
                         DailyTotal(
                             day = day,

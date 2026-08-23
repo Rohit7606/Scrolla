@@ -1,9 +1,18 @@
 package com.scrolla.room
 
 import android.util.Log
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FieldValue
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.SetOptions
+import com.scrolla.model.DistanceFormatter
 import com.scrolla.model.ScrollaConstants
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withTimeout
 import java.time.LocalDate
 
 /**
@@ -77,7 +86,9 @@ interface ScrollRepository {
 class ScrollRepositoryImpl(
     private val scrollEventDao: ScrollEventDao,
     private val dailyTotalDao: DailyTotalDao,
-    private val serviceHealthDao: ServiceHealthDao
+    private val serviceHealthDao: ServiceHealthDao,
+    private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance(),
+    private val currentUserId: () -> String? = { FirebaseAuth.getInstance().currentUser?.uid }
 ) : ScrollRepository {
 
     private val tag = "ScrollRepository"
@@ -87,13 +98,7 @@ class ScrollRepositoryImpl(
 
     override suspend fun getTodayTotalKm(): Float {
         return try {
-            // km derived from today's accumulated cm (DATA_CONTRACT.md §6:
-            // getTodayTotalCm → SUM(scrollCm) WHERE day = today). NOTE: the
-            // contract §5 documents DistanceFormatter.cmToKm(), but the actual
-            // model/DistanceFormatter.kt only exposes pxToCm() today, so we use
-            // the shared ScrollaConstants.CM_PER_KM factor directly rather than
-            // unilaterally editing the shared model/ file (AGENTS.md §2).
-            rawTodayCm() / ScrollaConstants.CM_PER_KM
+            DistanceFormatter.cmToKm(rawTodayCm())
         } catch (e: Exception) {
             Log.e(tag, "getTodayTotalKm() failed for day=${today()}", e)
             markDegraded("getTodayTotalKm: ${e.message}")
@@ -189,18 +194,68 @@ class ScrollRepositoryImpl(
     }
 
     override suspend fun triggerFirestoreSync() {
-        // TODO(S1.A9): Placeholder for B's Firestore layer.
-        // Per DATA_CONTRACT.md §3.3 the real sync writes today's totalKm to
-        // /groups/{groupId}/dailyTotals/{userId}_{date}. That logic lives in
-        // B's firestore/ folder, which has NOT been built yet (SPRINT_LOG.md:
-        // every S1.B* milestone is unchecked — B hasn't started Firestore work).
-        // This is a deliberate stub for an unbuilt dependency, NOT a bug:
-        // do not wire real Firestore calls here until B's firestore/ layer lands.
-        Log.i(
-            tag,
-            "triggerFirestoreSync() called but Firestore sync not yet available — " +
-                "B's firestore/ layer not implemented"
-        )
+        val userId = currentUserId()
+        if (userId == null) {
+            Log.i(tag, "triggerFirestoreSync() skipped — user is not signed in")
+            return
+        }
+        val date = today()
+        try {
+            val totalKm = getTodayTotalKm()
+            withTimeout(15_000L) {
+                val userGroups = firestore
+                    .collection("users").document(userId)
+                    .collection("groups").get().await()
+
+                for (groupDoc in userGroups.documents) {
+                    val groupId = groupDoc.id
+                    val displayName = groupDoc.getString("displayName") ?: "Unknown"
+                    val docId = "${userId}_${date}"
+
+                    firestore
+                        .collection("groups").document(groupId)
+                        .collection("dailyTotals").document(docId)
+                        .set(
+                            mapOf(
+                                "userId" to userId,
+                                "date" to date,
+                                "displayName" to displayName,
+                                "totalKm" to totalKm,
+                                "updatedAt" to FieldValue.serverTimestamp()
+                            ),
+                            SetOptions.merge()
+                        ).await()
+                }
+
+                Log.d(
+                    tag,
+                    "triggerFirestoreSync() successfully synced ${userGroups.documents.size} group(s) " +
+                        "for user=$userId, date=$date, totalKm=$totalKm"
+                )
+            }
+
+            // S1.A6 / Amendment 1: On success, update lastFirestoreSyncTimestamp and clear degradedReason.
+            // Only update an existing row — do not author a new row from sync if tracking hasn't initialized yet
+            // (the sensor flush path in ScrollAccessibilityService owns row creation).
+            val current = serviceHealthDao.getOnce()
+            if (current != null) {
+                val now = System.currentTimeMillis()
+                val updated = current.copy(
+                    lastFirestoreSyncTimestamp = now,
+                    degradedReason = null
+                )
+                serviceHealthDao.upsert(updated)
+            }
+        } catch (e: TimeoutCancellationException) {
+            Log.e(tag, "triggerFirestoreSync() timed out after 15s for user=$userId, date=$date", e)
+            markDegraded("triggerFirestoreSync timed out")
+        } catch (e: CancellationException) {
+            // Rethrow standard coroutine cancellations so cooperative cancellation isn't swallowed
+            throw e
+        } catch (e: Exception) {
+            Log.e(tag, "triggerFirestoreSync() failed for user=$userId, date=$date", e)
+            markDegraded("triggerFirestoreSync: ${e.message}")
+        }
     }
 
     /**
@@ -208,25 +263,15 @@ class ScrollRepositoryImpl(
      * DATA_CONTRACT.md §4 and AGENTS.md §4.8), copying the existing row so it
      * never clobbers the other health fields (the S1.A6 gotcha). Fully guarded:
      * a failure here is swallowed so marking degraded can never surface to the
-     * caller.
+     * caller. If no health row exists yet, skip to avoid authoring an uninitialized row.
      */
     private suspend fun markDegraded(reason: String) {
         try {
             val current = serviceHealthDao.getOnce()
-            val updated = if (current != null) {
-                current.copy(degradedReason = reason)
-            } else {
-                ServiceHealthState(
-                    id = 1,
-                    isServiceRunning = false,
-                    isAccessibilityServiceEnabled = true,
-                    lastEventTimestamp = 0L,
-                    lastRoomFlushTimestamp = 0L,
-                    lastFirestoreSyncTimestamp = 0L,
-                    degradedReason = reason
-                )
+            if (current != null) {
+                val updated = current.copy(degradedReason = reason)
+                serviceHealthDao.upsert(updated)
             }
-            serviceHealthDao.upsert(updated)
         } catch (_: Exception) {
             // Swallow — the original failure is already logged at the call site.
         }
