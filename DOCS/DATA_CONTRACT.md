@@ -335,7 +335,9 @@ interface ScrollRepository {
 
 ## 5. DISTANCE CONVERSION — SHARED UTILITY
 
-Both sides occasionally need to display distances. The conversion lives in `model/DistanceFormatter.kt` — import from there, do not re-implement it.
+Both sides occasionally need to display distances. The conversion lives in `model/DistanceFormatter.kt` — import from there, do not re-implement it, and do not format a km value inline at a call site.
+
+> **Changed 2026-08-23 (Person B, needs A's sign-off — `model/` is edit-together per `AGENTS.md` §2).** `cmToKm()`, `formatKm()` and `nearestLandmark()` were specified here but had never been implemented; only `pxToCm()` existed, so both tracks were dividing by `ScrollaConstants.CM_PER_KM` inline. They now exist. Two deviations from the snippet as originally written: `formatKmValue()` is **added** (see below), and both formatters pin `Locale.US` so a comma-decimal device locale cannot render "2,3 km" inside hardcoded English copy. Revert the locale pin if the app is ever localised.
 
 ```kotlin
 object DistanceFormatter {
@@ -351,8 +353,15 @@ object DistanceFormatter {
     fun cmToKm(cm: Float): Float = cm / ScrollaConstants.CM_PER_KM
 
     /** Formats a km value for display. Returns "2.3 km", "0.8 km", "12.1 km", etc.
-     *  B calls this everywhere a km number appears in the UI. */
-    fun formatKm(km: Float): String = String.format("%.1f km", km)
+     *  B calls this everywhere a km number appears in one run of text. */
+    fun formatKm(km: Float): String = String.format(Locale.US, "%.1f km", km)
+
+    /** The same number without the unit: "2.3", "0.8", "12.1".
+     *  Added 2026-08-23 (B) — the redesigned screens set the figure and the unit as two
+     *  separate Text composables in different type styles, so those sites cannot use
+     *  formatKm() without pulling "km" into the figure's typeface and baseline.
+     *  Precision is identical to formatKm(), so the two never disagree. */
+    fun formatKmValue(km: Float): String = String.format(Locale.US, "%.1f", km)
 
     /** Finds the nearest landmark match for a given km value.
      *  Returns a pair: (landmark name, exact landmark km) for display on Home and the recap card.

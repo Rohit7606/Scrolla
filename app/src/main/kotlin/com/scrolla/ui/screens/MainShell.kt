@@ -6,10 +6,13 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Home
@@ -27,14 +30,24 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.scrolla.ui.components.RefreshOnResume
+import com.scrolla.ui.theme.ScrollaType
+import com.scrolla.ui.theme.scrollaColors
 
 sealed class ScreenRoute : Parcelable {
     @Parcelize object MainTabs : ScreenRoute()
@@ -58,18 +71,27 @@ private data class Destination(
     val contentDescription: String
 )
 
+// "Board" was an abbreviation nobody says out loud, and Home/Board/
+// Insights/Profile mixed three registers. These are the four things the
+// user actually came for.
 private val destinations = listOf(
-    Destination("Home", Icons.Filled.Home, Icons.Outlined.Home, "Home, Tab 1 of 4"),
-    Destination("Board", Icons.Filled.BarChart, Icons.Outlined.BarChart, "Leaderboard, Tab 2 of 4"),
+    Destination("Today", Icons.Filled.Home, Icons.Outlined.Home, "Today, Tab 1 of 4"),
+    Destination("Group", Icons.Filled.BarChart, Icons.Outlined.BarChart, "Group leaderboard, Tab 2 of 4"),
     Destination("Insights", Icons.Filled.Insights, Icons.Outlined.Insights, "Insights, Tab 3 of 4"),
-    Destination("Profile", Icons.Filled.Person, Icons.Outlined.Person, "Profile, Tab 4 of 4")
+    Destination("You", Icons.Filled.Person, Icons.Outlined.Person, "Your profile, Tab 4 of 4")
 )
 
 @Composable
 fun MainShell(modifier: Modifier = Modifier) {
     var routeStack by rememberSaveable { mutableStateOf(listOf<ScreenRoute>(ScreenRoute.MainTabs)) }
     var selectedTab by rememberSaveable { mutableIntStateOf(0) }
-    
+
+    // S2.3 — sync on the interval timer for as long as the shell is composed,
+    // and again whenever the app returns to foreground.
+    val syncViewModel: SyncViewModel = viewModel()
+    LaunchedEffect(Unit) { syncViewModel.runPeriodicSync() }
+    RefreshOnResume { syncViewModel.syncNow("foreground") }
+
     val currentRoute = routeStack.last()
 
     val navigateTo: (ScreenRoute) -> Unit = { route ->
@@ -118,23 +140,69 @@ fun MainShell(modifier: Modifier = Modifier) {
                 HallOfFameScreen(onBackClick = popBackStack)
             }
             is ScreenRoute.ManageGroups -> {
+                val leaderboardViewModel: LeaderboardViewModel = viewModel()
+                val boardState by leaderboardViewModel.uiState.collectAsState()
+
                 GroupSwitcherScreen(
+                    groups = boardState.groups.map {
+                        GroupInfo(
+                            id = it.groupId,
+                            name = it.groupName,
+                            memberCount = it.memberCount,
+                            isWidgetGroup = it.isPrimary
+                        )
+                    },
+                    activeGroupId = boardState.activeGroup?.groupId.orEmpty(),
                     onBackClick = popBackStack,
                     onJoinAnotherClick = { navigateTo(ScreenRoute.JoinGroup) },
-                    onGroupClick = { popBackStack() }
+                    onGroupClick = { groupId ->
+                        leaderboardViewModel.selectGroup(groupId)
+                        popBackStack()
+                    }
                 )
             }
             is ScreenRoute.JoinGroup -> {
+                val groupViewModel: GroupViewModel = viewModel()
+                val isLoading by groupViewModel.isLoading.collectAsState()
+                val errorMessage by groupViewModel.errorMessage.collectAsState()
+                
                 JoinGroupScreen(
-                    onBackClick = popBackStack,
-                    onJoinClick = { popBackStack() }, // Mock joining success
-                    onCreateGroupClick = { navigateTo(ScreenRoute.CreateGroup) }
+                    isLoading = isLoading,
+                    errorMessage = errorMessage,
+                    onBackClick = {
+                        groupViewModel.clearError()
+                        popBackStack()
+                    },
+                    onJoinClick = { code ->
+                        groupViewModel.joinGroup(code) {
+                            groupViewModel.clearError()
+                            popBackStack() // Go back to groups list or home on success
+                        }
+                    },
+                    onCreateGroupClick = { 
+                        groupViewModel.clearError()
+                        navigateTo(ScreenRoute.CreateGroup) 
+                    }
                 )
             }
             is ScreenRoute.CreateGroup -> {
+                val groupViewModel: GroupViewModel = viewModel()
+                val isLoading by groupViewModel.isLoading.collectAsState()
+                val errorMessage by groupViewModel.errorMessage.collectAsState()
+
                 CreateGroupScreen(
-                    onBackClick = popBackStack,
-                    onCreateClick = { popBackStack() } // Mock creating success
+                    isLoading = isLoading,
+                    errorMessage = errorMessage,
+                    onBackClick = {
+                        groupViewModel.clearError()
+                        popBackStack()
+                    },
+                    onCreateClick = { name -> 
+                        groupViewModel.createGroup(name) {
+                            groupViewModel.clearError()
+                            popBackStack() // Go back on success
+                        }
+                    }
                 )
             }
             is ScreenRoute.WeeklyRecap -> {
@@ -176,30 +244,108 @@ private fun MainTabsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding),
+            // Tabs travel in the direction you moved. The old spec faded
+            // every switch, which read as four unrelated pages rather
+            // than one row you are moving along.
             transitionSpec = {
-                fadeIn(animationSpec = tween(200)) togetherWith
-                    fadeOut(animationSpec = tween(150))
+                val forward = targetState > initialState
+                val distance = 40
+                (
+                    slideInHorizontally(tween(220)) { if (forward) distance else -distance } +
+                        fadeIn(tween(180))
+                    ) togetherWith (
+                    slideOutHorizontally(tween(220)) { if (forward) -distance else distance } +
+                        fadeOut(tween(120))
+                    )
             },
             label = "tab_content"
         ) { tab ->
             when (tab) {
-                0 -> HomeScreen(
-                    onSettingsClick = onSettingsClick,
-                    onRankChipClick = { onTabSelected(1) } // Switch to leaderboard
-                )
-                1 -> LeaderboardScreen(
-                    onHallOfFameClick = onHallOfFameClick
-                )
-                2 -> InsightsScreen(
-                    onAppBreakdownClick = onAppBreakdownClick,
-                    onShowRecapClick = onShowRecapClick
-                )
-                3 -> ProfileScreen(
-                    onSettingsClick = onSettingsClick,
-                    onPersonalRecordsClick = onPersonalRecordsClick,
-                    onHallOfFameClick = onHallOfFameClick,
-                    onManageGroupsClick = onManageGroupsClick
-                )
+                0 -> {
+                    val homeViewModel: HomeViewModel = viewModel()
+                    val homeState by homeViewModel.uiState.collectAsState()
+
+                    RefreshOnResume { homeViewModel.refresh() }
+
+                    HomeScreen(
+                        scrollDistanceKm = homeState.todayKm,
+                        yesterdayKm = homeState.yesterdayKm,
+                        landmarkText = homeState.landmarkText,
+                        hasSensorData = homeState.hasSensorData,
+                        // Rank needs other members' totals from Firestore, which
+                        // only appear once A's triggerFirestoreSync() is implemented
+                        // (DATA_CONTRACT §3.3). Null until then — the card degrades.
+                        rankPosition = null,
+                        groupSize = null,
+                        groupName = null,
+                        insightLabel = ScrollaStrings.HOME_INSIGHT_PEAK_HOUR_LABEL,
+                        insightBody = homeState.peakHour?.let { hour ->
+                            "Most of it happens between ${ScrollaFormatters.formatHourRange(hour)}."
+                        },
+                        onSettingsClick = onSettingsClick,
+                        onRankChipClick = { onTabSelected(1) } // Switch to leaderboard
+                    )
+                }
+                1 -> {
+                    val leaderboardViewModel: LeaderboardViewModel = viewModel()
+                    val boardState by leaderboardViewModel.uiState.collectAsState()
+
+                    // Staleness check on tab open rather than a live listener (S2.4).
+                    LaunchedEffect(Unit) { leaderboardViewModel.refreshIfStale() }
+                    RefreshOnResume { leaderboardViewModel.refreshIfStale() }
+
+                    LeaderboardScreen(
+                        groupName = boardState.activeGroup?.groupName
+                            ?: ScrollaStrings.LEADERBOARD_NO_GROUP_TITLE,
+                        mostImprovedName = null,
+                        entries = boardState.entries,
+                        groupStats = boardState.groupStats ?: GroupStats(0f, 0f, 0f),
+                        groupBestDay = boardState.groupBestDay,
+                        emptyBoardMessage = if (boardState.activeGroup == null) {
+                            ScrollaStrings.LEADERBOARD_EMPTY_NO_GROUP
+                        } else {
+                            ScrollaStrings.LEADERBOARD_EMPTY_NO_TOTALS
+                        },
+                        onHallOfFameClick = onHallOfFameClick
+                    )
+                }
+                2 -> {
+                    val insightsViewModel: InsightsViewModel = viewModel()
+                    val insightsState by insightsViewModel.uiState.collectAsState()
+
+                    RefreshOnResume { insightsViewModel.refresh() }
+
+                    InsightsScreen(
+                        weekData = insightsState.weekData,
+                        topApps = insightsState.topApps,
+                        peakTimeText = insightsState.peakTimeText,
+                        onAppBreakdownClick = onAppBreakdownClick,
+                        onShowRecapClick = onShowRecapClick
+                    )
+                }
+                3 -> {
+                    val profileViewModel: ProfileViewModel = viewModel()
+                    val profileState by profileViewModel.uiState.collectAsState()
+
+                    RefreshOnResume { profileViewModel.refresh() }
+
+                    ProfileScreen(
+                        displayName = profileState.displayName,
+                        memberSinceLabel = null,
+                        personalBestKm = profileState.personalBestKm,
+                        personalBestRelativeDate = profileState.personalBestDate,
+                        sevenDayAvgKm = profileState.sevenDayAvgKm,
+                        previousSevenDayAvgKm = profileState.previousSevenDayAvgKm,
+                        hallOfFameGapKm = profileState.hallOfFameGapKm,
+                        isRecordHolder = profileState.isRecordHolder,
+                        groupCount = profileState.groupCount,
+                        primaryGroupName = profileState.primaryGroupName,
+                        onSettingsClick = onSettingsClick,
+                        onPersonalRecordsClick = onPersonalRecordsClick,
+                        onHallOfFameClick = onHallOfFameClick,
+                        onManageGroupsClick = onManageGroupsClick
+                    )
+                }
             }
         }
     }
@@ -211,9 +357,22 @@ private fun ScrollaNavigationBar(
     onTabSelected: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val hairline = MaterialTheme.scrollaColors.cardBorder
+
+    // The accent marks where you are — that is one of its four uses in
+    // the whole app. The pill indicator is gone: with a coloured icon
+    // AND a coloured label AND a filled container, the bar was shouting
+    // three times to say one thing.
     NavigationBar(
-        modifier = modifier,
-        containerColor = MaterialTheme.colorScheme.surface,
+        modifier = modifier.drawBehind {
+            drawLine(
+                color = hairline,
+                start = Offset(0f, 0f),
+                end = Offset(size.width, 0f),
+                strokeWidth = 1.dp.toPx()
+            )
+        },
+        containerColor = MaterialTheme.colorScheme.background,
         tonalElevation = 0.dp
     ) {
         destinations.forEachIndexed { index, dest ->
@@ -224,21 +383,22 @@ private fun ScrollaNavigationBar(
                 icon = {
                     Icon(
                         imageVector = if (selected) dest.selectedIcon else dest.unselectedIcon,
-                        contentDescription = dest.contentDescription
+                        contentDescription = dest.contentDescription,
+                        modifier = Modifier.size(21.dp)
                     )
                 },
                 label = {
                     Text(
                         text = dest.label,
-                        style = MaterialTheme.typography.labelMedium
+                        style = ScrollaType.Caption.copy(fontSize = 10.5.sp)
                     )
                 },
                 colors = NavigationBarItemDefaults.colors(
                     selectedIconColor = MaterialTheme.colorScheme.primary,
                     selectedTextColor = MaterialTheme.colorScheme.primary,
-                    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    indicatorColor = MaterialTheme.colorScheme.secondaryContainer
+                    unselectedIconColor = MaterialTheme.scrollaColors.textLow,
+                    unselectedTextColor = MaterialTheme.scrollaColors.textLow,
+                    indicatorColor = Color.Transparent
                 )
             )
         }

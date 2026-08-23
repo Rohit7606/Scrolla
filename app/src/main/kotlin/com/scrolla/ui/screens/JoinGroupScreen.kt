@@ -157,8 +157,8 @@ fun JoinGroupScreen(
                                         Text(
                                             text = char,
                                             style = MaterialTheme.typography.displayMedium.copy(
-                                                fontWeight = FontWeight.Medium,
-                                                letterSpacing = 0.sp
+                                                letterSpacing = 0.sp,
+                                                fontFeatureSettings = "tnum"
                                             ),
                                             color = MaterialTheme.colorScheme.onBackground
                                         )

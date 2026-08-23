@@ -79,7 +79,23 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.scrolla.ui.components.ScrollaPrimaryButton
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.foundation.LocalIndication
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.graphics.vector.ImageVector
+import com.scrolla.ui.components.ScrollaCard
+import com.scrolla.ui.components.SectionLabel
+import com.scrolla.ui.theme.PillShape
+import com.scrolla.ui.theme.ScrollaType
 import com.scrolla.ui.theme.ScrollaUILabTheme
+import com.scrolla.ui.theme.scrollaColors
 import com.scrolla.ui.theme.spacing
 import com.scrolla.device.BatteryWhitelistHelper
 import kotlinx.coroutines.delay
@@ -122,39 +138,53 @@ fun OnboardingScreen(
     val isDark = androidx.compose.foundation.isSystemInDarkTheme()
     val primaryColor = MaterialTheme.colorScheme.primary
 
-    // Phase-dependent ambient glow parameters — each phase has unique positioning
+    // Phase-dependent ambient glow.
+    //
+    // The animated travel between phases is worth keeping — it is the one
+    // thing tying the six screens together. What changed is where it sits
+    // and how bright it gets.
+    //
+    // Every anchor is now BELOW the type. The glow used to pool at
+    // y = 0.10–0.40, which is exactly where each screen's headline and
+    // figure live, so coral text was being asked to read against coral
+    // light. Anchoring it low means the light comes from underneath the
+    // content — on Reveal, from the foot of the bar being measured.
     val glowCenterX by animateFloatAsState(
         targetValue = when (phase) {
-            OnboardingPhase.QUESTION -> 0.85f
-            OnboardingPhase.REVEAL -> 0.3f
-            OnboardingPhase.INVITATION -> 0.75f
-            OnboardingPhase.PERMISSION -> 0.5f
+            OnboardingPhase.QUESTION -> 0.26f
+            OnboardingPhase.REVEAL -> 0.44f
+            OnboardingPhase.INVITATION -> 0.72f
+            OnboardingPhase.PERMISSION -> 0.50f
             OnboardingPhase.BATTERY_WHITELIST -> 0.35f
-            OnboardingPhase.JOIN_GROUP -> 0.5f
+            OnboardingPhase.JOIN_GROUP -> 0.50f
         },
         animationSpec = tween(800),
         label = "glow_x"
     )
     val glowCenterY by animateFloatAsState(
         targetValue = when (phase) {
-            OnboardingPhase.QUESTION -> 0.15f
-            OnboardingPhase.REVEAL -> 0.40f
-            OnboardingPhase.INVITATION -> 0.40f
-            OnboardingPhase.PERMISSION -> 0.10f
-            OnboardingPhase.BATTERY_WHITELIST -> 0.20f
-            OnboardingPhase.JOIN_GROUP -> 0.28f
+            OnboardingPhase.QUESTION -> 0.72f
+            OnboardingPhase.REVEAL -> 0.66f
+            OnboardingPhase.INVITATION -> 0.62f
+            OnboardingPhase.PERMISSION -> 1.00f
+            OnboardingPhase.BATTERY_WHITELIST -> 0.80f
+            OnboardingPhase.JOIN_GROUP -> 0.70f
         },
         animationSpec = tween(800),
         label = "glow_y"
     )
+    // Ceiling of 0.24. Reveal previously ran 0.18 here AND drew a second
+    // radial inside RevealPhase whose centre colour was full-strength
+    // primary — a combined peak around 0.33 sitting under the number.
+    // That second radial is gone; this is the only glow now.
     val glowAlpha by animateFloatAsState(
         targetValue = when (phase) {
-            OnboardingPhase.QUESTION -> if (isDark) 0.10f else 0.12f
-            OnboardingPhase.REVEAL -> if (isDark) 0.18f else 0.20f
-            OnboardingPhase.INVITATION -> if (isDark) 0.12f else 0.14f
-            OnboardingPhase.PERMISSION -> if (isDark) 0.08f else 0.10f
-            OnboardingPhase.BATTERY_WHITELIST -> if (isDark) 0.10f else 0.12f
-            OnboardingPhase.JOIN_GROUP -> if (isDark) 0.12f else 0.15f
+            OnboardingPhase.QUESTION -> if (isDark) 0.15f else 0.10f
+            OnboardingPhase.REVEAL -> if (isDark) 0.24f else 0.14f
+            OnboardingPhase.INVITATION -> if (isDark) 0.15f else 0.10f
+            OnboardingPhase.PERMISSION -> if (isDark) 0.13f else 0.09f
+            OnboardingPhase.BATTERY_WHITELIST -> if (isDark) 0.13f else 0.09f
+            OnboardingPhase.JOIN_GROUP -> if (isDark) 0.15f else 0.10f
         },
         animationSpec = tween(800),
         label = "glow_alpha"
@@ -180,6 +210,7 @@ fun OnboardingScreen(
             // ── ROOT-LEVEL AMBIENT GLOW ──
             // Renders edge-to-edge BEHIND system bars.
             // Animates smoothly between phase-specific positions.
+            val groundColor = MaterialTheme.colorScheme.background
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -191,7 +222,27 @@ fun OnboardingScreen(
                                     primaryColor.copy(alpha = glowEdgeAlpha)
                                 ),
                                 center = Offset(size.width * glowCenterX, size.height * glowCenterY),
-                                radius = if (isDark) (size.width * 1.0f) else (size.width * 1.8f)
+                                // Wide radius, gentle falloff. At 1.1x the light
+                                // died just below the chart and the verdict line
+                                // and button sat in an abrupt dark band. The pool
+                                // now reaches the bottom edge at low alpha rather
+                                // than stopping.
+                                radius = if (isDark) (size.width * 1.8f) else (size.width * 2.4f)
+                            )
+                        )
+
+                        // Scrim over the top third, painted in the ground colour.
+                        // Glow below, type above: this is what keeps the headline
+                        // and the coral figure on a clean ground instead of on
+                        // more coral. Works in both themes because it tints
+                        // toward whatever the background already is.
+                        drawRect(
+                            brush = Brush.verticalGradient(
+                                colorStops = arrayOf(
+                                    0.00f to groundColor.copy(alpha = 0.82f),
+                                    0.28f to groundColor.copy(alpha = 0.34f),
+                                    0.54f to groundColor.copy(alpha = 0f)
+                                )
                             )
                         )
                     }
@@ -318,6 +369,41 @@ private fun OnboardingProgressTrack(
     }
 }
 
+/**
+ * The body region every phase shares.
+ *
+ * Two things all six needed and none of them had.
+ *
+ * It SCROLLS, so a long manufacturer step list, an expanded "why" panel or a
+ * large font scale can never put the action out of reach — onboarding used to
+ * dead-end that way with no way back.
+ *
+ * And when the content is shorter than the viewport it CENTRES instead of
+ * pinning to the top above a weighted void. Every phase previously ended with
+ * Spacer(weight(1f)) — and Reveal with an explicit 0.25/0.75 split — which is
+ * what produced the lopsided hole under the content.
+ */
+@Composable
+private fun ColumnScope.OnboardingBody(
+    alignment: Alignment = Alignment.Center,
+    horizontalAlignment: Alignment.Horizontal = Alignment.Start,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .weight(1f)
+            .fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier
+                .align(alignment)
+                .verticalScroll(rememberScrollState()),
+            horizontalAlignment = horizontalAlignment,
+            content = content
+        )
+    }
+}
+
 // ─────────────────────────────────────────────
 // Phase 1: The Question
 // ─────────────────────────────────────────────
@@ -338,40 +424,33 @@ private fun QuestionPhase(
                 .fillMaxSize()
                 .padding(horizontal = MaterialTheme.spacing.large)
         ) {
-            Spacer(modifier = Modifier.height(32.dp))
+            OnboardingBody(alignment = Alignment.TopStart) {
+                Spacer(modifier = Modifier.height(20.dp))
+                Text(
+                    text = ScrollaStrings.ONBOARDING_QUESTION,
+                    style = MaterialTheme.typography.displayLarge,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    modifier = Modifier.semantics { heading() }
+                )
 
-            // The question — large, confident, left-aligned
-            Text(
-                text = ScrollaStrings.ONBOARDING_QUESTION,
-                style = MaterialTheme.typography.displayMedium.copy(
-                    fontWeight = FontWeight.SemiBold,
-                    lineHeight = 44.sp,
-                    letterSpacing = (-1.5).sp
-                ),
-                color = MaterialTheme.colorScheme.onBackground,
-                modifier = Modifier.semantics { heading() }
-            )
+                Spacer(modifier = Modifier.height(40.dp))
 
-            Spacer(modifier = Modifier.height(48.dp))
-
-            // Three guess options — the user's commitment
-            Column(
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                GuessOption.values().forEach { option ->
-                    GuessOptionCard(
-                        option = option,
-                        isSelected = selectedGuess == option,
-                        onClick = {
-                            if (selectedGuess == null) { // Single selection only
-                                onGuessSelected(option)
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    GuessOption.values().forEach { option ->
+                        GuessOptionCard(
+                            option = option,
+                            isSelected = selectedGuess == option,
+                            onClick = {
+                                if (selectedGuess == null) { // Single selection only
+                                    onGuessSelected(option)
+                                }
                             }
-                        }
-                    )
+                        )
+                    }
                 }
             }
-
-            Spacer(modifier = Modifier.weight(1f))
         }
     }
 }
@@ -414,7 +493,7 @@ private fun GuessOptionCard(
         label = "option_text"
     )
 
-    Box(
+    Row(
         modifier = Modifier
             .fillMaxWidth()
             .graphicsLayer {
@@ -430,18 +509,37 @@ private fun GuessOptionCard(
             )
             .clickable(
                 interactionSource = interactionSource,
-                indication = null,
+                // Ripple restored. A 3% scale on its own is below the
+                // threshold most people notice, so a slow tap read as
+                // no response at all.
+                indication = LocalIndication.current,
                 onClick = onClick
             )
-            .padding(horizontal = 24.dp, vertical = 20.dp),
-        contentAlignment = Alignment.CenterStart
+            .padding(horizontal = 20.dp, vertical = 18.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Text(
             text = option.label,
-            style = MaterialTheme.typography.titleMedium.copy(
-                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium
+            style = ScrollaType.Body.copy(
+                fontSize = 16.sp,
+                fontWeight = if (isSelected) FontWeight.Medium else FontWeight.Normal
             ),
             color = textColor
+        )
+
+        // A choice this consequential should look chosen. Previously the
+        // only feedback was a border tint, on a screen that advances 450ms
+        // later — easy to miss entirely.
+        Box(
+            modifier = Modifier
+                .size(18.dp)
+                .clip(CircleShape)
+                .border(
+                    width = if (isSelected) 5.dp else 1.dp,
+                    color = if (isSelected) primary else MaterialTheme.scrollaColors.textFaint,
+                    shape = CircleShape
+                )
         )
     }
 }
@@ -518,34 +616,19 @@ private fun RevealPhase(
         label = "context_alpha"
     )
 
+    // Beat 4: the bars grow, once the punchline has landed.
+    val barProgress by animateFloatAsState(
+        targetValue = if (contextRevealed) 1f else 0f,
+        animationSpec = tween(900),
+        label = "bar_progress"
+    )
+
     Box(modifier = Modifier.fillMaxSize()) {
-        // ── AMBIENT BACKGROUND GLOW ──
-        // The emotional crescendo. In dark mode, a focused spotlight blooms behind the number.
-        // In light mode, a warm, expansive glow floods the entire screen — the number IS the sun.
-        val isDark = androidx.compose.foundation.isSystemInDarkTheme()
-        val primaryColor = MaterialTheme.colorScheme.primary
-        
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .graphicsLayer {
-                    scaleX = 0.8f + (numberScale * 0.4f)
-                    scaleY = 0.8f + (numberScale * 0.4f)
-                    alpha = numberAlpha * if (isDark) 0.15f else 0.35f
-                }
-                .drawBehind {
-                    drawRect(
-                        brush = Brush.radialGradient(
-                            colors = listOf(
-                                primaryColor,
-                                primaryColor.copy(alpha = if (isDark) 0f else 0.12f)
-                            ),
-                            center = Offset(size.width * 0.3f, size.height * 0.45f),
-                            radius = if (isDark) (size.width * 0.8f) else (size.width * 1.6f)
-                        )
-                    )
-                }
-        )
+        // The second radial that used to live here is gone. Its centre colour
+        // was full-strength primary, and it sat directly under the number —
+        // stacked on the root glow it peaked around 0.33 of coral behind
+        // coral text, which is what turned the screen brown. The root glow in
+        // OnboardingScreen is now the only one, anchored below the type.
 
         Column(
             modifier = Modifier
@@ -553,28 +636,28 @@ private fun RevealPhase(
                 .padding(horizontal = MaterialTheme.spacing.large),
             horizontalAlignment = Alignment.Start
         ) {
-            // Position the content group at optical center (above geometric center)
-            Spacer(modifier = Modifier.weight(0.25f))
+            // Top-aligned rather than centred: this screen is dense enough
+            // that centring would only shift it a few dp, and the reveal
+            // reads better anchored under the progress track.
+            OnboardingBody(alignment = Alignment.TopStart) {
+            Spacer(modifier = Modifier.height(20.dp))
 
             // ── CONTENT GROUP ──
             if (selectedGuess != null) {
                 Box(
                     modifier = Modifier
                         .alpha(guessLabelAlpha)
-                        .clip(MaterialTheme.shapes.small)
-                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                        .clip(PillShape)
+                        .border(1.dp, MaterialTheme.scrollaColors.cardBorder, PillShape)
                         .padding(horizontal = 12.dp, vertical = 6.dp)
                 ) {
                     Text(
-                        text = "You guessed: ${selectedGuess.label}",
-                        style = MaterialTheme.typography.labelMedium.copy(
-                            fontWeight = FontWeight.Medium,
-                            letterSpacing = 0.5.sp
-                        ),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        text = "You guessed: ${selectedGuess.label.lowercase()}",
+                        style = ScrollaType.Caption,
+                        color = MaterialTheme.scrollaColors.textLow
                     )
                 }
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(20.dp))
             }
 
             // ── THE NUMBER ──
@@ -591,8 +674,11 @@ private fun RevealPhase(
                     text = ScrollaStrings.ONBOARDING_REVEAL_NUMBER,
                     style = MaterialTheme.typography.displayLarge.copy(
                         fontSize = 112.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = (-4).sp
+                        // lineHeight MUST travel with fontSize — the inherited
+                        // 50sp would clip a 112sp glyph.
+                        lineHeight = 112.sp,
+                        letterSpacing = (-4).sp,
+                        fontFeatureSettings = "tnum"
                     ),
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.alignByBaseline()
@@ -609,46 +695,46 @@ private fun RevealPhase(
                 )
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
             // ── THE PUNCHLINE ──
-            Row(
-                modifier = Modifier
-                    .alpha(contextAlpha)
-                    .fillMaxWidth(0.9f)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .width(3.dp)
-                        .height(52.dp)
-                        .clip(MaterialTheme.shapes.small)
-                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
+            // The 3dp coral rule that used to sit beside this is gone. The
+            // two weights already carry the hierarchy.
+            Column(modifier = Modifier.alpha(contextAlpha)) {
+                Text(
+                    text = ScrollaStrings.ONBOARDING_REVEAL_CONTEXT_1,
+                    style = ScrollaType.Row,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Spacer(modifier = Modifier.width(16.dp))
-                Column {
-                    Text(
-                        text = ScrollaStrings.ONBOARDING_REVEAL_CONTEXT_1,
-                        style = MaterialTheme.typography.titleLarge.copy(
-                            lineHeight = 28.sp,
-                            letterSpacing = (-0.5).sp
-                        ),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = ScrollaStrings.ONBOARDING_REVEAL_CONTEXT_2,
-                        style = MaterialTheme.typography.titleLarge.copy(
-                            lineHeight = 28.sp,
-                            letterSpacing = (-0.5).sp,
-                            fontWeight = FontWeight.SemiBold
-                        ),
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
-                }
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = ScrollaStrings.ONBOARDING_REVEAL_CONTEXT_2,
+                    style = ScrollaType.Row.copy(fontWeight = FontWeight.Medium),
+                    color = MaterialTheme.colorScheme.onBackground
+                )
             }
 
-            // Remaining space below — content breathes upward
-            Spacer(modifier = Modifier.weight(0.75f))
+            // ── THE COMPARISON ──
+            // Two bars, side by side, which is the version that worked.
+            Spacer(modifier = Modifier.height(36.dp))
+
+            GuessComparison(
+                guess = selectedGuess,
+                progress = barProgress,
+                modifier = Modifier.alpha(contextAlpha)
+            )
+
+            Spacer(modifier = Modifier.height(18.dp))
+
+            Text(
+                text = verdictFor(selectedGuess),
+                style = ScrollaType.Editorial,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.alpha(contextAlpha)
+            )
+
+            Spacer(modifier = Modifier.height(MaterialTheme.spacing.large))
+            }
 
             ScrollaPrimaryButton(
                 text = ScrollaStrings.ONBOARDING_ACTION_NEXT,
@@ -658,8 +744,200 @@ private fun RevealPhase(
                     .fillMaxWidth()
                     .alpha(buttonAlpha)
             )
-            Spacer(modifier = Modifier.height(MaterialTheme.spacing.extraLarge))
+            Spacer(modifier = Modifier.height(MaterialTheme.spacing.large))
         }
+    }
+}
+
+/**
+ * How far off the user was, in their own terms.
+ *
+ * The guess was previously collected, shown once in a grey chip and then
+ * discarded. Being wrong by three orders of magnitude is the single most
+ * persuasive fact in the flow, so it is now computed and stated.
+ *
+ * `metres` drives the comparison bar; `SEVERAL_KILOMETRES` deliberately
+ * gets a near-equal bar and a different verdict, because that guess is
+ * broadly right and telling someone they were wrong when they were not
+ * would burn the trust the rest of onboarding is trying to build.
+ */
+/**
+ * The root of the contradiction: every answer on the question screen is a
+ * RANGE, and a bar chart needs a POINT. Two bars side by side always assert
+ * a specific guessed value, so "several kilometres" became 3 km and the
+ * screen argued against a number the user never picked.
+ *
+ * The fix is to stop drawing the guess as a quantity of its own. There is one
+ * bar — the measured distance — and the guess is a MARKER laid across it at
+ * the height the user claimed. A marker can sit at the floor, or at the top,
+ * without ever naming a value.
+ *
+ * [markerFraction] is where that line falls on the real bar, so it stays
+ * truthful for all three: the two small answers land on the baseline, which
+ * is the honest picture of a metre next to 2.8 km, and "several kilometres"
+ * lands at the top, which reads as agreement rather than rebuttal.
+ */
+/**
+ * The verdict, as three lines of type.
+ *
+ * No diagram. Two attempts at one failed for the same reason: a chart of a
+ * single measured value has nothing to compare against, and any second bar
+ * has to invent a quantity the user never gave. Set as type it needs no
+ * geometry, states nothing false, and behaves identically on all three
+ * answers — only the size changes, because a numeral carries at 92sp and a
+ * word does not.
+ */
+private data class GuessFacts(
+    /** Bar height as a fraction of the measured distance. */
+    val barFraction: Float,
+    /** The guess in the USER'S words. Never a number they did not give. */
+    val label: String
+)
+
+private fun factsFor(guess: GuessOption?): GuessFacts? = when (guess) {
+    GuessOption.FEW_CENTIMETRES -> GuessFacts(0f, "A few cm")
+    GuessOption.ABOUT_A_METRE -> GuessFacts(1f / ACTUAL_METRES, "About 1 m")
+    GuessOption.SEVERAL_KILOMETRES -> GuessFacts(1f, "Several km")
+    null -> null
+}
+
+private fun verdictFor(guess: GuessOption?): String = when (guess) {
+    // A range, so a magnitude rather than a figure.
+    GuessOption.FEW_CENTIMETRES -> "Thousands of times further than you guessed."
+    // The only answer that states a quantity, so the only one that earns a
+    // precise multiple.
+    GuessOption.ABOUT_A_METRE -> "About 2,800 times further than you guessed."
+    GuessOption.SEVERAL_KILOMETRES -> "You guessed right. Almost nobody does."
+    null -> "Further than almost anyone guesses."
+}
+
+private const val ACTUAL_METRES = 2800f
+private val MAX_BAR_HEIGHT = 182.dp
+
+/**
+ * The comparison, restored to two bars.
+ *
+ * The contradiction — every answer is a RANGE, but a bar needs a POINT — is
+ * solved in how the bars are DRAWN rather than by deleting one of them:
+ *
+ *   the measurement is solid, with a hard top edge
+ *   the guess FADES OUT at the top, because it was never a precise claim
+ *
+ * So "several kilometres" reads as "somewhere around here", not as an
+ * assertion of 3 km, and the label stays in the user's own words.
+ */
+@Composable
+private fun GuessComparison(
+    guess: GuessOption?,
+    progress: Float,
+    modifier: Modifier = Modifier
+) {
+    val facts = factsFor(guess) ?: return
+    val colors = MaterialTheme.scrollaColors
+    val primary = MaterialTheme.colorScheme.primary
+    val columnGap = 28.dp
+
+    val guessHeight = (MAX_BAR_HEIGHT * facts.barFraction.coerceIn(0f, 1f) * progress)
+        .coerceAtLeast(2.dp)
+    val actualHeight = MAX_BAR_HEIGHT * progress
+
+    Column(
+        modifier = modifier.semantics(mergeDescendants = true) {
+            contentDescription = "You guessed ${facts.label}. A typical day is " +
+                "${ScrollaStrings.ONBOARDING_REVEAL_NUMBER} kilometres."
+        }
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(MAX_BAR_HEIGHT + 54.dp)
+                .drawBehind {
+                    drawRect(
+                        color = primary.copy(alpha = 0.22f),
+                        topLeft = Offset(0f, size.height - 1.dp.toPx()),
+                        size = Size(size.width, 1.dp.toPx())
+                    )
+                },
+            verticalAlignment = Alignment.Bottom,
+            horizontalArrangement = Arrangement.spacedBy(columnGap)
+        ) {
+            ComparisonColumn(
+                modifier = Modifier.weight(1f),
+                valueText = facts.label,
+                valueStyle = ScrollaType.FigureSmall.copy(fontSize = 20.sp, lineHeight = 22.sp),
+                valueColor = colors.textLow,
+                barHeight = guessHeight,
+                // Transparent at the top: an approximation, not a reading.
+                barBrush = Brush.verticalGradient(
+                    listOf(colors.textFaint.copy(alpha = 0f), colors.textFaint)
+                )
+            )
+            ComparisonColumn(
+                modifier = Modifier.weight(1f),
+                valueText = "${ScrollaStrings.ONBOARDING_REVEAL_NUMBER} ${ScrollaStrings.ONBOARDING_REVEAL_UNIT}",
+                valueStyle = ScrollaType.FigureSmall.copy(fontSize = 26.sp, lineHeight = 28.sp),
+                valueColor = primary,
+                barHeight = actualHeight,
+                barBrush = Brush.verticalGradient(
+                    listOf(primary.copy(alpha = 0.86f), primary)
+                )
+            )
+        }
+
+        // Category labels sit UNDER their own bar, below the baseline.
+        Spacer(modifier = Modifier.height(12.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(columnGap)
+        ) {
+            Text(
+                text = "YOUR GUESS",
+                style = ScrollaType.Micro,
+                color = colors.textLow,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.weight(1f)
+            )
+            Text(
+                text = "A TYPICAL DAY",
+                style = ScrollaType.Micro,
+                color = primary,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.weight(1f)
+            )
+        }
+    }
+}
+
+@Composable
+private fun ComparisonColumn(
+    valueText: String,
+    valueStyle: TextStyle,
+    valueColor: Color,
+    barHeight: Dp,
+    barBrush: Brush,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(10.dp, Alignment.Bottom)
+    ) {
+        Text(
+            text = valueText,
+            style = valueStyle,
+            color = valueColor,
+            textAlign = TextAlign.Center
+        )
+        // No per-bar bloom. That drew a radial into a fixed 3x-wide rect,
+        // which clipped into a visible rectangle with hard edges under the
+        // baseline. The ambient glow is anchored here instead.
+        Box(
+            modifier = Modifier
+                .fillMaxWidth(0.68f)
+                .height(barHeight)
+                .clip(RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp))
+                .background(barBrush)
+        )
     }
 }
 
@@ -707,59 +985,53 @@ private fun InvitationPhase(
                 .padding(horizontal = MaterialTheme.spacing.large),
             horizontalAlignment = Alignment.Start
         ) {
-            Spacer(modifier = Modifier.height(32.dp))
-
-            // Typography spine — grounded, not grand
-            Text(
-                text = ScrollaStrings.ONBOARDING_INVITE_HEADLINE,
-                style = MaterialTheme.typography.displayMedium.copy(
-                    fontWeight = FontWeight.SemiBold,
-                    lineHeight = 44.sp,
-                    letterSpacing = (-1.5).sp
-                ),
-                color = MaterialTheme.colorScheme.onBackground,
-                modifier = Modifier.semantics { heading() }
-            )
-            Spacer(modifier = Modifier.height(MaterialTheme.spacing.medium))
-            Text(
-                text = ScrollaStrings.ONBOARDING_INVITE_BODY,
-                style = MaterialTheme.typography.bodyLarge.copy(
-                    lineHeight = 24.sp,
-                    letterSpacing = 0.sp
-                ),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.fillMaxWidth(0.9f)
-            )
-
-            Spacer(modifier = Modifier.height(48.dp))
-
-            // Miniature reverse leaderboard — demonstrates the mechanic
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                LeaderboardPreviewRow(
-                    rank = 1, name = "You", distance = "1.2 km",
-                    isUser = true, progress = row1Progress
+            // Top-aligned. Centring pushed the headline into the middle of
+            // the screen and it read as floating; this phase is a statement
+            // followed by evidence, and a statement belongs at the top.
+            OnboardingBody(alignment = Alignment.TopStart) {
+                Spacer(modifier = Modifier.height(20.dp))
+                Text(
+                    text = ScrollaStrings.ONBOARDING_INVITE_HEADLINE,
+                    style = MaterialTheme.typography.displayLarge,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    modifier = Modifier.semantics { heading() }
                 )
-                LeaderboardPreviewRow(
-                    rank = 2, name = "Alex", distance = "3.4 km",
-                    isUser = false, progress = row2Progress
+                Spacer(modifier = Modifier.height(MaterialTheme.spacing.medium))
+                Text(
+                    text = ScrollaStrings.ONBOARDING_INVITE_BODY,
+                    style = MaterialTheme.typography.bodyLarge.copy(lineHeight = 24.sp),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.fillMaxWidth(0.9f)
                 )
-                LeaderboardPreviewRow(
-                    rank = 3, name = "Sam", distance = "5.8 km",
-                    isUser = false, progress = row3Progress
-                )
+
+                Spacer(modifier = Modifier.height(48.dp))
+
+                // Miniature reverse leaderboard — demonstrates the mechanic
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    LeaderboardPreviewRow(
+                        rank = 1, name = "You", distance = "1.2 km",
+                        isUser = true, progress = row1Progress
+                    )
+                    LeaderboardPreviewRow(
+                        rank = 2, name = "Alex", distance = "3.4 km",
+                        isUser = false, progress = row2Progress
+                    )
+                    LeaderboardPreviewRow(
+                        rank = 3, name = "Sam", distance = "5.8 km",
+                        isUser = false, progress = row3Progress
+                    )
+                }
             }
 
-            Spacer(modifier = Modifier.weight(1f))
-            
             ScrollaPrimaryButton(
                 text = ScrollaStrings.ONBOARDING_ACTION_NEXT,
                 onClick = onNext,
                 modifier = Modifier.fillMaxWidth()
             )
-            Spacer(modifier = Modifier.height(MaterialTheme.spacing.extraLarge))
+            Spacer(modifier = Modifier.height(MaterialTheme.spacing.large))
         }
     }
 }
@@ -858,19 +1130,24 @@ private fun PermissionPhase(
     val alpha2 by animateFloatAsState(if (animationTrigger) 1f else 0f, tween(500, delayMillis = 300), label = "alpha2")
     val alpha3 by animateFloatAsState(if (animationTrigger) 1f else 0f, tween(500, delayMillis = 500), label = "alpha3")
 
+    var showWhy by remember { mutableStateOf(false) }
+
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = MaterialTheme.spacing.large)
-                .padding(bottom = MaterialTheme.spacing.extraLarge),
+                .padding(horizontal = MaterialTheme.spacing.large),
             horizontalAlignment = Alignment.Start
         ) {
-            Spacer(modifier = Modifier.height(32.dp))
-            
+            // A headline, a subhead and nine bullets. At the 2.0 font scale
+            // this file's own preview declares, the button used to be
+            // unreachable and onboarding dead-ended right here.
+            OnboardingBody(alignment = Alignment.TopStart) {
+            Spacer(modifier = Modifier.height(24.dp))
+
             Text(
                 text = ScrollaStrings.PERMISSION_HEADLINE,
-                style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.SemiBold),
+                style = MaterialTheme.typography.displaySmall,
                 modifier = Modifier.alpha(alpha1)
             )
             Spacer(modifier = Modifier.height(MaterialTheme.spacing.small))
@@ -881,38 +1158,79 @@ private fun PermissionPhase(
                 modifier = Modifier.alpha(alpha1)
             )
 
-            Spacer(modifier = Modifier.height(MaterialTheme.spacing.extraLarge))
-
-            // Section 1
-            PermissionSection(
-                header = ScrollaStrings.PERMISSION_TRACK_HEADER,
-                bullets = listOf(ScrollaStrings.PERMISSION_TRACK_1, ScrollaStrings.PERMISSION_TRACK_2, ScrollaStrings.PERMISSION_TRACK_3),
-                icon = { Icon(Icons.Default.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
-                modifier = Modifier.alpha(alpha2)
-            )
-            Spacer(modifier = Modifier.height(MaterialTheme.spacing.large))
-            
-            // Section 2
-            PermissionSection(
-                header = ScrollaStrings.PERMISSION_NEVER_HEADER,
-                bullets = listOf(ScrollaStrings.PERMISSION_NEVER_1, ScrollaStrings.PERMISSION_NEVER_2, ScrollaStrings.PERMISSION_NEVER_3),
-                icon = { Icon(Icons.Default.Close, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
-                modifier = Modifier.alpha(alpha2)
-            )
             Spacer(modifier = Modifier.height(MaterialTheme.spacing.large))
 
-            // Section 3
-            PermissionSection(
-                header = ScrollaStrings.PERMISSION_DATA_HEADER,
-                bullets = listOf(ScrollaStrings.PERMISSION_DATA_1, ScrollaStrings.PERMISSION_DATA_2, ScrollaStrings.PERMISSION_DATA_3),
-                icon = { Icon(Icons.Default.Lock, contentDescription = null, tint = MaterialTheme.colorScheme.secondary) },
-                modifier = Modifier.alpha(alpha3)
-            )
+            // Three bordered cards, colour-coded by what each group means:
+            // green reads, amber never, neutral where it goes. The colour is
+            // the fastest way to answer the only question anyone actually has
+            // on a permission screen.
+            Column(verticalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.cardGap)) {
+                PermissionCard(
+                    label = ScrollaStrings.PERMISSION_TRACK_HEADER,
+                    accent = MaterialTheme.scrollaColors.improving,
+                    icon = Icons.Default.Check,
+                    bullets = listOf(
+                        ScrollaStrings.PERMISSION_TRACK_1,
+                        ScrollaStrings.PERMISSION_TRACK_2,
+                        ScrollaStrings.PERMISSION_TRACK_3
+                    ),
+                    modifier = Modifier.alpha(alpha2)
+                )
+                PermissionCard(
+                    label = ScrollaStrings.PERMISSION_NEVER_HEADER,
+                    accent = MaterialTheme.scrollaColors.worsening,
+                    icon = Icons.Default.Close,
+                    bullets = listOf(
+                        ScrollaStrings.PERMISSION_NEVER_1,
+                        ScrollaStrings.PERMISSION_NEVER_2,
+                        ScrollaStrings.PERMISSION_NEVER_3
+                    ),
+                    modifier = Modifier.alpha(alpha2)
+                )
+                PermissionCard(
+                    label = ScrollaStrings.PERMISSION_DATA_HEADER,
+                    accent = MaterialTheme.scrollaColors.textLow,
+                    icon = Icons.Default.Lock,
+                    bullets = listOf(
+                        ScrollaStrings.PERMISSION_DATA_1,
+                        ScrollaStrings.PERMISSION_DATA_2,
+                        ScrollaStrings.PERMISSION_DATA_3
+                    ),
+                    modifier = Modifier.alpha(alpha3)
+                )
+            }
 
-            Spacer(modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.height(MaterialTheme.spacing.medium))
 
+            // Why link — inside the scroll, so expanding it can never push
+            // the action off the bottom of the screen.
+            TextButton(
+                onClick = { showWhy = !showWhy },
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .alpha(alpha3)
+            ) {
+                Text(
+                    text = ScrollaStrings.PERMISSION_WHY_LINK,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            if (showWhy) {
+                Text(
+                    text = ScrollaStrings.PERMISSION_WHY_BODY,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.alpha(alpha3)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(MaterialTheme.spacing.large))
+            }
+
+            // Pinned action — always reachable, whatever the font scale.
             ScrollaPrimaryButton(
-                text = if (com.scrolla.device.isScrollAccessibilityServiceEnabled(context)) "Permission Granted - Continue" else ScrollaStrings.PERMISSION_BUTTON,
+                text = if (com.scrolla.device.isScrollAccessibilityServiceEnabled(context)) "Permission granted — continue" else ScrollaStrings.PERMISSION_BUTTON,
                 onClick = {
                     if (com.scrolla.device.isScrollAccessibilityServiceEnabled(context)) {
                         onNext()
@@ -925,28 +1243,54 @@ private fun PermissionPhase(
                     .fillMaxWidth()
                     .alpha(alpha3)
             )
-            
-            Spacer(modifier = Modifier.height(MaterialTheme.spacing.small))
-            
-            // Why link
-            var showWhy by remember { mutableStateOf(false) }
-            TextButton(
-                onClick = { showWhy = !showWhy },
-                modifier = Modifier.align(Alignment.CenterHorizontally).alpha(alpha3)
-            ) {
-                Text(
-                    text = ScrollaStrings.PERMISSION_WHY_LINK,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            
-            if (showWhy) {
-                Text(
-                    text = ScrollaStrings.PERMISSION_WHY_BODY,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = MaterialTheme.spacing.small).alpha(alpha3)
-                )
+
+            Spacer(modifier = Modifier.height(MaterialTheme.spacing.large))
+        }
+    }
+}
+
+/**
+ * One group of permission facts.
+ *
+ * Each bullet leads with its icon so the rows anchor to a common left edge
+ * and the text runs the full width of the card — the mockup's rows were
+ * plain text starting at the padding, which left a ragged column of dead
+ * space down the right of every card.
+ */
+@Composable
+private fun PermissionCard(
+    label: String,
+    accent: Color,
+    icon: ImageVector,
+    bullets: List<String>,
+    modifier: Modifier = Modifier
+) {
+    ScrollaCard(modifier = modifier, padding = 18.dp) {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            SectionLabel(label.removeSuffix(":"), color = accent)
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                bullets.forEach { bullet ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalAlignment = Alignment.Top
+                    ) {
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = null,
+                            modifier = Modifier
+                                .padding(top = 2.dp)
+                                .size(15.dp),
+                            tint = accent.copy(alpha = 0.85f)
+                        )
+                        Text(
+                            text = bullet,
+                            style = ScrollaType.Caption.copy(fontSize = 13.5.sp, lineHeight = 19.sp),
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
             }
         }
     }
@@ -1026,11 +1370,12 @@ private fun BatteryWhitelistPhase(
                 .padding(bottom = MaterialTheme.spacing.extraLarge),
             horizontalAlignment = Alignment.Start
         ) {
-            Spacer(modifier = Modifier.height(32.dp))
-            
+            OnboardingBody(alignment = Alignment.TopStart) {
+            Spacer(modifier = Modifier.height(24.dp))
+
             Text(
                 text = ScrollaStrings.BATTERY_HEADLINE,
-                style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.SemiBold),
+                style = MaterialTheme.typography.displaySmall,
                 modifier = Modifier.alpha(alpha1)
             )
             Spacer(modifier = Modifier.height(MaterialTheme.spacing.small))
@@ -1043,7 +1388,8 @@ private fun BatteryWhitelistPhase(
 
             Spacer(modifier = Modifier.height(MaterialTheme.spacing.extraLarge))
 
-            // Manufacturer specific steps
+            // Manufacturer specific steps — length varies by device, which is
+            // exactly why this region has to scroll.
             Column(modifier = Modifier.alpha(alpha2)) {
                 Text(
                     text = "${ScrollaStrings.BATTERY_MANUFACTURER_PREFIX} ${instructions.manufacturer}",
@@ -1084,20 +1430,21 @@ private fun BatteryWhitelistPhase(
                 }
             }
 
-            Spacer(modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.height(MaterialTheme.spacing.large))
+            }
 
             ScrollaPrimaryButton(
                 text = ScrollaStrings.BATTERY_OPEN_SETTINGS_BUTTON,
-                onClick = { 
+                onClick = {
                     hasLaunchedSettings = true
-                    helper.openBatterySettings(context) 
+                    helper.openBatterySettings(context)
                 },
                 modifier = Modifier
                     .fillMaxWidth()
                     .alpha(alpha3)
             )
-            
-            Spacer(modifier = Modifier.height(MaterialTheme.spacing.small))
+
+            Spacer(modifier = Modifier.height(MaterialTheme.spacing.extraExtraSmall))
 
             TextButton(
                 onClick = onNext,
@@ -1134,50 +1481,100 @@ private fun JoinGroupPhase(
         ) {
             Spacer(modifier = Modifier.height(32.dp))
             
-            Text(
-                text = ScrollaStrings.GROUP_HEADLINE,
-                style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.SemiBold)
-            )
-            Spacer(modifier = Modifier.height(MaterialTheme.spacing.small))
-            Text(
-                text = ScrollaStrings.GROUP_SUBHEADLINE,
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            
-            Spacer(modifier = Modifier.height(48.dp))
-            
-            // OTP Content
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
+            // Top-aligned, and scrolling — this is the one phase with a text
+            // field, and the keyboard takes roughly half the screen.
+            OnboardingBody(alignment = Alignment.TopStart) {
+                Spacer(modifier = Modifier.height(20.dp))
+                Text(
+                    text = ScrollaStrings.GROUP_HEADLINE,
+                    style = MaterialTheme.typography.displaySmall
+                )
+                Spacer(modifier = Modifier.height(MaterialTheme.spacing.small))
+                Text(
+                    text = ScrollaStrings.GROUP_SUBHEADLINE,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Spacer(modifier = Modifier.height(40.dp))
+
                 OtpInputField(
                     code = code,
                     onCodeChange = { code = it },
                     modifier = Modifier.fillMaxWidth()
                 )
+
+                Spacer(modifier = Modifier.height(34.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(1.dp)
+                            .background(MaterialTheme.scrollaColors.cardBorder)
+                    )
+                    SectionLabel(ScrollaStrings.GROUP_NO_CODE_LABEL)
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(1.dp)
+                            .background(MaterialTheme.scrollaColors.cardBorder)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // The skip path, as a real choice rather than a faint text
+                // link under the button. Creating a group is deliberately not
+                // here — that lives inside the app.
+                ScrollaCard(onClick = onFinish) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(5.dp)
+                        ) {
+                            Text(
+                                text = ScrollaStrings.GROUP_SOLO_TITLE,
+                                style = ScrollaType.Body.copy(
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Medium
+                                ),
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = ScrollaStrings.GROUP_SOLO_BODY,
+                                style = ScrollaType.Caption,
+                                color = MaterialTheme.scrollaColors.textLow
+                            )
+                        }
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                            tint = MaterialTheme.scrollaColors.textLow
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(MaterialTheme.spacing.large))
             }
-            
-            Spacer(modifier = Modifier.weight(1f))
-            
+
+            // One action at the bottom.
             ScrollaPrimaryButton(
                 text = ScrollaStrings.GROUP_JOIN_BUTTON,
                 onClick = onFinish, // Mock success
                 modifier = Modifier.fillMaxWidth()
             )
-            
-            Spacer(modifier = Modifier.height(MaterialTheme.spacing.small))
-            
-            TextButton(
-                onClick = onFinish,
-                modifier = Modifier.align(Alignment.CenterHorizontally)
-            ) {
-                Text(
-                    text = ScrollaStrings.GROUP_SKIP,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
+
+            Spacer(modifier = Modifier.height(MaterialTheme.spacing.large))
         }
     }
 }
@@ -1231,7 +1628,7 @@ private fun OtpInputField(
                         ) {
                             Text(
                                 text = char,
-                                style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.SemiBold),
+                                style = MaterialTheme.typography.headlineMedium,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                         }

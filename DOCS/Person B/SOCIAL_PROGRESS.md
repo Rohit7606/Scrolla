@@ -205,12 +205,9 @@ Same purpose as A's decisions log — prevents an AI agent from "correcting" an 
 
 | # | Discovered | Description | Severity | Sprint | Resolved? |
 |---|---|---|---|---|---|
-| 1 | 2026-08-16 | `BatteryWhitelistScreen.kt` is dead code — unreferenced anywhere after `OnboardingScreen` refactor. Should be deleted. | 🟢 Low | Cleanup | ☐ |
-| 2 | 2026-08-16 | `SettingsScreen.kt` defines its own `ServiceHealthState` enum (`ACTIVE`, `STOPPED`, `DEGRADED`, `INTERRUPTED`) which shadows A's Room entity `com.scrolla.room.ServiceHealthState`. When wiring real data, must reconcile or map between them. | 🟡 High | S2 | ☐ |
-| 3 | 2026-08-16 | `SignInActivity.kt` in `ui/auth/` is a legacy activity-based sign-in flow. The current app uses `SignInScreen.kt` (Compose) instead. `SignInActivity` may be dead code — verify before deleting. | 🟢 Low | Cleanup | ☐ |
-| 4 | 2026-08-16 | `ScrollaFormatters.kt` has a remaining encoding artifact: line 13 shows `â‰¥` instead of `≥` and line 27 shows `Â§` instead of `§`. | 🟢 Low | Cleanup | ☐ |
-| 5 | 2026-08-16 | `GroupRepository`, `SyncManager`, and `LeaderboardRepository` missing. | 🔴 Critical | S1-S2 | ☐ |
-| 6 | 2026-08-16 | `GoogleSignInOptions` API used in `SignInScreen.kt` and `SignInActivity.kt` is deprecated by Google. Should migrate to Credential Manager API before v1 release. | 🟡 High | S3 | ☐ |
+| 1 | 2026-08-16 | `BatteryWhitelistScreen.kt` is dead code — unreferenced anywhere after `OnboardingScreen` refactor. Should be deleted. | 🟢 Low | Cleanup | ☑ |
+| 2 | 2026-08-16 | `SettingsScreen.kt` defines its own `ServiceHealthState` enum (`ACTIVE`, `STOPPED`, `DEGRADED`, `INTERRUPTED`) which shadows A's Room entity `com.scrolla.room.ServiceHealthState`. When wiring real data, must reconcile or map between them. | 🟡 High | S2 | ☑ |
+| 6 | 2026-08-16 | `GoogleSignInOptions` API used in `SignInScreen.kt` is deprecated by Google. Should migrate to Credential Manager API before v1 release. | 🟡 High | S3 | ☐ |
 
 **Severity guide:**
 - 🔴 **Critical:** Wrong data shown to user (wrong km, wrong rank, phantom Firestore reads). Blocks release.
@@ -280,10 +277,10 @@ A running scratchpad for in-progress thoughts, things to pick up next session, q
 - **Next session priorities:**
   1. Write Firestore security rules (S1.B5) — ✅ Done.
   2. Build `GroupRepository.kt` for create/join flows (S1.B8, S1.B9) — ✅ Done.
-  3. Wire UI flows to `GroupRepository`.
-  4. Delete dead code: `BatteryWhitelistScreen.kt`, possibly `SignInActivity.kt`.
-  4. Fix remaining encoding artifacts in `ScrollaFormatters.kt`.
-  5. Reconcile `SettingsScreen.ServiceHealthState` enum with Room entity before wiring real data.
+  3. Wire UI flows to `GroupRepository` — ✅ Done.
+  4. Delete dead code: `BatteryWhitelistScreen.kt`, possibly `SignInActivity.kt` — ✅ Done.
+  5. Fix remaining encoding artifacts in `ScrollaFormatters.kt` — ✅ Done.
+  6. Reconcile `SettingsScreen.ServiceHealthState` enum with Room entity before wiring real data — ✅ Done.
 
 ---
 

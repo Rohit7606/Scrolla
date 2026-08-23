@@ -1,4 +1,4 @@
-﻿package com.scrolla.ui.screens
+package com.scrolla.ui.screens
 
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
@@ -36,6 +36,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
+import com.scrolla.model.DistanceFormatter
 import com.scrolla.ui.theme.ScrollaUILabTheme
 import com.scrolla.ui.theme.spacing
 import com.scrolla.ui.components.bentoCard
@@ -51,9 +52,9 @@ fun PersonalRecordsScreen(
     modifier: Modifier = Modifier,
     hasData: Boolean = true,
     bestDayKm: Float = 0.4f,
-    bestDayDate: String = "Oct 12",
+    bestDayDate: String = "July 12",
     bestAvgKm: Float = 1.2f,
-    bestAvgDate: String = "Oct 8 - 14",
+    bestAvgDate: String = "July 8 - 14",
     onBackClick: () -> Unit = {}
 ) {
     val spacing = MaterialTheme.spacing
@@ -187,9 +188,8 @@ private fun RecordCard(
             verticalAlignment = Alignment.Bottom
         ) {
             Text(
-                text = ScrollaFormatters.formatDistance(distanceKm),
+                text = DistanceFormatter.formatKmValue(distanceKm),
                 style = MaterialTheme.typography.displayMedium.copy(
-                    fontWeight = FontWeight.Light,
                     letterSpacing = (-0.03).em,
                     fontFeatureSettings = "tnum"
                 ),

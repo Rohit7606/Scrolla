@@ -78,6 +78,12 @@ object ScrollaStrings {
 
     const val GROUP_SKIP = "Skip for now — you can join a group later"
 
+    // Onboarding join screen — the path for someone with no code.
+    // Creating a group lives inside the app, not here.
+    const val GROUP_NO_CODE_LABEL = "No code?"
+    const val GROUP_SOLO_TITLE = "Go solo for now"
+    const val GROUP_SOLO_BODY = "Track your own distance. Join a group whenever."
+
     // =========================================
     // Screen 5: Home
     // =========================================
@@ -85,6 +91,8 @@ object ScrollaStrings {
     const val HOME_UNIT = "km"
     const val HOME_LANDMARK_PREFIX = "about the height of"
     const val HOME_EMPTY_LANDMARK = "start scrolling to see your distance"
+    const val HOME_WAITING_FOR_SENSOR = "waiting for the first scroll to be measured"
+    const val HOME_STANDING_UNAVAILABLE = "no group results yet"
     const val HOME_INSIGHT_PLACEHOLDER_LABEL = "today's insight"
     const val HOME_INSIGHT_PLACEHOLDER_BODY = "Scroll today to see your insights here"
     const val HOME_INSIGHT_PERSONAL_BEST_LABEL = "personal best"
@@ -95,17 +103,23 @@ object ScrollaStrings {
     // Screen 6: Leaderboard
     // =========================================
     const val LEADERBOARD_TITLE = "Leaderboard"
-    const val LEADERBOARD_MOST_IMPROVED = "is most improved this week"
+    const val LEADERBOARD_MOST_IMPROVED = " has improved most this week"
     const val LEADERBOARD_MOST_CONSISTENT = "is most consistent this week"
     const val LEADERBOARD_STAT_TODAY = "today"
     const val LEADERBOARD_STAT_YESTERDAY = "yesterday"
     const val LEADERBOARD_STAT_WEEK_AVG = "7-day avg"
     const val LEADERBOARD_SELF_NAME = "You"
-    const val LEADERBOARD_HALL_OF_FAME_PREFIX = "group's best day:"
-    const val LEADERBOARD_HALL_OF_FAME_LINK = "Hall of fame →"
+    const val LEADERBOARD_HALL_OF_FAME_PREFIX = "Group's best day:"
+    const val LEADERBOARD_HALL_OF_FAME_LINK = "Hall of fame"
     const val LEADERBOARD_EMPTY_SOLO_HEADLINE = "You're the only one here"
     const val LEADERBOARD_EMPTY_SOLO_BODY = "Share your group code to invite friends. Until then, here's your personal progress."
     const val LEADERBOARD_NO_DATA = "No data yet — start scrolling"
+    const val PROFILE_TRACKING_SINCE_UNKNOWN = "Tracking has not started yet"
+    const val PROFILE_NO_GROUPS = "Not in a group yet"
+    const val LEADERBOARD_NO_GROUP_TITLE = "No group yet"
+    const val LEADERBOARD_EMPTY_NO_GROUP = "Join a group to see how you compare."
+    const val LEADERBOARD_EMPTY_NO_TOTALS = "No totals have synced for today yet."
+    const val LEADERBOARD_NO_RECORD_YET = "No group record set yet"
     const val LEADERBOARD_LEFT_GROUP_SUFFIX = "(left)"
 
     // Error states (shared)
@@ -133,13 +147,13 @@ object ScrollaStrings {
     // =========================================
     // Screen 8: Profile Tab
     // =========================================
-    const val PROFILE_PERSONAL_BEST_LABEL = "personal best"
+    const val PROFILE_PERSONAL_BEST_LABEL = "Personal best"
     const val PROFILE_PERSONAL_BEST_EMPTY = "Keep scrolling to set your first record"
-    const val PROFILE_PERSONAL_BEST_LINK = "Personal records →"
-    const val PROFILE_HALL_OF_FAME_LINK = "Hall of fame →"
+    const val PROFILE_PERSONAL_BEST_LINK = "Personal records"
+    const val PROFILE_HALL_OF_FAME_LINK = "Hall of fame"
     const val PROFILE_HALL_OF_FAME_RECORD_HOLDER = "You hold the group's best day"
     const val PROFILE_HALL_OF_FAME_EMPTY = "No record set yet — be the first"
-    const val PROFILE_GROUPS_LINK = "Manage groups →"
+    const val PROFILE_GROUPS_LINK = "Manage groups"
 
     // =========================================
     // Screen 9: Settings

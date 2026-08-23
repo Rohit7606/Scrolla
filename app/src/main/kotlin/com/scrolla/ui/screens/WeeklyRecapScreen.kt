@@ -1,4 +1,4 @@
-﻿package com.scrolla.ui.screens
+package com.scrolla.ui.screens
 
 import androidx.compose.runtime.setValue
 
@@ -31,6 +31,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
+import com.scrolla.model.DistanceFormatter
 import com.scrolla.ui.components.ScrollaPrimaryButton
 import com.scrolla.ui.theme.ScrollaUILabTheme
 import com.scrolla.ui.theme.spacing
@@ -44,7 +45,7 @@ import com.scrolla.ui.theme.spacing
 @Composable
 fun WeeklyRecapScreen(
     modifier: Modifier = Modifier,
-    weeklyDistanceKm: Float = 14.2f,
+    weeklyDistanceKm: Float = 7.8f,
     landmarkText: String = "that's longer than a half marathon",
     onShareClick: () -> Unit = {},
     onSkipClick: () -> Unit = {}
@@ -134,12 +135,13 @@ fun WeeklyRecapScreen(
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
-                        text = ScrollaFormatters.formatDistance(weeklyDistanceKm),
+                        text = DistanceFormatter.formatKmValue(weeklyDistanceKm),
                         style = MaterialTheme.typography.displayLarge.copy(
                             fontSize = 140.sp,
                             lineHeight = 140.sp,
                             letterSpacing = (-0.05).em,
-                            fontWeight = FontWeight.Light,
+                            // No fontWeight: Instrument Serif has one master.
+                            // Light is silently ignored, Bold is synthesised.
                             fontFeatureSettings = "tnum"
                         ),
                         color = MaterialTheme.colorScheme.onBackground

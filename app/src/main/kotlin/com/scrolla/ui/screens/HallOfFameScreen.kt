@@ -1,4 +1,4 @@
-﻿package com.scrolla.ui.screens
+package com.scrolla.ui.screens
 
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
@@ -39,6 +39,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
+import com.scrolla.model.DistanceFormatter
 import com.scrolla.ui.theme.ScrollaUILabTheme
 import com.scrolla.ui.theme.spacing
 import com.scrolla.ui.components.bentoCard
@@ -53,9 +54,9 @@ import com.scrolla.ui.components.bounceClick
 fun HallOfFameScreen(
     modifier: Modifier = Modifier,
     hasRecord: Boolean = true,
-    recordHolderName: String = "Sarah",
-    recordDistanceKm: Float = 0.2f,
-    recordDate: String = "Sep 28",
+    recordHolderName: String = "Lewis",
+    recordDistanceKm: Float = 0.4f,
+    recordDate: String = "July 12",
     isCurrentUserHolder: Boolean = false,
     gapToRecordKm: Float = 1.9f,
     onBackClick: () -> Unit = {}
@@ -169,7 +170,7 @@ fun HallOfFameScreen(
                                 modifier = Modifier
                                     .size(40.dp)
                                     .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.primaryContainer),
+                                    .background(MaterialTheme.colorScheme.secondaryContainer),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
@@ -177,7 +178,7 @@ fun HallOfFameScreen(
                                     style = MaterialTheme.typography.titleMedium.copy(
                                         fontWeight = FontWeight.SemiBold
                                     ),
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer
                                 )
                             }
                             Text(
@@ -195,9 +196,8 @@ fun HallOfFameScreen(
                             verticalAlignment = Alignment.Bottom
                         ) {
                             Text(
-                                text = ScrollaFormatters.formatDistance(recordDistanceKm),
+                                text = DistanceFormatter.formatKmValue(recordDistanceKm),
                                 style = MaterialTheme.typography.displayMedium.copy(
-                                    fontWeight = FontWeight.Light,
                                     letterSpacing = (-0.03).em,
                                     fontFeatureSettings = "tnum"
                                 ),
@@ -225,7 +225,7 @@ fun HallOfFameScreen(
                     if (!isCurrentUserHolder) {
                         Spacer(modifier = Modifier.height(spacing.medium))
                         Text(
-                            text = String.format(ScrollaStrings.HALL_OF_FAME_PROGRESS_TEMPLATE, "${ScrollaFormatters.formatDistance(gapToRecordKm)} km"),
+                            text = String.format(ScrollaStrings.HALL_OF_FAME_PROGRESS_TEMPLATE, DistanceFormatter.formatKm(gapToRecordKm)),
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.padding(horizontal = spacing.small)

@@ -1,4 +1,4 @@
-﻿package com.scrolla.ui.screens
+package com.scrolla.ui.screens
 
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
@@ -53,7 +53,7 @@ import com.scrolla.ui.theme.ErrorLight
 import com.scrolla.ui.components.bentoCard
 import com.scrolla.ui.components.bounceClick
 
-enum class ServiceHealthState {
+enum class UiServiceHealthState {
     ACTIVE,
     STOPPED,
     DEGRADED,
@@ -69,7 +69,7 @@ enum class ServiceHealthState {
 @Composable
 fun SettingsScreen(
     modifier: Modifier = Modifier,
-    serviceHealthState: ServiceHealthState = ServiceHealthState.ACTIVE,
+    serviceHealthState: com.scrolla.room.ServiceHealthState? = null,
     deviceOem: String = "Samsung",
     displayName: String = "Rohit",
     phoneLinked: Boolean = false,
@@ -136,29 +136,37 @@ fun SettingsScreen(
                 Column {
                     SettingsSectionHeader(title = ScrollaStrings.SETTINGS_HEALTH_SECTION)
 
-                    val healthContent = when (serviceHealthState) {
-                        ServiceHealthState.ACTIVE -> HealthContent(
+                    val uiHealthState = when {
+                        serviceHealthState == null -> UiServiceHealthState.ACTIVE
+                        !serviceHealthState.isAccessibilityServiceEnabled -> UiServiceHealthState.STOPPED
+                        !serviceHealthState.isServiceRunning -> UiServiceHealthState.INTERRUPTED
+                        serviceHealthState.degradedReason != null -> UiServiceHealthState.DEGRADED
+                        else -> UiServiceHealthState.ACTIVE
+                    }
+
+                    val healthContent = when (uiHealthState) {
+                        UiServiceHealthState.ACTIVE -> HealthContent(
                             title = ScrollaStrings.SETTINGS_HEALTH_ACTIVE_TITLE,
                             body = ScrollaStrings.SETTINGS_HEALTH_ACTIVE_SUBTITLE,
                             icon = Icons.Filled.CheckCircle,
                             iconTint = if (androidx.compose.foundation.isSystemInDarkTheme()) SuccessDark else SuccessLight,
                             buttonText = null
                         )
-                        ServiceHealthState.STOPPED -> HealthContent(
+                        UiServiceHealthState.STOPPED -> HealthContent(
                             title = ScrollaStrings.SETTINGS_HEALTH_STOPPED_TITLE,
                             body = ScrollaStrings.SETTINGS_HEALTH_STOPPED_BODY,
                             icon = Icons.Filled.Warning,
                             iconTint = if (androidx.compose.foundation.isSystemInDarkTheme()) ErrorDark else ErrorLight,
                             buttonText = ScrollaStrings.SETTINGS_HEALTH_STOPPED_BUTTON
                         )
-                        ServiceHealthState.DEGRADED -> HealthContent(
+                        UiServiceHealthState.DEGRADED -> HealthContent(
                             title = ScrollaStrings.SETTINGS_HEALTH_DEGRADED_TITLE,
                             body = ScrollaStrings.SETTINGS_HEALTH_DEGRADED_BODY,
                             icon = Icons.Filled.Warning,
                             iconTint = if (androidx.compose.foundation.isSystemInDarkTheme()) WarningDark else WarningLight,
                             buttonText = ScrollaStrings.SETTINGS_HEALTH_DEGRADED_BUTTON
                         )
-                        ServiceHealthState.INTERRUPTED -> HealthContent(
+                        UiServiceHealthState.INTERRUPTED -> HealthContent(
                             title = ScrollaStrings.SETTINGS_HEALTH_INTERRUPTED_TITLE,
                             body = String.format(ScrollaStrings.SETTINGS_HEALTH_INTERRUPTED_BODY_TEMPLATE, deviceOem),
                             icon = Icons.Outlined.BatteryAlert,
@@ -361,17 +369,40 @@ private fun SettingsItem(
 
 @Preview(showBackground = true)
 @Composable
-private fun SettingsScreenActivePreview() {
+private fun SettingsScreenPreview() {
     ScrollaUILabTheme {
-        SettingsScreen(serviceHealthState = ServiceHealthState.ACTIVE)
+        SettingsScreen(
+            serviceHealthState = com.scrolla.room.ServiceHealthState(
+                isServiceRunning = true,
+                isAccessibilityServiceEnabled = true,
+                lastEventTimestamp = 0,
+                lastRoomFlushTimestamp = 0,
+                lastFirestoreSyncTimestamp = 0,
+                degradedReason = null
+            ),
+            deviceOem = "Samsung",
+            displayName = "Rohit",
+            phoneLinked = true
+        )
     }
 }
 
 @Preview(showBackground = true)
 @Composable
-private fun SettingsScreenInterruptedPreview() {
+private fun SettingsScreenDegradedPreview() {
     ScrollaUILabTheme {
-        SettingsScreen(serviceHealthState = ServiceHealthState.INTERRUPTED)
+        SettingsScreen(
+            serviceHealthState = com.scrolla.room.ServiceHealthState(
+                isServiceRunning = true,
+                isAccessibilityServiceEnabled = true,
+                lastEventTimestamp = 0,
+                lastRoomFlushTimestamp = 0,
+                lastFirestoreSyncTimestamp = 0,
+                degradedReason = "Room write failed"
+            ),
+            deviceOem = "Oppo",
+            displayName = "Rohit",
+            phoneLinked = false
+        )
     }
 }
-

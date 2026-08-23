@@ -1,370 +1,325 @@
-﻿package com.scrolla.ui.screens
+package com.scrolla.ui.screens
 
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.outlined.EmojiEvents
-import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material.icons.outlined.WorkspacePremium
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.em
-import androidx.compose.ui.unit.sp
+import com.scrolla.model.DistanceFormatter
+import com.scrolla.ui.components.ScrollaCard
+import com.scrolla.ui.components.SectionLabel
+import com.scrolla.ui.theme.PillShape
+import com.scrolla.ui.theme.ScrollaType
 import com.scrolla.ui.theme.ScrollaUILabTheme
+import com.scrolla.ui.theme.scrollaColors
 import com.scrolla.ui.theme.spacing
-import com.scrolla.ui.components.bentoCard
-import com.scrolla.ui.components.bounceClick
 
 /**
- * Screen 8 — Profile Tab
+ * Profile — the archive.
  *
- * Identity/achievement hub in the Strava/Duolingo mold.
- * Teaser hub: every card reuses copy and data already defined
- * for Personal Records (Screen 13) and Hall of Fame (Screen 14).
- *
- * Visual hierarchy:
- *   1. Identity header (display name + avatar initial + settings gear)
- *   2. Personal best teaser card
- *   3. Hall of fame status teaser card
- *   4. Groups teaser card
+ * This screen spends no accent at all, and that is deliberate: coral
+ * means you, here, now, and nothing here is now. It is the proof that
+ * the rule is a rule rather than a preference.
  */
 @Composable
 fun ProfileScreen(
     modifier: Modifier = Modifier,
-    // Mock data — will come from ViewModel
     displayName: String = "Rohit",
-    personalBestKm: Float = 0.4f,
-    personalBestRelativeDate: String = "3 weeks ago",
-    hallOfFameGapKm: Float = 1.9f,
+    memberSinceLabel: String? = "Tracking since 6 July",
+    /** Null until the sensor has produced at least one full day. */
+    personalBestKm: Float? = 0.4f,
+    personalBestRelativeDate: String? = "12 July",
+    sevenDayAvgKm: Float? = 3.1f,
+    previousSevenDayAvgKm: Float? = 3.6f,
+    /** Null until the group has a record to measure against. */
+    hallOfFameGapKm: Float? = 1.9f,
     isRecordHolder: Boolean = false,
     groupCount: Int = 2,
-    primaryGroupName: String = "College Friends",
+    primaryGroupName: String? = "College Friends",
     onSettingsClick: () -> Unit = {},
     onPersonalRecordsClick: () -> Unit = {},
     onHallOfFameClick: () -> Unit = {},
     onManageGroupsClick: () -> Unit = {}
 ) {
     val spacing = MaterialTheme.spacing
+    val colors = MaterialTheme.scrollaColors
     val scrollState = rememberScrollState()
 
-    var isVisible by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
-    androidx.compose.runtime.LaunchedEffect(Unit) {
-        isVisible = true
-    }
-
-    val glowCenterY = 0.1f
-    val primaryColor = MaterialTheme.colorScheme.primary
-
-    Box(
+    Column(
         modifier = modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
+            .windowInsetsPadding(WindowInsets.statusBars)
+            .verticalScroll(scrollState)
     ) {
-        // Ambient glow
-        Box(
+
+        // ─── IDENTITY ──────────────────────────────────────────────
+        Row(
             modifier = Modifier
-                .fillMaxSize()
-                .drawBehind {
-                    drawRect(
-                        brush = Brush.radialGradient(
-                            colors = listOf(
-                                primaryColor.copy(alpha = 0.05f),
-                                primaryColor.copy(alpha = 0.0f)
-                            ),
-                            center = Offset(size.width * 0.3f, size.height * glowCenterY),
-                            radius = size.width * 1.2f
-                        )
+                .fillMaxWidth()
+                .padding(start = spacing.screenInset, end = spacing.extraSmall, top = spacing.medium),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(52.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                        .border(1.dp, colors.cardBorder, CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = displayName.take(1).uppercase(),
+                        style = ScrollaType.FigureSmall,
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                 }
-        )
+                Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                    Text(
+                        text = displayName,
+                        style = ScrollaType.Display.copy(
+                            fontSize = ScrollaType.Display.fontSize * 0.875f
+                        ),
+                        color = MaterialTheme.colorScheme.onBackground,
+                        modifier = Modifier.semantics { heading() }
+                    )
+                    Text(
+                        text = memberSinceLabel ?: ScrollaStrings.PROFILE_TRACKING_SINCE_UNKNOWN,
+                        style = ScrollaType.Caption,
+                        color = colors.textLow
+                    )
+                }
+            }
 
+            IconButton(onClick = onSettingsClick) {
+                Icon(
+                    imageVector = Icons.Outlined.Settings,
+                    contentDescription = "Settings",
+                    modifier = Modifier.size(20.dp),
+                    tint = colors.textLow
+                )
+            }
+        }
+
+        // ─── RECORDS ───────────────────────────────────────────────
         Column(
             modifier = Modifier
-                .fillMaxSize()
-                .windowInsetsPadding(WindowInsets.statusBars)
-                .verticalScroll(scrollState)
+                .fillMaxWidth()
+                .padding(horizontal = spacing.screenInset)
+                .padding(top = spacing.sectionGap),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // ─── IDENTITY HEADER ─────────────────────────────────────
-            androidx.compose.animation.AnimatedVisibility(
-                visible = isVisible,
-                enter = androidx.compose.animation.fadeIn(tween(400)) + androidx.compose.animation.slideInVertically(tween(400), initialOffsetY = { 20 })
+            SectionLabel(ScrollaStrings.RECORDS_TITLE)
+
+            // IntrinsicSize.Min keeps the pair the same height when one of
+            // them falls back to a wrapping empty state.
+            Row(
+                modifier = Modifier.height(IntrinsicSize.Min),
+                horizontalArrangement = Arrangement.spacedBy(spacing.cardGap)
             ) {
-                Row(
+                ScrollaCard(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(
-                            start = spacing.medium,
-                            end = spacing.extraSmall,
-                            top = spacing.medium,
-                            bottom = spacing.extraSmall
-                        ),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+                        .weight(1f)
+                        .fillMaxHeight(),
+                    onClick = onPersonalRecordsClick
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        // Avatar circle with initial
-                        Box(
-                            modifier = Modifier
-                                .size(48.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.primaryContainer),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = displayName.take(1).uppercase(),
-                                style = MaterialTheme.typography.titleLarge.copy(
-                                    fontWeight = FontWeight.SemiBold
-                                ),
-                                color = MaterialTheme.colorScheme.onPrimaryContainer
-                            )
+                    val best = personalBestKm?.takeIf { it > 0f }
+                    StatBlock(
+                        label = ScrollaStrings.RECORDS_BEST_DAY_LABEL,
+                        value = best?.let { DistanceFormatter.formatKmValue(it) },
+                        footnote = if (best != null) {
+                            personalBestRelativeDate
+                        } else {
+                            ScrollaStrings.PROFILE_PERSONAL_BEST_EMPTY
                         }
-
-                        Text(
-                            text = displayName,
-                            style = MaterialTheme.typography.headlineMedium.copy(
-                                fontWeight = FontWeight.Medium
-                            ),
-                            color = MaterialTheme.colorScheme.onBackground,
-                            modifier = Modifier.semantics { heading() }
-                        )
-                    }
-
-                    IconButton(onClick = onSettingsClick) {
-                        Icon(
-                            imageVector = Icons.Outlined.Settings,
-                            contentDescription = "Settings",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+                    )
                 }
-            }
 
-            Spacer(modifier = Modifier.height(spacing.extraLarge))
-
-            // ─── PERSONAL BEST TEASER ────────────────────────────────
-            androidx.compose.animation.AnimatedVisibility(
-                visible = isVisible,
-                enter = androidx.compose.animation.fadeIn(tween(400, delayMillis = 100)) + androidx.compose.animation.slideInVertically(tween(400, delayMillis = 100), initialOffsetY = { 20 })
-            ) {
-                ProfileTeaser(
-                    icon = Icons.Outlined.WorkspacePremium,
-                    label = ScrollaStrings.PROFILE_PERSONAL_BEST_LABEL,
-                    tapLabel = ScrollaStrings.PROFILE_PERSONAL_BEST_LINK,
-                    onClick = onPersonalRecordsClick,
-                    modifier = Modifier.padding(horizontal = spacing.medium)
+                ScrollaCard(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight(),
+                    onClick = onPersonalRecordsClick
                 ) {
-                    if (personalBestKm > 0f) {
-                        Row(
-                            verticalAlignment = Alignment.Bottom
-                        ) {
-                            Text(
-                                text = ScrollaFormatters.formatDistance(personalBestKm),
-                                style = MaterialTheme.typography.displaySmall.copy(
-                                    fontWeight = FontWeight.Light,
-                                    letterSpacing = (-0.03).em,
-                                    fontFeatureSettings = "tnum"
-                                ),
-                                color = MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier.alignByBaseline()
-                            )
-                            Text(
-                                text = " km",
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.alignByBaseline()
-                            )
-                            Text(
-                                text = " · $personalBestRelativeDate",
-                                style = MaterialTheme.typography.titleMedium.copy(
-                                    fontWeight = FontWeight.Normal
-                                ),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.alignByBaseline()
-                            )
+                    val trend = if (sevenDayAvgKm != null && previousSevenDayAvgKm != null) {
+                        if (sevenDayAvgKm <= previousSevenDayAvgKm) {
+                            "down from ${DistanceFormatter.formatKmValue(previousSevenDayAvgKm)}"
+                        } else {
+                            "up from ${DistanceFormatter.formatKmValue(previousSevenDayAvgKm)}"
                         }
                     } else {
-                        Text(
-                            text = ScrollaStrings.PROFILE_PERSONAL_BEST_EMPTY,
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        null
                     }
+                    val improving = sevenDayAvgKm == null || previousSevenDayAvgKm == null ||
+                        sevenDayAvgKm <= previousSevenDayAvgKm
+
+                    StatBlock(
+                        label = ScrollaStrings.RECORDS_SEVEN_DAY_LABEL,
+                        value = sevenDayAvgKm?.let { DistanceFormatter.formatKmValue(it) },
+                        footnote = trend ?: if (sevenDayAvgKm == null) {
+                            ScrollaStrings.PROFILE_PERSONAL_BEST_EMPTY
+                        } else {
+                            null
+                        },
+                        footnoteColor = if (improving) colors.improving else colors.worsening
+                    )
                 }
             }
+        }
 
-            Spacer(modifier = Modifier.height(spacing.medium))
+        // ─── HALL OF FAME + GROUPS ─────────────────────────────────
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = spacing.screenInset)
+                .padding(top = spacing.large),
+            verticalArrangement = Arrangement.spacedBy(spacing.cardGap)
+        ) {
 
-            // ─── HALL OF FAME STATUS TEASER ──────────────────────────
-            androidx.compose.animation.AnimatedVisibility(
-                visible = isVisible,
-                enter = androidx.compose.animation.fadeIn(tween(400, delayMillis = 200)) + androidx.compose.animation.slideInVertically(tween(400, delayMillis = 200), initialOffsetY = { 20 })
-            ) {
-                ProfileTeaser(
-                    icon = Icons.Outlined.EmojiEvents,
-                    label = "hall of fame",
-                    tapLabel = ScrollaStrings.PROFILE_HALL_OF_FAME_LINK,
-                    onClick = onHallOfFameClick,
-                    modifier = Modifier.padding(horizontal = spacing.medium)
-                ) {
+            ScrollaCard(onClick = onHallOfFameClick) {
+                Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        SectionLabel(ScrollaStrings.PROFILE_HALL_OF_FAME_LINK)
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                            tint = colors.textLow
+                        )
+                    }
                     Text(
                         text = when {
                             isRecordHolder -> ScrollaStrings.PROFILE_HALL_OF_FAME_RECORD_HOLDER
-                            hallOfFameGapKm > 0f -> String.format(
+                            hallOfFameGapKm != null && hallOfFameGapKm > 0f -> String.format(
                                 ScrollaStrings.HALL_OF_FAME_PROGRESS_TEMPLATE,
-                                "${ScrollaFormatters.formatDistance(hallOfFameGapKm)} km"
+                                DistanceFormatter.formatKm(hallOfFameGapKm)
                             )
                             else -> ScrollaStrings.PROFILE_HALL_OF_FAME_EMPTY
                         },
-                        style = MaterialTheme.typography.bodyLarge.copy(
-                            lineHeight = 24.sp,
-                            letterSpacing = (-0.01).em
-                        ),
+                        style = ScrollaType.Body,
                         color = MaterialTheme.colorScheme.onSurface
                     )
+                    if (!isRecordHolder && hallOfFameGapKm != null && hallOfFameGapKm > 0f) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(4.dp)
+                                .clip(PillShape)
+                                .background(MaterialTheme.colorScheme.surfaceVariant)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth(0.17f)
+                                    .height(4.dp)
+                                    .clip(PillShape)
+                                    .background(colors.textLow)
+                            )
+                        }
+                    }
                 }
             }
 
-            Spacer(modifier = Modifier.height(spacing.medium))
-
-            // ─── GROUPS TEASER ───────────────────────────────────────
-            androidx.compose.animation.AnimatedVisibility(
-                visible = isVisible,
-                enter = androidx.compose.animation.fadeIn(tween(400, delayMillis = 300)) + androidx.compose.animation.slideInVertically(tween(400, delayMillis = 300), initialOffsetY = { 20 })
-            ) {
-                ProfileTeaser(
-                    icon = Icons.Outlined.Groups,
-                    label = "groups",
-                    tapLabel = ScrollaStrings.PROFILE_GROUPS_LINK,
-                    onClick = onManageGroupsClick,
-                    modifier = Modifier.padding(horizontal = spacing.medium)
+            ScrollaCard(onClick = onManageGroupsClick) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text(
-                        text = "$groupCount groups · $primaryGroupName on widget",
-                        style = MaterialTheme.typography.bodyLarge.copy(
-                            lineHeight = 24.sp,
-                            letterSpacing = (-0.01).em
-                        ),
-                        color = MaterialTheme.colorScheme.onSurface
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        SectionLabel(ScrollaStrings.GROUP_SWITCHER_TITLE)
+                        Text(
+                            text = primaryGroupName
+                                ?.let { "$groupCount groups · $it on widget" }
+                                ?: ScrollaStrings.PROFILE_NO_GROUPS,
+                            style = ScrollaType.Body,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                        tint = colors.textLow
                     )
                 }
             }
-
-            Spacer(modifier = Modifier.height(spacing.extraExtraLarge))
         }
+
+        Spacer(modifier = Modifier.height(spacing.extraExtraLarge))
     }
 }
 
-/**
- * Reusable teaser card for the Profile tab.
- * Matches the HomeScreen insight card visual language:
- * - `surfaceVariant.copy(alpha = 0.15f)` background
- * - `RoundedCornerShape(24.dp)`
- * - Editorial uppercase label
- * - Tap affordance with arrow
- */
 @Composable
-private fun ProfileTeaser(
-    icon: ImageVector,
+private fun StatBlock(
     label: String,
-    tapLabel: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    content: @Composable () -> Unit
+    value: String?,
+    footnote: String?,
+    footnoteColor: androidx.compose.ui.graphics.Color = MaterialTheme.scrollaColors.textLow
 ) {
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .bounceClick(onClick = onClick)
-            .bentoCard()
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                modifier = Modifier.size(18.dp),
-                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
-            )
-            Text(
-                text = label.uppercase(),
-                style = MaterialTheme.typography.labelSmall.copy(
-                    letterSpacing = 0.05.em,
-                    fontWeight = FontWeight.Bold
-                ),
-                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
-            )
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        SectionLabel(label)
+        if (value != null) {
+            Row(verticalAlignment = Alignment.Bottom) {
+                Text(
+                    text = value,
+                    style = ScrollaType.FigureMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.alignByBaseline()
+                )
+                Spacer(modifier = Modifier.width(5.dp))
+                Text(
+                    text = "km",
+                    style = ScrollaType.Caption,
+                    color = MaterialTheme.scrollaColors.textLow,
+                    modifier = Modifier.alignByBaseline()
+                )
+            }
         }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        content()
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.End
-        ) {
+        if (footnote != null) {
             Text(
-                text = tapLabel,
-                style = MaterialTheme.typography.labelMedium.copy(
-                    fontWeight = FontWeight.Medium
-                ),
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                contentDescription = null,
-                modifier = Modifier.size(18.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                text = footnote,
+                style = ScrollaType.Caption,
+                color = footnoteColor
             )
         }
     }
