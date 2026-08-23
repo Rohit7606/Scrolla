@@ -3,6 +3,7 @@ package com.scrolla.ui.screens
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.scrolla.auth.AuthRepository
+import com.scrolla.firestore.AlreadyInGroupException
 import com.scrolla.firestore.GroupRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -72,7 +73,10 @@ class GroupViewModel(
             result.onSuccess {
                 onSuccess()
             }.onFailure { e ->
-                _errorMessage.value = e.message ?: "Failed to join group."
+                _errorMessage.value = when (e) {
+                    is AlreadyInGroupException -> ScrollaStrings.JOIN_GROUP_ERROR_ALREADY
+                    else -> e.message ?: "Failed to join group."
+                }
             }
         }
     }

@@ -28,6 +28,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.outlined.BatteryAlert
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -92,8 +93,30 @@ fun SettingsScreen(
     val scrollState = rememberScrollState()
 
     var isVisible by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    var showSignOutConfirm by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
     androidx.compose.runtime.LaunchedEffect(Unit) {
         isVisible = true
+    }
+
+    if (showSignOutConfirm) {
+        AlertDialog(
+            onDismissRequest = { showSignOutConfirm = false },
+            title = { Text(ScrollaStrings.SETTINGS_SIGN_OUT_TITLE) },
+            text = { Text(ScrollaStrings.SETTINGS_SIGN_OUT_BODY) },
+            confirmButton = {
+                TextButton(onClick = {
+                    showSignOutConfirm = false
+                    onSignOutClick()
+                }) {
+                    Text(ScrollaStrings.SETTINGS_SIGN_OUT)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showSignOutConfirm = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 
     Box(
@@ -255,7 +278,10 @@ fun SettingsScreen(
                     ) {
                         SettingsItem(
                             label = ScrollaStrings.SETTINGS_SIGN_OUT,
-                            onClick = onSignOutClick,
+                            // Confirm first: signing out is one tap from a
+                            // destructive-feeling outcome, and the copy for the
+                            // dialog was already written and never shown.
+                            onClick = { showSignOutConfirm = true },
                             isDestructive = false // Standard color
                         )
                         

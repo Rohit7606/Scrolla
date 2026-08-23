@@ -118,7 +118,12 @@ class MainActivity : ComponentActivity() {
                             )
                         }
                         "home" -> {
-                            MainShell()
+                            MainShell(
+                                onSignedOut = {
+                                    isSignedIn = false
+                                    currentScreen = "signin"
+                                }
+                            )
                         }
                     }
                 }

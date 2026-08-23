@@ -88,7 +88,12 @@ private val destinations = listOf(
 )
 
 @Composable
-fun MainShell(modifier: Modifier = Modifier) {
+fun MainShell(
+    modifier: Modifier = Modifier,
+    /** Signing out clears the Firebase session; without this the shell stayed on
+     *  screen showing a logged-in UI backed by a dead session. */
+    onSignedOut: () -> Unit = {}
+) {
     val context = LocalContext.current
     var routeStack by rememberSaveable { mutableStateOf(listOf<ScreenRoute>(ScreenRoute.MainTabs)) }
     var selectedTab by rememberSaveable { mutableIntStateOf(0) }
@@ -149,7 +154,10 @@ fun MainShell(modifier: Modifier = Modifier) {
                     displayName = settingsState.displayName,
                     phoneLinked = settingsState.phoneLinked,
                     onBackClick = popBackStack,
-                    onSignOutClick = { settingsViewModel.signOut() },
+                    onSignOutClick = {
+                        settingsViewModel.signOut()
+                        onSignedOut()
+                    },
                     onFixBatteryClick = {
                         // The health card's action button was inert, which is the
                         // worst place for a dead control: it only appears when
