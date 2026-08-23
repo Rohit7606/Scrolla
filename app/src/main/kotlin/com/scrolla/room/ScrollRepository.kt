@@ -1,6 +1,7 @@
 package com.scrolla.room
 
 import android.util.Log
+import com.scrolla.model.DistanceFormatter
 import com.scrolla.model.ScrollaConstants
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
@@ -87,13 +88,7 @@ class ScrollRepositoryImpl(
 
     override suspend fun getTodayTotalKm(): Float {
         return try {
-            // km derived from today's accumulated cm (DATA_CONTRACT.md §6:
-            // getTodayTotalCm → SUM(scrollCm) WHERE day = today). NOTE: the
-            // contract §5 documents DistanceFormatter.cmToKm(), but the actual
-            // model/DistanceFormatter.kt only exposes pxToCm() today, so we use
-            // the shared ScrollaConstants.CM_PER_KM factor directly rather than
-            // unilaterally editing the shared model/ file (AGENTS.md §2).
-            rawTodayCm() / ScrollaConstants.CM_PER_KM
+            DistanceFormatter.cmToKm(rawTodayCm())
         } catch (e: Exception) {
             Log.e(tag, "getTodayTotalKm() failed for day=${today()}", e)
             markDegraded("getTodayTotalKm: ${e.message}")
