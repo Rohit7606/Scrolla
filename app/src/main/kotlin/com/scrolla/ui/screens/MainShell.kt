@@ -4,6 +4,7 @@ import android.content.Intent
 import androidx.compose.ui.platform.LocalContext
 import android.provider.Settings
 import com.scrolla.device.BatteryWhitelistHelper
+import android.net.Uri
 import android.os.Parcelable
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
@@ -155,13 +156,23 @@ fun MainShell(modifier: Modifier = Modifier) {
                         // tracking is already broken. Route each failure to the
                         // screen that actually fixes it.
                         val health = settingsState.serviceHealth
-                        if (health != null && !health.isAccessibilityServiceEnabled) {
+                        // No health row means tracking has never run, so the
+                        // useful destination is Accessibility, not battery.
+                        if (health == null || !health.isAccessibilityServiceEnabled) {
                             context.startActivity(
                                 Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
                                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                             )
-                        } else {
-                            BatteryWhitelistHelper().openBatterySettings(context)
+                        } else if (!BatteryWhitelistHelper().openBatterySettings(context)) {
+                            // openBatterySettings returns false when no OEM intent
+                            // resolved. Fall back to this app's settings page so the
+                            // button never does nothing.
+                            context.startActivity(
+                                Intent(
+                                    Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                                    Uri.fromParts("package", context.packageName, null)
+                                ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            )
                         }
                     }
                 )

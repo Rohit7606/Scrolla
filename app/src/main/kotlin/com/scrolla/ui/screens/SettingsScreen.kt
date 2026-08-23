@@ -158,7 +158,7 @@ fun SettingsScreen(
                             body = ScrollaStrings.SETTINGS_HEALTH_ACTIVE_SUBTITLE,
                             icon = Icons.Filled.CheckCircle,
                             iconTint = if (androidx.compose.foundation.isSystemInDarkTheme()) SuccessDark else SuccessLight,
-                            buttonText = null
+                            buttonText = ScrollaStrings.SETTINGS_HEALTH_ACTIVE_BUTTON
                         )
                         UiServiceHealthState.STOPPED -> HealthContent(
                             title = ScrollaStrings.SETTINGS_HEALTH_STOPPED_TITLE,
@@ -179,7 +179,7 @@ fun SettingsScreen(
                             body = ScrollaStrings.SETTINGS_HEALTH_UNKNOWN_BODY,
                             icon = Icons.Outlined.BatteryAlert,
                             iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            buttonText = null
+                            buttonText = ScrollaStrings.SETTINGS_HEALTH_UNKNOWN_BUTTON
                         )
                         UiServiceHealthState.INTERRUPTED -> HealthContent(
                             title = ScrollaStrings.SETTINGS_HEALTH_INTERRUPTED_TITLE,
@@ -193,6 +193,16 @@ fun SettingsScreen(
                     HealthCard(
                         content = healthContent,
                         onButtonClick = onFixBatteryClick,
+                        footnote = serviceHealthState?.lastFirestoreSyncTimestamp
+                            ?.takeIf { it > 0L }
+                            ?.let {
+                                String.format(
+                                    ScrollaStrings.SETTINGS_HEALTH_LAST_SYNC,
+                                    java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault())
+                                        .format(java.util.Date(it))
+                                )
+                            }
+                            ?: ScrollaStrings.SETTINGS_HEALTH_NEVER_SYNCED,
                         modifier = Modifier.padding(horizontal = spacing.medium)
                     )
                 }
@@ -281,6 +291,7 @@ private data class HealthContent(
 private fun HealthCard(
     content: HealthContent,
     onButtonClick: () -> Unit,
+    footnote: String? = null,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -320,6 +331,15 @@ private fun HealthCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 
+                if (footnote != null) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = footnote,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                    )
+                }
+
                 if (content.buttonText != null) {
                     Spacer(modifier = Modifier.height(16.dp))
                     TextButton(
