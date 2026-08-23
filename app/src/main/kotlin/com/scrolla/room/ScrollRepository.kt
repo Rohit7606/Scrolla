@@ -7,6 +7,8 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.SetOptions
 import com.scrolla.model.DistanceFormatter
 import com.scrolla.model.ScrollaConstants
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.tasks.await
@@ -232,26 +234,24 @@ class ScrollRepositoryImpl(
                 )
             }
 
-            // S1.A6 / Amendment 1: On success, update lastFirestoreSyncTimestamp and clear degradedReason
+            // S1.A6 / Amendment 1: On success, update lastFirestoreSyncTimestamp and clear degradedReason.
+            // Only update an existing row — do not author a new row from sync if tracking hasn't initialized yet
+            // (the sensor flush path in ScrollAccessibilityService owns row creation).
             val current = serviceHealthDao.getOnce()
-            val now = System.currentTimeMillis()
-            val updated = if (current != null) {
-                current.copy(
+            if (current != null) {
+                val now = System.currentTimeMillis()
+                val updated = current.copy(
                     lastFirestoreSyncTimestamp = now,
                     degradedReason = null
                 )
-            } else {
-                ServiceHealthState(
-                    id = 1,
-                    isServiceRunning = false,
-                    isAccessibilityServiceEnabled = true,
-                    lastEventTimestamp = 0L,
-                    lastRoomFlushTimestamp = 0L,
-                    lastFirestoreSyncTimestamp = now,
-                    degradedReason = null
-                )
+                serviceHealthDao.upsert(updated)
             }
-            serviceHealthDao.upsert(updated)
+        } catch (e: TimeoutCancellationException) {
+            Log.e(tag, "triggerFirestoreSync() timed out after 15s for user=$userId, date=$date", e)
+            markDegraded("triggerFirestoreSync timed out")
+        } catch (e: CancellationException) {
+            // Rethrow standard coroutine cancellations so cooperative cancellation isn't swallowed
+            throw e
         } catch (e: Exception) {
             Log.e(tag, "triggerFirestoreSync() failed for user=$userId, date=$date", e)
             markDegraded("triggerFirestoreSync: ${e.message}")
@@ -263,25 +263,15 @@ class ScrollRepositoryImpl(
      * DATA_CONTRACT.md §4 and AGENTS.md §4.8), copying the existing row so it
      * never clobbers the other health fields (the S1.A6 gotcha). Fully guarded:
      * a failure here is swallowed so marking degraded can never surface to the
-     * caller.
+     * caller. If no health row exists yet, skip to avoid authoring an uninitialized row.
      */
     private suspend fun markDegraded(reason: String) {
         try {
             val current = serviceHealthDao.getOnce()
-            val updated = if (current != null) {
-                current.copy(degradedReason = reason)
-            } else {
-                ServiceHealthState(
-                    id = 1,
-                    isServiceRunning = false,
-                    isAccessibilityServiceEnabled = true,
-                    lastEventTimestamp = 0L,
-                    lastRoomFlushTimestamp = 0L,
-                    lastFirestoreSyncTimestamp = 0L,
-                    degradedReason = reason
-                )
+            if (current != null) {
+                val updated = current.copy(degradedReason = reason)
+                serviceHealthDao.upsert(updated)
             }
-            serviceHealthDao.upsert(updated)
         } catch (_: Exception) {
             // Swallow — the original failure is already logged at the call site.
         }
