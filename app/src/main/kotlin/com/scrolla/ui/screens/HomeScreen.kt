@@ -37,6 +37,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.scrolla.model.DistanceFormatter
 import com.scrolla.ui.components.DeltaChip
 import com.scrolla.ui.components.ScrollaCard
 import com.scrolla.ui.components.SectionLabel
@@ -129,7 +130,7 @@ fun HomeScreen(
         ) {
             SectionLabel("TODAY · $dateLabel")
 
-            val formatted = ScrollaFormatters.formatDistance(displayedDistance)
+            val formatted = DistanceFormatter.formatKmValue(displayedDistance)
             Row(
                 verticalAlignment = Alignment.Bottom,
                 modifier = Modifier.semantics(mergeDescendants = true) {
@@ -160,7 +161,7 @@ fun HomeScreen(
             if (yesterdayKm != null) {
                 val delta = scrollDistanceKm - yesterdayKm
                 val improving = delta <= 0f
-                val magnitude = ScrollaFormatters.formatDistance(kotlin.math.abs(delta))
+                val magnitude = DistanceFormatter.formatKmValue(kotlin.math.abs(delta))
                 DeltaChip(
                     text = if (improving) {
                         "$magnitude km less than yesterday"

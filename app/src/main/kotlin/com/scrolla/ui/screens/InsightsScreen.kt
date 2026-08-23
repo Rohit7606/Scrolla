@@ -41,6 +41,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.scrolla.model.DistanceFormatter
 import com.scrolla.ui.components.ScrollaCard
 import com.scrolla.ui.components.SectionLabel
 import com.scrolla.ui.theme.PillShape
@@ -168,7 +169,7 @@ fun InsightsScreen(
                     Spacer(modifier = Modifier.width(10.dp))
                     if (current.distanceKm > 0f) {
                         Text(
-                            text = "%.1f".format(current.distanceKm),
+                            text = DistanceFormatter.formatKmValue(current.distanceKm),
                             style = ScrollaType.FigureMedium,
                             color = MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.alignByBaseline()
@@ -355,7 +356,7 @@ private fun DayBar(
             .clickable(onClick = onClick)
             .semantics {
                 contentDescription = if (day.distanceKm > 0f) {
-                    "${day.fullLabel}, ${"%.1f".format(day.distanceKm)} kilometres"
+                    "${day.fullLabel}, ${DistanceFormatter.formatKmValue(day.distanceKm)} kilometres"
                 } else {
                     "${day.fullLabel}, no data yet"
                 }
@@ -401,7 +402,7 @@ private fun AppRow(
             .fillMaxWidth()
             .semantics {
                 contentDescription =
-                    "$appName, $percentage percent of today's total, ${"%.1f".format(distanceKm)} kilometres"
+                    "$appName, $percentage percent of today's total, ${DistanceFormatter.formatKmValue(distanceKm)} kilometres"
             },
         verticalArrangement = Arrangement.spacedBy(7.dp)
     ) {
@@ -416,7 +417,7 @@ private fun AppRow(
                 color = MaterialTheme.colorScheme.onSurface
             )
             Text(
-                text = "${"%.1f".format(distanceKm)} km",
+                text = DistanceFormatter.formatKm(distanceKm),
                 style = ScrollaType.Caption,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

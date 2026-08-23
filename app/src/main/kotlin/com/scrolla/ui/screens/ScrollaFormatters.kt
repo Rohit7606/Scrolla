@@ -5,21 +5,12 @@ package com.scrolla.ui.screens
  *
  * These pure functions format data for display. They own presentation logic only —
  * never business logic or data transformation.
+ *
+ * Distance formatting deliberately does not live here: it belongs to
+ * `model.DistanceFormatter` per `DATA_CONTRACT.md` Section 5, so that both tracks
+ * share one implementation. Use `DistanceFormatter.formatKm` / `formatKmValue`.
  */
 object ScrollaFormatters {
-
-    /**
-     * Format distance to one decimal place.
-     * ≥ 10 km → no decimal (e.g. "12")
-     * < 10 km → one decimal (e.g. "2.3")
-     */
-    fun formatDistance(km: Float): String {
-        return if (km >= 10f) {
-            "%.0f".format(km)
-        } else {
-            "%.1f".format(km)
-        }
-    }
 
     /**
      * Format rank position as English ordinal: 1st, 2nd, 3rd, 4th, etc.

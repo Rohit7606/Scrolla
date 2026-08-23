@@ -39,6 +39,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
+import com.scrolla.model.DistanceFormatter
 import com.scrolla.ui.theme.ScrollaUILabTheme
 import com.scrolla.ui.theme.spacing
 import com.scrolla.ui.components.bentoCard
@@ -195,7 +196,7 @@ fun HallOfFameScreen(
                             verticalAlignment = Alignment.Bottom
                         ) {
                             Text(
-                                text = ScrollaFormatters.formatDistance(recordDistanceKm),
+                                text = DistanceFormatter.formatKmValue(recordDistanceKm),
                                 style = MaterialTheme.typography.displayMedium.copy(
                                     letterSpacing = (-0.03).em,
                                     fontFeatureSettings = "tnum"
@@ -224,7 +225,7 @@ fun HallOfFameScreen(
                     if (!isCurrentUserHolder) {
                         Spacer(modifier = Modifier.height(spacing.medium))
                         Text(
-                            text = String.format(ScrollaStrings.HALL_OF_FAME_PROGRESS_TEMPLATE, "${ScrollaFormatters.formatDistance(gapToRecordKm)} km"),
+                            text = String.format(ScrollaStrings.HALL_OF_FAME_PROGRESS_TEMPLATE, DistanceFormatter.formatKm(gapToRecordKm)),
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.padding(horizontal = spacing.small)

@@ -39,6 +39,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
+import com.scrolla.model.DistanceFormatter
 import com.scrolla.ui.theme.ScrollaUILabTheme
 import com.scrolla.ui.theme.spacing
 import com.scrolla.ui.components.bentoCard
@@ -272,7 +273,7 @@ private fun AppUsageRow(
         Spacer(modifier = Modifier.width(16.dp))
         
         Text(
-            text = "${ScrollaFormatters.formatDistance(app.distanceKm)} km",
+            text = DistanceFormatter.formatKm(app.distanceKm),
             style = MaterialTheme.typography.titleMedium.copy(
                 fontFeatureSettings = "tnum"
             ),

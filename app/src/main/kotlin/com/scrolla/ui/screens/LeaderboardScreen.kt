@@ -37,6 +37,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.scrolla.model.DistanceFormatter
 import com.scrolla.ui.components.ScrollaCard
 import com.scrolla.ui.components.SectionLabel
 import com.scrolla.ui.theme.RowShape
@@ -130,20 +131,20 @@ fun LeaderboardScreen(
                 ) {
                     StatColumn(
                         label = ScrollaStrings.LEADERBOARD_STAT_TODAY,
-                        value = "%.1f".format(groupStats.todayKm),
+                        value = DistanceFormatter.formatKmValue(groupStats.todayKm),
                         emphasised = true,
                         modifier = Modifier.weight(1f)
                     )
                     StatDivider()
                     StatColumn(
                         label = ScrollaStrings.LEADERBOARD_STAT_YESTERDAY,
-                        value = "%.1f".format(groupStats.yesterdayKm),
+                        value = DistanceFormatter.formatKmValue(groupStats.yesterdayKm),
                         modifier = Modifier.weight(1f)
                     )
                     StatDivider()
                     StatColumn(
                         label = ScrollaStrings.LEADERBOARD_STAT_WEEK_AVG,
-                        value = "%.1f".format(groupStats.weekAvgKm),
+                        value = DistanceFormatter.formatKmValue(groupStats.weekAvgKm),
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -279,7 +280,7 @@ private fun LeaderboardRow(
     val accent = MaterialTheme.colorScheme.primary
 
     val semanticLabel = "${ScrollaFormatters.formatOrdinal(rank)}, $name, " +
-        "${"%.1f".format(distanceKm)} kilometres" + if (isSelf) ", you" else ""
+        "${DistanceFormatter.formatKmValue(distanceKm)} kilometres" + if (isSelf) ", you" else ""
 
     Row(
         modifier = modifier
@@ -316,7 +317,7 @@ private fun LeaderboardRow(
 
         Row(verticalAlignment = Alignment.Bottom) {
             Text(
-                text = "%.1f".format(distanceKm),
+                text = DistanceFormatter.formatKmValue(distanceKm),
                 style = ScrollaType.FigureSmall,
                 color = if (isSelf) accent else MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.alignByBaseline()

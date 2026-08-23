@@ -36,6 +36,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
+import com.scrolla.model.DistanceFormatter
 import com.scrolla.ui.theme.ScrollaUILabTheme
 import com.scrolla.ui.theme.spacing
 import com.scrolla.ui.components.bentoCard
@@ -187,7 +188,7 @@ private fun RecordCard(
             verticalAlignment = Alignment.Bottom
         ) {
             Text(
-                text = ScrollaFormatters.formatDistance(distanceKm),
+                text = DistanceFormatter.formatKmValue(distanceKm),
                 style = MaterialTheme.typography.displayMedium.copy(
                     letterSpacing = (-0.03).em,
                     fontFeatureSettings = "tnum"
