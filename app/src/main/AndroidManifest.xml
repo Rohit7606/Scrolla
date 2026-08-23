@@ -4,6 +4,18 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
+    <!--
+        Needed to turn the package ids the accessibility service records into app
+        names on the Insights breakdown. Since Android 11 package visibility is
+        filtered by default, so getApplicationInfo() throws for every third-party
+        app and the list degrades to raw package ids.
+
+        This is a Play-restricted permission. Scrolla is sideloaded (SPRINT_LOG
+        S3.15), so it is fine today — but if this app is ever listed, replace it
+        with a <queries> element and accept a shorter app list.
+    -->
+    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
+
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"

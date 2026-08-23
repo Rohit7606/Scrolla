@@ -65,10 +65,31 @@ class HomeViewModel(
                 hasSensorData = todayKm > 0f || history.isNotEmpty(),
                 todayKm = todayKm,
                 yesterdayKm = yesterdayKm,
-                landmarkText = DistanceFormatter.nearestLandmark(todayKm)
-                    ?.let { (name, _) -> "≈ $name" },
+                landmarkText = landmarkFor(todayKm),
                 peakHour = peakHour
             )
         }
+    }
+
+    /**
+     * A landmark comparison, but only when the comparison is actually true.
+     *
+     * `DistanceFormatter.nearestLandmark()` returns the closest entry however far
+     * off it is, by contract — so 10 cm of scrolling comes back as "Eiffel Tower
+     * height", which is the nearest landmark and a ludicrous claim. Only show one
+     * when today's figure is genuinely in that landmark's neighbourhood; early in
+     * the day the honest answer is no comparison at all.
+     */
+    private fun landmarkFor(km: Float): String? {
+        val (name, landmarkKm) = DistanceFormatter.nearestLandmark(km) ?: return null
+        if (landmarkKm <= 0f) return null
+        val ratio = km / landmarkKm
+        return if (ratio in MIN_LANDMARK_RATIO..MAX_LANDMARK_RATIO) "≈ $name" else null
+    }
+
+    private companion object {
+        /** Below half a landmark, or above double it, "≈" is no longer honest. */
+        const val MIN_LANDMARK_RATIO = 0.5f
+        const val MAX_LANDMARK_RATIO = 2.0f
     }
 }

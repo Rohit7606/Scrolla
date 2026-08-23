@@ -165,8 +165,10 @@ fun HomeScreen(
                 )
             }
 
+            // Three states, not two: a real comparison, a measured figure too
+            // small to compare to anything, or nothing measured at all.
             val editorialLine = landmarkText ?: if (hasSensorData) {
-                null
+                ScrollaStrings.HOME_EMPTY_LANDMARK
             } else {
                 ScrollaStrings.HOME_WAITING_FOR_SENSOR
             }
