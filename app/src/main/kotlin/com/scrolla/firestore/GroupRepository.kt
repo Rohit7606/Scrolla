@@ -25,7 +25,7 @@ class GroupRepository(
      * Creates a new group, adding the creator as the first member.
      * Returns the 6-digit group code on success.
      */
-    suspend fun createGroup(userId: String, displayName: String): Result<String> {
+    suspend fun createGroup(userId: String, displayName: String, groupName: String): Result<String> {
         return try {
             var groupCode = generateGroupCode()
             
@@ -38,6 +38,7 @@ class GroupRepository(
 
             // 1. Create group metadata document
             val groupData = mapOf(
+                "groupName" to groupName,
                 "groupCode" to groupCode,
                 "createdBy" to userId,
                 "createdAt" to FieldValue.serverTimestamp(),
