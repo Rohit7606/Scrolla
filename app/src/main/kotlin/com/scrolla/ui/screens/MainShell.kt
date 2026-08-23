@@ -6,10 +6,13 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Home
@@ -35,8 +38,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.scrolla.ui.theme.ScrollaType
+import com.scrolla.ui.theme.scrollaColors
 
 sealed class ScreenRoute : Parcelable {
     @Parcelize object MainTabs : ScreenRoute()
@@ -60,11 +69,14 @@ private data class Destination(
     val contentDescription: String
 )
 
+// "Board" was an abbreviation nobody says out loud, and Home/Board/
+// Insights/Profile mixed three registers. These are the four things the
+// user actually came for.
 private val destinations = listOf(
-    Destination("Home", Icons.Filled.Home, Icons.Outlined.Home, "Home, Tab 1 of 4"),
-    Destination("Board", Icons.Filled.BarChart, Icons.Outlined.BarChart, "Leaderboard, Tab 2 of 4"),
+    Destination("Today", Icons.Filled.Home, Icons.Outlined.Home, "Today, Tab 1 of 4"),
+    Destination("Group", Icons.Filled.BarChart, Icons.Outlined.BarChart, "Group leaderboard, Tab 2 of 4"),
     Destination("Insights", Icons.Filled.Insights, Icons.Outlined.Insights, "Insights, Tab 3 of 4"),
-    Destination("Profile", Icons.Filled.Person, Icons.Outlined.Person, "Profile, Tab 4 of 4")
+    Destination("You", Icons.Filled.Person, Icons.Outlined.Person, "Your profile, Tab 4 of 4")
 )
 
 @Composable
@@ -209,9 +221,19 @@ private fun MainTabsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding),
+            // Tabs travel in the direction you moved. The old spec faded
+            // every switch, which read as four unrelated pages rather
+            // than one row you are moving along.
             transitionSpec = {
-                fadeIn(animationSpec = tween(200)) togetherWith
-                    fadeOut(animationSpec = tween(150))
+                val forward = targetState > initialState
+                val distance = 40
+                (
+                    slideInHorizontally(tween(220)) { if (forward) distance else -distance } +
+                        fadeIn(tween(180))
+                    ) togetherWith (
+                    slideOutHorizontally(tween(220)) { if (forward) -distance else distance } +
+                        fadeOut(tween(120))
+                    )
             },
             label = "tab_content"
         ) { tab ->
@@ -244,9 +266,22 @@ private fun ScrollaNavigationBar(
     onTabSelected: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val hairline = MaterialTheme.scrollaColors.cardBorder
+
+    // The accent marks where you are — that is one of its four uses in
+    // the whole app. The pill indicator is gone: with a coloured icon
+    // AND a coloured label AND a filled container, the bar was shouting
+    // three times to say one thing.
     NavigationBar(
-        modifier = modifier,
-        containerColor = MaterialTheme.colorScheme.surface,
+        modifier = modifier.drawBehind {
+            drawLine(
+                color = hairline,
+                start = Offset(0f, 0f),
+                end = Offset(size.width, 0f),
+                strokeWidth = 1.dp.toPx()
+            )
+        },
+        containerColor = MaterialTheme.colorScheme.background,
         tonalElevation = 0.dp
     ) {
         destinations.forEachIndexed { index, dest ->
@@ -257,21 +292,22 @@ private fun ScrollaNavigationBar(
                 icon = {
                     Icon(
                         imageVector = if (selected) dest.selectedIcon else dest.unselectedIcon,
-                        contentDescription = dest.contentDescription
+                        contentDescription = dest.contentDescription,
+                        modifier = Modifier.size(21.dp)
                     )
                 },
                 label = {
                     Text(
                         text = dest.label,
-                        style = MaterialTheme.typography.labelMedium
+                        style = ScrollaType.Caption.copy(fontSize = 10.5.sp)
                     )
                 },
                 colors = NavigationBarItemDefaults.colors(
                     selectedIconColor = MaterialTheme.colorScheme.primary,
                     selectedTextColor = MaterialTheme.colorScheme.primary,
-                    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    indicatorColor = MaterialTheme.colorScheme.secondaryContainer
+                    unselectedIconColor = MaterialTheme.scrollaColors.textLow,
+                    unselectedTextColor = MaterialTheme.scrollaColors.textLow,
+                    indicatorColor = Color.Transparent
                 )
             )
         }
