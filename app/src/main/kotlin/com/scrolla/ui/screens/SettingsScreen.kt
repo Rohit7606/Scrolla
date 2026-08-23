@@ -57,7 +57,15 @@ enum class UiServiceHealthState {
     ACTIVE,
     STOPPED,
     DEGRADED,
-    INTERRUPTED
+    INTERRUPTED,
+
+    /**
+     * No health row has been written yet, so nothing is known. Distinct from
+     * ACTIVE on purpose: this card is the one place a user checks whether
+     * tracking is working, and claiming it is fine on no evidence is the worst
+     * thing it could do.
+     */
+    UNKNOWN
 }
 
 /**
@@ -137,7 +145,7 @@ fun SettingsScreen(
                     SettingsSectionHeader(title = ScrollaStrings.SETTINGS_HEALTH_SECTION)
 
                     val uiHealthState = when {
-                        serviceHealthState == null -> UiServiceHealthState.ACTIVE
+                        serviceHealthState == null -> UiServiceHealthState.UNKNOWN
                         !serviceHealthState.isAccessibilityServiceEnabled -> UiServiceHealthState.STOPPED
                         !serviceHealthState.isServiceRunning -> UiServiceHealthState.INTERRUPTED
                         serviceHealthState.degradedReason != null -> UiServiceHealthState.DEGRADED
@@ -165,6 +173,13 @@ fun SettingsScreen(
                             icon = Icons.Filled.Warning,
                             iconTint = if (androidx.compose.foundation.isSystemInDarkTheme()) WarningDark else WarningLight,
                             buttonText = ScrollaStrings.SETTINGS_HEALTH_DEGRADED_BUTTON
+                        )
+                        UiServiceHealthState.UNKNOWN -> HealthContent(
+                            title = ScrollaStrings.SETTINGS_HEALTH_UNKNOWN_TITLE,
+                            body = ScrollaStrings.SETTINGS_HEALTH_UNKNOWN_BODY,
+                            icon = Icons.Outlined.BatteryAlert,
+                            iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            buttonText = null
                         )
                         UiServiceHealthState.INTERRUPTED -> HealthContent(
                             title = ScrollaStrings.SETTINGS_HEALTH_INTERRUPTED_TITLE,

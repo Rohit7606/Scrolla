@@ -162,6 +162,8 @@ object ScrollaStrings {
 
     // Service Health
     const val SETTINGS_HEALTH_SECTION = "Service health"
+    const val SETTINGS_HEALTH_UNKNOWN_TITLE = "Tracking status unknown"
+    const val SETTINGS_HEALTH_UNKNOWN_BODY = "Scrolla has not recorded anything yet, so it cannot confirm tracking is working. Scroll in any app for a moment and check back."
     const val SETTINGS_HEALTH_ACTIVE_TITLE = "Tracking is active"
     const val SETTINGS_HEALTH_ACTIVE_SUBTITLE = "Accessibility permission enabled"
     const val SETTINGS_HEALTH_STOPPED_TITLE = "Tracking stopped"
