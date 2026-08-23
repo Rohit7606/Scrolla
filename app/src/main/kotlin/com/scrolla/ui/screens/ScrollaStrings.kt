@@ -78,6 +78,12 @@ object ScrollaStrings {
 
     const val GROUP_SKIP = "Skip for now — you can join a group later"
 
+    // Onboarding join screen — the path for someone with no code.
+    // Creating a group lives inside the app, not here.
+    const val GROUP_NO_CODE_LABEL = "No code?"
+    const val GROUP_SOLO_TITLE = "Go solo for now"
+    const val GROUP_SOLO_BODY = "Track your own distance. Join a group whenever."
+
     // =========================================
     // Screen 5: Home
     // =========================================
@@ -95,13 +101,13 @@ object ScrollaStrings {
     // Screen 6: Leaderboard
     // =========================================
     const val LEADERBOARD_TITLE = "Leaderboard"
-    const val LEADERBOARD_MOST_IMPROVED = "is most improved this week"
+    const val LEADERBOARD_MOST_IMPROVED = " has improved most this week"
     const val LEADERBOARD_MOST_CONSISTENT = "is most consistent this week"
     const val LEADERBOARD_STAT_TODAY = "today"
     const val LEADERBOARD_STAT_YESTERDAY = "yesterday"
     const val LEADERBOARD_STAT_WEEK_AVG = "7-day avg"
     const val LEADERBOARD_SELF_NAME = "You"
-    const val LEADERBOARD_HALL_OF_FAME_PREFIX = "group's best day:"
+    const val LEADERBOARD_HALL_OF_FAME_PREFIX = "Group's best day:"
     const val LEADERBOARD_HALL_OF_FAME_LINK = "Hall of fame"
     const val LEADERBOARD_EMPTY_SOLO_HEADLINE = "You're the only one here"
     const val LEADERBOARD_EMPTY_SOLO_BODY = "Share your group code to invite friends. Until then, here's your personal progress."
@@ -133,7 +139,7 @@ object ScrollaStrings {
     // =========================================
     // Screen 8: Profile Tab
     // =========================================
-    const val PROFILE_PERSONAL_BEST_LABEL = "personal best"
+    const val PROFILE_PERSONAL_BEST_LABEL = "Personal best"
     const val PROFILE_PERSONAL_BEST_EMPTY = "Keep scrolling to set your first record"
     const val PROFILE_PERSONAL_BEST_LINK = "Personal records"
     const val PROFILE_HALL_OF_FAME_LINK = "Hall of fame"
