@@ -2,6 +2,8 @@ package com.scrolla.ui.screens
 import kotlinx.parcelize.Parcelize
 import android.content.Intent
 import androidx.compose.ui.platform.LocalContext
+import android.provider.Settings
+import com.scrolla.device.BatteryWhitelistHelper
 import android.os.Parcelable
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
@@ -47,6 +49,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.scrolla.model.DistanceFormatter
 import com.scrolla.ui.components.RefreshOnResume
 import com.scrolla.ui.theme.ScrollaType
 import com.scrolla.ui.theme.scrollaColors
@@ -145,7 +148,22 @@ fun MainShell(modifier: Modifier = Modifier) {
                     displayName = settingsState.displayName,
                     phoneLinked = settingsState.phoneLinked,
                     onBackClick = popBackStack,
-                    onSignOutClick = { settingsViewModel.signOut() }
+                    onSignOutClick = { settingsViewModel.signOut() },
+                    onFixBatteryClick = {
+                        // The health card's action button was inert, which is the
+                        // worst place for a dead control: it only appears when
+                        // tracking is already broken. Route each failure to the
+                        // screen that actually fixes it.
+                        val health = settingsState.serviceHealth
+                        if (health != null && !health.isAccessibilityServiceEnabled) {
+                            context.startActivity(
+                                Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
+                                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            )
+                        } else {
+                            BatteryWhitelistHelper().openBatterySettings(context)
+                        }
+                    }
                 )
             }
             is ScreenRoute.PersonalRecords -> {
@@ -286,7 +304,20 @@ fun MainShell(modifier: Modifier = Modifier) {
                     weeklyDistanceKm = recapState.weeklyDistanceKm,
                     landmarkText = recapState.landmarkText,
                     onSkipClick = popBackStack,
-                    onShareClick = popBackStack
+                    onShareClick = {
+                        // S3.5's Bitmap card is not built yet; sharing the figure
+                        // as text is honest and does something, where popping the
+                        // back stack looked like the share had silently failed.
+                        val message = String.format(
+                            ScrollaStrings.RECAP_SHARE_TEMPLATE,
+                            DistanceFormatter.formatDistance(recapState.weeklyDistanceKm)
+                        )
+                        val send = Intent(Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            putExtra(Intent.EXTRA_TEXT, message)
+                        }
+                        context.startActivity(Intent.createChooser(send, null))
+                    }
                 )
             }
             is ScreenRoute.AppBreakdown -> {
@@ -360,6 +391,7 @@ private fun MainTabsScreen(
                         yesterdayKm = homeState.yesterdayKm,
                         landmarkText = homeState.landmarkText,
                         hasSensorData = homeState.hasSensorData,
+                        isLoading = homeState.isLoading,
                         // Rank needs other members' totals from Firestore, which
                         // only appear once A's triggerFirestoreSync() is implemented
                         // (DATA_CONTRACT §3.3). Null until then — the card degrades.
@@ -390,6 +422,7 @@ private fun MainTabsScreen(
                         groupStats = boardState.groupStats ?: GroupStats(0f, 0f, 0f),
                         groupBestDay = boardState.groupBestDay,
                         memberCount = boardState.activeGroup?.memberCount,
+                        errorMessage = boardState.errorMessage,
                         onSwitchGroupClick = onManageGroupsClick,
                         emptyBoardMessage = if (boardState.activeGroup == null) {
                             ScrollaStrings.LEADERBOARD_EMPTY_NO_GROUP

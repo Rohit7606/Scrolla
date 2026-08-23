@@ -217,7 +217,8 @@ fun SettingsScreen(
                         SettingsItem(
                             label = ScrollaStrings.SETTINGS_DISPLAY_NAME_LABEL,
                             value = displayName,
-                            onClick = onEditNameClick
+                            onClick = onEditNameClick,
+                            enabled = false
                         )
                         
                         androidx.compose.material3.HorizontalDivider(
@@ -229,7 +230,8 @@ fun SettingsScreen(
                             label = ScrollaStrings.SETTINGS_BACKUP_LABEL,
                             value = if (phoneLinked) ScrollaStrings.SETTINGS_BACKUP_LINKED else ScrollaStrings.SETTINGS_BACKUP_ADD,
                             onClick = onAddPhoneClick,
-                            valueColor = if (phoneLinked) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary
+                            valueColor = if (phoneLinked) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary,
+                            enabled = false
                         )
                     }
 
@@ -255,7 +257,8 @@ fun SettingsScreen(
                         SettingsItem(
                             label = ScrollaStrings.SETTINGS_DELETE_ACCOUNT,
                             onClick = onDeleteAccountClick,
-                            isDestructive = true
+                            isDestructive = true,
+                            enabled = false
                         )
                     }
                 }
@@ -356,12 +359,16 @@ private fun SettingsItem(
     value: String? = null,
     onClick: () -> Unit,
     valueColor: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.onSurfaceVariant,
-    isDestructive: Boolean = false
+    isDestructive: Boolean = false,
+    /** False for features that do not exist yet: the row greys out and stops
+     *  responding to taps, rather than looking live and doing nothing. */
+    enabled: Boolean = true
 ) {
+    val rowAlpha = if (enabled) 1f else 0.38f
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .bounceClick(onClick = onClick)
+            .then(if (enabled) Modifier.bounceClick(onClick = onClick) else Modifier)
             .padding(horizontal = MaterialTheme.spacing.medium, vertical = 16.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
@@ -369,16 +376,15 @@ private fun SettingsItem(
         Text(
             text = label,
             style = MaterialTheme.typography.bodyLarge,
-            color = if (isDestructive) (if (androidx.compose.foundation.isSystemInDarkTheme()) ErrorDark else ErrorLight) else MaterialTheme.colorScheme.onSurface
+            color = (if (isDestructive) (if (androidx.compose.foundation.isSystemInDarkTheme()) ErrorDark else ErrorLight) else MaterialTheme.colorScheme.onSurface)
+                .copy(alpha = rowAlpha)
         )
-        
-        if (value != null) {
-            Text(
-                text = value,
-                style = MaterialTheme.typography.bodyLarge,
-                color = valueColor
-            )
-        }
+
+        Text(
+            text = if (enabled) (value ?: "") else ScrollaStrings.SETTINGS_NOT_YET_AVAILABLE,
+            style = MaterialTheme.typography.bodyLarge,
+            color = if (enabled) valueColor else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = rowAlpha)
+        )
     }
 }
 

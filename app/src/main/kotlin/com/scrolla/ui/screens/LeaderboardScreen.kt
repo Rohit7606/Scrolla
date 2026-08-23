@@ -88,6 +88,9 @@ fun LeaderboardScreen(
     memberCount: Int? = null,
     /** Opens the group switcher. Null hides the affordance entirely. */
     onSwitchGroupClick: (() -> Unit)? = null,
+    /** A failed read. Shown in place of the empty state, which would otherwise
+     *  report "nothing synced yet" for what is actually a network error. */
+    errorMessage: String? = null,
     onHallOfFameClick: () -> Unit = {}
 ) {
     val spacing = MaterialTheme.spacing
@@ -198,7 +201,13 @@ fun LeaderboardScreen(
                 .padding(top = spacing.large),
             verticalArrangement = Arrangement.spacedBy(2.dp)
         ) {
-            if (entries.isEmpty()) {
+            if (errorMessage != null) {
+                Text(
+                    text = ScrollaStrings.ERROR_COULDNT_LOAD,
+                    style = ScrollaType.Body,
+                    color = MaterialTheme.colorScheme.error
+                )
+            } else if (entries.isEmpty()) {
                 Text(
                     text = emptyBoardMessage,
                     style = ScrollaType.Body,

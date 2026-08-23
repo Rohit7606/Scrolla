@@ -65,6 +65,10 @@ fun HomeScreen(
     landmarkText: String? = "about the height of three Burj Khalifas",
     /** False until the sensor has recorded anything — the figure shows a dash, not 0.0. */
     hasSensorData: Boolean = true,
+    /** True until the first read of Room completes. Distinct from having no data:
+     *  announcing "waiting for the first scroll" before anything has been read
+     *  told returning users their history was gone, once per launch. */
+    isLoading: Boolean = false,
     /** Null until the group leaderboard has data; the standing card degrades instead of inventing a rank. */
     rankPosition: Int? = 2,
     groupSize: Int? = 5,
@@ -169,10 +173,11 @@ fun HomeScreen(
             // result ("18 m"), so a figure with no close landmark needs no
             // apology under it — the line is simply absent. Only a screen with
             // nothing measured at all says so.
-            val editorialLine = landmarkText ?: if (hasSensorData) {
-                null
-            } else {
-                ScrollaStrings.HOME_WAITING_FOR_SENSOR
+            val editorialLine = when {
+                isLoading -> null
+                landmarkText != null -> landmarkText
+                hasSensorData -> null
+                else -> ScrollaStrings.HOME_WAITING_FOR_SENSOR
             }
             if (editorialLine != null) {
                 Text(
