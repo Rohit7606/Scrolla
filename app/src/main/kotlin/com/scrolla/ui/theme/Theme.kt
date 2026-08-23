@@ -1,7 +1,6 @@
 package com.scrolla.ui.theme
 
 import android.app.Activity
-import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
@@ -9,73 +8,86 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.SideEffect
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
+/**
+ * Surface mapping, and why it is the way it is:
+ *
+ *   background / surface   the screen ground and the nav bar sit on it
+ *   surfaceContainer       cards
+ *   surfaceContainerHigh   raised things — selected rows, the self row
+ *   surfaceVariant         inner blocks inside a card (tracks, wells)
+ *
+ * These were all the same value before, which is why nothing looked
+ * like it was sitting on anything.
+ */
 private val LightColorScheme = lightColorScheme(
-    primary = Accent500,
-    onPrimary = Neutral0,
-    primaryContainer = Accent100, // or Accent200
-    onPrimaryContainer = Accent900,
-    
-    secondary = Neutral600,
-    onSecondary = Neutral0,
-    secondaryContainer = Neutral100,
-    onSecondaryContainer = Neutral900,
+    primary = AccentLight,
+    onPrimary = OnAccentLight,
+    primaryContainer = AccentContainerLight,
+    onPrimaryContainer = OnAccentContainerLight,
 
-    background = Neutral50,
-    onBackground = Neutral900,
-    
-    surface = Neutral50,
-    onSurface = Neutral900,
-    surfaceVariant = Neutral100,
-    onSurfaceVariant = Neutral700,
-    
-    outline = Neutral300,
-    outlineVariant = Neutral200,
+    secondary = TextMidLight,
+    onSecondary = CardLight,
+    secondaryContainer = RaisedLight,
+    onSecondaryContainer = TextHiLight,
+
+    background = GroundLight,
+    onBackground = TextHiLight,
+
+    surface = GroundLight,
+    onSurface = TextHiLight,
+    surfaceVariant = RaisedLight,
+    onSurfaceVariant = TextMidLight,
+
+    outline = HairlineStrongLight,
+    outlineVariant = HairlineLight,
 
     error = ErrorLight,
     onError = OnErrorLight,
     errorContainer = ErrorContainerLight,
     onErrorContainer = OnErrorContainerLight,
 
-    surfaceContainer = Neutral50,
-    surfaceContainerHigh = Neutral100,
-    surfaceContainerHighest = Neutral150
+    surfaceContainerLowest = GroundLight,
+    surfaceContainerLow = GroundLight,
+    surfaceContainer = CardLight,
+    surfaceContainerHigh = RaisedLight,
+    surfaceContainerHighest = HairlineLight
 )
 
 private val DarkColorScheme = darkColorScheme(
-    primary = Accent500,
-    onPrimary = Neutral0,
-    primaryContainer = Accent800,
-    onPrimaryContainer = Accent50,
+    primary = AccentDark,
+    onPrimary = OnAccentDark,
+    primaryContainer = AccentContainerDark,
+    onPrimaryContainer = OnAccentContainerDark,
 
-    secondary = NeutralDark600,
-    onSecondary = NeutralDark0,
-    secondaryContainer = NeutralDark200,
-    onSecondaryContainer = NeutralDark800,
+    secondary = TextMidDark,
+    onSecondary = GroundDark,
+    secondaryContainer = RaisedDark,
+    onSecondaryContainer = TextHiDark,
 
-    background = NeutralDark50,
-    onBackground = NeutralDark900,
-    
-    surface = NeutralDark50,
-    onSurface = NeutralDark900,
-    surfaceVariant = NeutralDark100,
-    onSurfaceVariant = NeutralDark700,
-    
-    outline = NeutralDark400,
-    outlineVariant = NeutralDark300,
+    background = GroundDark,
+    onBackground = TextHiDark,
+
+    surface = GroundDark,
+    onSurface = TextHiDark,
+    surfaceVariant = RaisedDark,
+    onSurfaceVariant = TextMidDark,
+
+    outline = HairlineStrongDark,
+    outlineVariant = HairlineDark,
 
     error = ErrorDark,
     onError = OnErrorDark,
     errorContainer = ErrorContainerDark,
     onErrorContainer = OnErrorContainerDark,
 
-    surfaceContainer = NeutralDark50,
-    surfaceContainerHigh = NeutralDark100,
-    surfaceContainerHighest = SurfaceContainerHighestDark // mapped in Color.kt
+    surfaceContainerLowest = GroundDark,
+    surfaceContainerLow = GroundDark,
+    surfaceContainer = CardDark,
+    surfaceContainerHigh = RaisedDark,
+    surfaceContainerHighest = HairlineDark
 )
 
 @Composable
@@ -84,42 +96,54 @@ fun ScrollaUILabTheme(
     content: @Composable () -> Unit
 ) {
     val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
-    
+
     val extendedColors = if (darkTheme) {
         ScrollaExtendedColors(
+            textLow = TextLowDark,
+            textFaint = TextFaintDark,
+            cardBorder = HairlineDark,
+            selfRow = SelfRowDark,
+            improving = ImprovingDark,
+            worsening = WorseningDark,
             success = SuccessDark,
-            onSuccess = NeutralDark0,
+            onSuccess = GroundDark,
             successContainer = SuccessContainerDark,
             onSuccessContainer = OnSuccessContainerDark,
             warning = WarningDark,
-            onWarning = NeutralDark0,
+            onWarning = GroundDark,
             warningContainer = WarningContainerDark,
             onWarningContainer = OnWarningContainerDark,
             info = InfoDark,
-            onInfo = NeutralDark0,
+            onInfo = GroundDark,
             infoContainer = InfoContainerDark,
             onInfoContainer = OnInfoContainerDark,
             pending = PendingDark,
-            onPending = NeutralDark0,
+            onPending = GroundDark,
             pendingContainer = PendingContainerDark,
             onPendingContainer = OnPendingContainerDark
         )
     } else {
         ScrollaExtendedColors(
+            textLow = TextLowLight,
+            textFaint = TextFaintLight,
+            cardBorder = HairlineLight,
+            selfRow = SelfRowLight,
+            improving = ImprovingLight,
+            worsening = WorseningLight,
             success = SuccessLight,
-            onSuccess = Neutral0,
+            onSuccess = CardLight,
             successContainer = SuccessContainerLight,
             onSuccessContainer = OnSuccessContainerLight,
             warning = WarningLight,
-            onWarning = Neutral0,
+            onWarning = CardLight,
             warningContainer = WarningContainerLight,
             onWarningContainer = OnWarningContainerLight,
             info = InfoLight,
-            onInfo = Neutral0,
+            onInfo = CardLight,
             infoContainer = InfoContainerLight,
             onInfoContainer = OnInfoContainerLight,
             pending = PendingLight,
-            onPending = Neutral0,
+            onPending = CardLight,
             pendingContainer = PendingContainerLight,
             onPendingContainer = OnPendingContainerLight
         )
@@ -128,16 +152,14 @@ fun ScrollaUILabTheme(
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {
-            val context = view.context
-            var currentContext = context
+            var currentContext = view.context
             while (currentContext is android.content.ContextWrapper) {
                 if (currentContext is Activity) break
                 currentContext = currentContext.baseContext
             }
-            
+
             val window = (currentContext as? Activity)?.window
             if (window != null) {
-                // Update system bar icon colors based on current theme
                 WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
                 WindowCompat.getInsetsController(window, view).isAppearanceLightNavigationBars = !darkTheme
             }

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The window background behind Compose. Must match the ground step of
+         the surface ladder in Color.kt (GroundLight / GroundDark), or the
+         system paints a mismatched colour in the moment before setContent
+         renders and during any overscroll stretch. -->
+    <color name="scrolla_ground">#FAF8F6</color>
+</resources>

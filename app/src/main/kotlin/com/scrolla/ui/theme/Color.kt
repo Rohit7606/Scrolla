@@ -3,98 +3,123 @@ package com.scrolla.ui.theme
 import androidx.compose.ui.graphics.Color
 
 // =========================================
-// NEUTRAL SCALE (Light)
+// SURFACE LADDER
+//
+// Four steps you can see side by side. The previous scheme mapped
+// background, surface and surfaceContainer to the same value, which is
+// why cards were invisible: a card filled at 15% over its own ground is
+// one value away from the page.
+//
+// Warm-toned rather than neutral so the coral accent sits in the same
+// family as the greys instead of floating on top of them.
 // =========================================
-internal val Neutral0 = Color(0xFFFFFFFF)
-internal val Neutral25 = Color(0xFFFAFAFB)
-internal val Neutral50 = Color(0xFFF6F6F6)
-internal val Neutral75 = Color(0xFFF2F2F4)
-internal val Neutral100 = Color(0xFFEEEEF0)
-internal val Neutral150 = Color(0xFFE7E7E9)
-internal val Neutral200 = Color(0xFFE1E1E1)
-internal val Neutral300 = Color(0xFFCFCFD2)
-internal val Neutral400 = Color(0xFFB3B3B8)
-internal val Neutral500 = Color(0xFF94949A)
-internal val Neutral600 = Color(0xFF74747A)
-internal val Neutral700 = Color(0xFF55555B)
-internal val Neutral800 = Color(0xFF38383D)
-val Neutral900 = Color(0xFF1E1E21)
+
+// Dark
+internal val GroundDark = Color(0xFF121110)
+internal val CardDark = Color(0xFF1A1817)
+internal val RaisedDark = Color(0xFF221E1D)
+internal val HairlineDark = Color(0xFF2A2624)
+internal val HairlineStrongDark = Color(0xFF332E2B)
+
+internal val TextHiDark = Color(0xFFF5F1EE)
+internal val TextMidDark = Color(0xFFA39D98)
+internal val TextLowDark = Color(0xFF857E78)   // 4.8:1 on ground — safe for 11sp micro labels
+internal val TextFaintDark = Color(0xFF4A4340) // decorative only, never text
+
+// Light
+internal val GroundLight = Color(0xFFFAF8F6)
+internal val CardLight = Color(0xFFFFFFFF)
+internal val RaisedLight = Color(0xFFF1ECE7)
+internal val HairlineLight = Color(0xFFE4DDD6)
+internal val HairlineStrongLight = Color(0xFFD5CCC3)
+
+internal val TextHiLight = Color(0xFF17150F)
+internal val TextMidLight = Color(0xFF625C55)
+internal val TextLowLight = Color(0xFF8A837B)
+internal val TextFaintLight = Color(0xFFB5ADA4)
 
 // =========================================
-// NEUTRAL SCALE (Dark)
+// ACCENT — a ROLE, not a hex
+//
+// The old scheme set primary = Accent500 in both themes, so the light
+// theme inherited a 2.9:1 hero number and white-on-coral buttons at
+// 3.1:1. The accent now resolves per theme:
+//
+//   dark   #ED6A5A on #121110 → 6.2:1
+//   light  #B83E2B on #FAF8F6 → 5.3:1
+//
+// It means exactly one thing on every screen: you, here, now.
 // =========================================
-internal val NeutralDark0 = Color(0xFF0A0A0A)
-internal val NeutralDark50 = Color(0xFF161616)
-internal val NeutralDark100 = Color(0xFF232323)
-internal val NeutralDark150 = Color(0xFF2B2B2B)
-internal val NeutralDark200 = Color(0xFF363636)
-internal val NeutralDark300 = Color(0xFF454545)
-internal val NeutralDark400 = Color(0xFF5C5C5C)
-internal val NeutralDark500 = Color(0xFF767676)
-internal val NeutralDark600 = Color(0xFF949494)
-internal val NeutralDark700 = Color(0xFFB5B5B5)
-internal val NeutralDark800 = Color(0xFFD6D6D6)
-internal val NeutralDark900 = Color(0xFFF2F2F2)
+internal val AccentDark = Color(0xFFED6A5A)
+internal val AccentLight = Color(0xFFB83E2B)
+
+internal val OnAccentDark = Color(0xFF2A0F09)  // near-black on coral — 5.5:1
+internal val OnAccentLight = Color(0xFFFFFFFF) // white on deep coral — 5.6:1
+
+internal val AccentContainerDark = Color(0xFF3A2F2C)
+internal val OnAccentContainerDark = Color(0xFFFBDEDA)
+internal val AccentContainerLight = Color(0xFFF7E6E1)
+internal val OnAccentContainerLight = Color(0xFF5C1A0F)
+
+// Row wash for "this is you" on the leaderboard
+internal val SelfRowDark = Color(0xFF221E1D)
+internal val SelfRowLight = Color(0xFFFBF0EC)
 
 // =========================================
-// ACCENT SCALE (Coral)
+// DIRECTION — only ever means up or down
+//
+// Deliberately NOT coral. In this app more scrolling is the bad
+// outcome, so a delta painted in the brand colour reads backwards.
+// Jade for improving, amber for worsening; neither is used anywhere else.
 // =========================================
-internal val Accent50 = Color(0xFFFDEEEC)
-internal val Accent100 = Color(0xFFFBDEDA)
-internal val Accent200 = Color(0xFFF7C1BA)
-internal val Accent300 = Color(0xFFF39C91)
-internal val Accent400 = Color(0xFFF08475)
-internal val Accent500 = Color(0xFFED6A5A)
-internal val Accent600 = Color(0xFFE34E3B)
-internal val Accent700 = Color(0xFFD33722)
-internal val Accent800 = Color(0xFFA52D1D)
-internal val Accent900 = Color(0xFF762419)
+val ImprovingDark = Color(0xFF3FBE9C)
+val ImprovingLight = Color(0xFF1B7A5E)
+val WorseningDark = Color(0xFFE0A34A)
+val WorseningLight = Color(0xFF8A5A12)
 
 // =========================================
 // SEMANTIC SCALES
+// Retuned to the warm ladder; names kept — SettingsScreen imports them.
 // =========================================
 
 // Success
-internal val SuccessLight = Color(0xFF2E7D5B)
-internal val SuccessDark = Color(0xFF4FCB92)
-internal val SuccessContainerLight = Color(0xFFDDF3E7)
-val SuccessContainerDark = Color(0xFF123322)
-val OnSuccessContainerLight = Color(0xFF164426)
-val OnSuccessContainerDark = Color(0xFFDDF3E7)
+val SuccessLight = ImprovingLight
+val SuccessDark = ImprovingDark
+internal val SuccessContainerLight = Color(0xFFDCEFE7)
+val SuccessContainerDark = Color(0xFF102E24)
+val OnSuccessContainerLight = Color(0xFF11402F)
+val OnSuccessContainerDark = Color(0xFFDCEFE7)
 
 // Warning
-val WarningLight = Color(0xFF9A6A00)
-val WarningDark = Color(0xFFF0B429)
-val WarningContainerLight = Color(0xFFFBEBC7)
-val WarningContainerDark = Color(0xFF3D2E00)
+val WarningLight = WorseningLight
+val WarningDark = WorseningDark
+val WarningContainerLight = Color(0xFFF8EBD2)
+val WarningContainerDark = Color(0xFF362A12)
 val OnWarningContainerLight = Color(0xFF4A3400)
-val OnWarningContainerDark = Color(0xFFFBEBC7)
+val OnWarningContainerDark = Color(0xFFF8EBD2)
 
 // Error
-val ErrorLight = Color(0xFFC62839)
-val ErrorDark = Color(0xFFF2727D)
-val ErrorContainerLight = Color(0xFFFBDBDD)
-val ErrorContainerDark = Color(0xFF3D0F16)
+val ErrorLight = Color(0xFFA3301F)
+val ErrorDark = Color(0xFFF0847A)
+val ErrorContainerLight = Color(0xFFF9DFDB)
+val ErrorContainerDark = Color(0xFF3A1512)
 val OnErrorLight = Color(0xFFFFFFFF)
-val OnErrorDark = Color(0xFF3D0F16)
-val OnErrorContainerLight = Color(0xFF7A1420)
-val OnErrorContainerDark = Color(0xFFFBDBDD)
+val OnErrorDark = Color(0xFF2A0F09)
+val OnErrorContainerLight = Color(0xFF6E1A0F)
+val OnErrorContainerDark = Color(0xFFF9DFDB)
 
 // Info
 val InfoLight = Color(0xFF1D5FC9)
-val InfoDark = Color(0xFF7AAEFF)
-val InfoContainerLight = Color(0xFFDCE7FB)
-val InfoContainerDark = Color(0xFF0F2647)
+val InfoDark = Color(0xFF8FBAF5)
+val InfoContainerLight = Color(0xFFDDE7F7)
+val InfoContainerDark = Color(0xFF16233A)
 val OnInfoContainerLight = Color(0xFF0F3068)
-val OnInfoContainerDark = Color(0xFFDCE7FB)
+val OnInfoContainerDark = Color(0xFFDDE7F7)
 
 // Pending
-val PendingLight = Color(0xFF5B5F87)
-val PendingDark = Color(0xFFA9ACD6)
-val PendingContainerLight = Color(0xFFE4E4F3)
-val PendingContainerDark = Color(0xFF26273E)
-val OnPendingContainerLight = Color(0xFF2A2C42) // Approximated contrast
-val OnPendingContainerDark = Color(0xFFE4E4F3)
-
-// Dark theme missing overrides
-val SurfaceContainerHighestDark = Color(0xFF404040)
+val PendingLight = Color(0xFF625C55)
+val PendingDark = Color(0xFFA39D98)
+val PendingContainerLight = Color(0xFFEFEAE5)
+val PendingContainerDark = Color(0xFF262220)
+val OnPendingContainerLight = Color(0xFF33302C)
+val OnPendingContainerDark = Color(0xFFEFEAE5)

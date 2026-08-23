@@ -1,9 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Main application theme -->
-    <style name="Theme.MyApplication" parent="Theme.AppCompat.Light.NoActionBar">
-        <!-- Customize your light theme here. -->
+    <!-- Main application theme.
+
+         Was Theme.AppCompat.Light.NoActionBar — a hardcoded light theme, so a
+         device in dark mode flashed a near-white window before Compose drew
+         its first frame, and showed the same near-white in the overscroll
+         stretch. DayNight lets values-night/ resolve, and windowBackground is
+         pinned to the ground step of the surface ladder in both. -->
+    <style name="Theme.MyApplication" parent="Theme.AppCompat.DayNight.NoActionBar">
         <item name="android:windowNoTitle">true</item>
+        <item name="android:windowBackground">@color/scrolla_ground</item>
     </style>
 
     <!-- Splash Screen theme for Android 12+ -->
