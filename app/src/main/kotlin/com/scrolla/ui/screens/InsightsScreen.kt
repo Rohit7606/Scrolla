@@ -169,14 +169,14 @@ fun InsightsScreen(
                     Spacer(modifier = Modifier.width(10.dp))
                     if (current.distanceKm > 0f) {
                         Text(
-                            text = DistanceFormatter.formatKmValue(current.distanceKm),
+                            text = DistanceFormatter.formatDisplayValue(current.distanceKm),
                             style = ScrollaType.FigureMedium,
                             color = MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.alignByBaseline()
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = "km",
+                            text = DistanceFormatter.formatDisplayUnit(current.distanceKm),
                             style = ScrollaType.Caption,
                             color = colors.textLow,
                             modifier = Modifier.alignByBaseline()
@@ -360,7 +360,7 @@ private fun DayBar(
             .clickable(onClick = onClick)
             .semantics {
                 contentDescription = if (day.distanceKm > 0f) {
-                    "${day.fullLabel}, ${DistanceFormatter.formatKmValue(day.distanceKm)} kilometres"
+                    "${day.fullLabel}, ${DistanceFormatter.formatDistanceSpoken(day.distanceKm)}"
                 } else {
                     "${day.fullLabel}, no data yet"
                 }
@@ -406,7 +406,7 @@ private fun AppRow(
             .fillMaxWidth()
             .semantics {
                 contentDescription =
-                    "$appName, $percentage percent of today's total, ${DistanceFormatter.formatKmValue(distanceKm)} kilometres"
+                    "$appName, $percentage percent of today's total, ${DistanceFormatter.formatDistanceSpoken(distanceKm)}"
             },
         verticalArrangement = Arrangement.spacedBy(7.dp)
     ) {
@@ -421,7 +421,7 @@ private fun AppRow(
                 color = MaterialTheme.colorScheme.onSurface
             )
             Text(
-                text = DistanceFormatter.formatKm(distanceKm),
+                text = DistanceFormatter.formatDistance(distanceKm),
                 style = ScrollaType.Caption,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

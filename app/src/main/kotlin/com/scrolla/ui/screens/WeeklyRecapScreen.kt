@@ -135,7 +135,7 @@ fun WeeklyRecapScreen(
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
-                        text = DistanceFormatter.formatKmValue(weeklyDistanceKm),
+                        text = DistanceFormatter.formatDisplayValue(weeklyDistanceKm),
                         style = MaterialTheme.typography.displayLarge.copy(
                             fontSize = 140.sp,
                             lineHeight = 140.sp,
@@ -148,7 +148,7 @@ fun WeeklyRecapScreen(
                     )
 
                     Text(
-                        text = "km",
+                        text = DistanceFormatter.formatDisplayUnit(weeklyDistanceKm),
                         style = MaterialTheme.typography.displayMedium.copy(
                             fontWeight = FontWeight.Normal,
                             letterSpacing = (-0.02).em

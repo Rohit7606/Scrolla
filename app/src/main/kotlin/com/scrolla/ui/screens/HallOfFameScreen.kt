@@ -196,7 +196,7 @@ fun HallOfFameScreen(
                             verticalAlignment = Alignment.Bottom
                         ) {
                             Text(
-                                text = DistanceFormatter.formatKmValue(recordDistanceKm),
+                                text = DistanceFormatter.formatDisplayValue(recordDistanceKm),
                                 style = MaterialTheme.typography.displayMedium.copy(
                                     letterSpacing = (-0.03).em,
                                     fontFeatureSettings = "tnum"
@@ -205,7 +205,7 @@ fun HallOfFameScreen(
                                 modifier = Modifier.alignByBaseline()
                             )
                             Text(
-                                text = " km",
+                                text = " " + DistanceFormatter.formatDisplayUnit(recordDistanceKm),
                                 style = MaterialTheme.typography.headlineSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.alignByBaseline()
@@ -225,7 +225,7 @@ fun HallOfFameScreen(
                     if (!isCurrentUserHolder) {
                         Spacer(modifier = Modifier.height(spacing.medium))
                         Text(
-                            text = String.format(ScrollaStrings.HALL_OF_FAME_PROGRESS_TEMPLATE, DistanceFormatter.formatKm(gapToRecordKm)),
+                            text = String.format(ScrollaStrings.HALL_OF_FAME_PROGRESS_TEMPLATE, DistanceFormatter.formatDistance(gapToRecordKm)),
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.padding(horizontal = spacing.small)

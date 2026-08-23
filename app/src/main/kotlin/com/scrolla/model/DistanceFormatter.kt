@@ -36,6 +36,36 @@ object DistanceFormatter {
      *  Precision is identical to [formatKm], so the two never disagree. */
     fun formatKmValue(km: Float): String = String.format(Locale.US, "%.1f", km)
 
+    /**
+     * True when a distance reads better in metres than in kilometres.
+     *
+     * Measured on-device, a full day of heavy scrolling is roughly 0.1–0.5 km
+     * (Person A's S0.7 test: ~24 m per 5 minutes of continuous scrolling), so a
+     * km figure to one decimal shows "0.0" for most of every day. Below a
+     * rounded 1000 m the number belongs in metres.
+     */
+    private fun usesMetres(km: Float): Boolean = (km * 1000f) < 999.5f
+
+    /** The figure alone, in whichever unit suits it: "176" or "1.2". */
+    fun formatDisplayValue(km: Float): String = if (usesMetres(km)) {
+        String.format(Locale.US, "%.0f", km * 1000f)
+    } else {
+        String.format(Locale.US, "%.1f", km)
+    }
+
+    /** The unit that belongs with [formatDisplayValue]: "m" or "km". */
+    fun formatDisplayUnit(km: Float): String = if (usesMetres(km)) "m" else "km"
+
+    /** Figure and unit together, for a single run of text: "176 m", "1.2 km". */
+    fun formatDistance(km: Float): String =
+        "${formatDisplayValue(km)} ${formatDisplayUnit(km)}"
+
+    /** Spelled out for screen readers: "176 metres", "1.2 kilometres". */
+    fun formatDistanceSpoken(km: Float): String {
+        val unit = if (usesMetres(km)) "metres" else "kilometres"
+        return "${formatDisplayValue(km)} $unit"
+    }
+
     /** Finds the nearest landmark match for a given km value.
      *  Returns a pair: (landmark name, exact landmark km) for display on Home and the recap card.
      *  Returns null if km is 0f or negative. */

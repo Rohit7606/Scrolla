@@ -188,7 +188,7 @@ private fun RecordCard(
             verticalAlignment = Alignment.Bottom
         ) {
             Text(
-                text = DistanceFormatter.formatKmValue(distanceKm),
+                text = DistanceFormatter.formatDisplayValue(distanceKm),
                 style = MaterialTheme.typography.displayMedium.copy(
                     letterSpacing = (-0.03).em,
                     fontFeatureSettings = "tnum"
@@ -197,7 +197,7 @@ private fun RecordCard(
                 modifier = Modifier.alignByBaseline()
             )
             Text(
-                text = " km",
+                text = " " + DistanceFormatter.formatDisplayUnit(distanceKm),
                 style = MaterialTheme.typography.headlineSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.alignByBaseline()

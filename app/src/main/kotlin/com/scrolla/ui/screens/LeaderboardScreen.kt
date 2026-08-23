@@ -133,20 +133,20 @@ fun LeaderboardScreen(
                 ) {
                     StatColumn(
                         label = ScrollaStrings.LEADERBOARD_STAT_TODAY,
-                        value = DistanceFormatter.formatKmValue(groupStats.todayKm),
+                        value = DistanceFormatter.formatDisplayValue(groupStats.todayKm),
                         emphasised = true,
                         modifier = Modifier.weight(1f)
                     )
                     StatDivider()
                     StatColumn(
                         label = ScrollaStrings.LEADERBOARD_STAT_YESTERDAY,
-                        value = DistanceFormatter.formatKmValue(groupStats.yesterdayKm),
+                        value = DistanceFormatter.formatDisplayValue(groupStats.yesterdayKm),
                         modifier = Modifier.weight(1f)
                     )
                     StatDivider()
                     StatColumn(
                         label = ScrollaStrings.LEADERBOARD_STAT_WEEK_AVG,
-                        value = DistanceFormatter.formatKmValue(groupStats.weekAvgKm),
+                        value = DistanceFormatter.formatDisplayValue(groupStats.weekAvgKm),
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -292,7 +292,7 @@ private fun LeaderboardRow(
     val accent = MaterialTheme.colorScheme.primary
 
     val semanticLabel = "${ScrollaFormatters.formatOrdinal(rank)}, $name, " +
-        "${DistanceFormatter.formatKmValue(distanceKm)} kilometres" + if (isSelf) ", you" else ""
+        DistanceFormatter.formatDistanceSpoken(distanceKm) + if (isSelf) ", you" else ""
 
     Row(
         modifier = modifier
@@ -329,14 +329,14 @@ private fun LeaderboardRow(
 
         Row(verticalAlignment = Alignment.Bottom) {
             Text(
-                text = DistanceFormatter.formatKmValue(distanceKm),
+                text = DistanceFormatter.formatDisplayValue(distanceKm),
                 style = ScrollaType.FigureSmall,
                 color = if (isSelf) accent else MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.alignByBaseline()
             )
             Spacer(modifier = Modifier.width(4.dp))
             Text(
-                text = "km",
+                text = DistanceFormatter.formatDisplayUnit(distanceKm),
                 style = ScrollaType.Caption,
                 color = colors.textLow,
                 modifier = Modifier.alignByBaseline()

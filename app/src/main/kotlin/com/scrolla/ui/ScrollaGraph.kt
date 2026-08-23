@@ -46,8 +46,29 @@ object ScrollaGraph {
         }
     }
 
-    private fun fallbackLabel(packageName: String): String =
-        packageName.substringAfterLast('.').replaceFirstChar { it.uppercase() }
+    /**
+     * Segments that identify a publisher or platform rather than the app, and so
+     * never make a useful name on their own.
+     */
+    private val GENERIC_SEGMENTS = setOf(
+        "com", "org", "net", "io", "co", "www",
+        "app", "apps", "mobile", "android", "google"
+    )
+
+    /**
+     * Best guess at a name when the label lookup fails.
+     *
+     * Taking the last dotted segment is wrong far more often than it looks:
+     * "com.instagram.android" ends in "android", so Instagram, Twitter and every
+     * other `.android` package all render as "Android". Use the first segment
+     * that names something instead.
+     */
+    private fun fallbackLabel(packageName: String): String {
+        val segment = packageName.split('.')
+            .firstOrNull { it.isNotBlank() && it.lowercase() !in GENERIC_SEGMENTS }
+            ?: packageName.substringAfterLast('.')
+        return segment.replaceFirstChar { it.uppercase() }
+    }
 
     val scrollRepository: ScrollRepository by lazy {
         val context = appContext

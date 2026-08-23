@@ -136,7 +136,7 @@ fun HomeScreen(
             // confident "0.0" would read as a measured result rather than an
             // absence of one.
             val formatted = if (hasSensorData) {
-                DistanceFormatter.formatKmValue(displayedDistance)
+                DistanceFormatter.formatDisplayValue(displayedDistance)
             } else {
                 "—"
             }
@@ -144,7 +144,7 @@ fun HomeScreen(
                 verticalAlignment = Alignment.Bottom,
                 modifier = Modifier.semantics(mergeDescendants = true) {
                     contentDescription = if (hasSensorData) {
-                        "$formatted kilometres today"
+                        "${DistanceFormatter.formatDistanceSpoken(displayedDistance)} today"
                     } else {
                         "No scroll distance recorded yet today"
                     }
@@ -158,13 +158,17 @@ fun HomeScreen(
                 )
                 Spacer(modifier = Modifier.width(10.dp))
                 Text(
-                    text = ScrollaStrings.HOME_UNIT,
+                    text = DistanceFormatter.formatDisplayUnit(displayedDistance),
                     style = ScrollaType.Row.copy(fontSize = ScrollaType.Row.fontSize * 1.2f),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.alignByBaseline()
                 )
             }
 
+            // With metres on the figure a small total already reads as a real
+            // result ("18 m"), so a figure with no close landmark needs no
+            // apology under it — the line is simply absent. Only a screen with
+            // nothing measured at all says so.
             val editorialLine = landmarkText ?: if (hasSensorData) {
                 null
             } else {
@@ -181,7 +185,7 @@ fun HomeScreen(
             if (hasSensorData && yesterdayKm != null) {
                 val delta = scrollDistanceKm - yesterdayKm
                 val improving = delta <= 0f
-                val magnitude = DistanceFormatter.formatKmValue(kotlin.math.abs(delta))
+                val magnitude = DistanceFormatter.formatDisplayValue(kotlin.math.abs(delta))
                 DeltaChip(
                     text = if (improving) {
                         "$magnitude km less than yesterday"
