@@ -1,5 +1,7 @@
 package com.scrolla.ui.screens
 import kotlinx.parcelize.Parcelize
+import android.content.Intent
+import androidx.compose.ui.platform.LocalContext
 import android.os.Parcelable
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
@@ -83,8 +85,11 @@ private val destinations = listOf(
 
 @Composable
 fun MainShell(modifier: Modifier = Modifier) {
+    val context = LocalContext.current
     var routeStack by rememberSaveable { mutableStateOf(listOf<ScreenRoute>(ScreenRoute.MainTabs)) }
     var selectedTab by rememberSaveable { mutableIntStateOf(0) }
+    // Survives rotation so a freshly created code is never lost before it is shared.
+    var createdGroupCode by rememberSaveable { mutableStateOf<String?>(null) }
 
     // S2.3 — sync on the interval timer for as long as the shell is composed,
     // and again whenever the app returns to foreground.
@@ -174,6 +179,10 @@ fun MainShell(modifier: Modifier = Modifier) {
                 val leaderboardViewModel: LeaderboardViewModel = viewModel()
                 val boardState by leaderboardViewModel.uiState.collectAsState()
 
+                // A group created or joined moments ago must be here — the cached
+                // list is why it previously took a screen switch to appear.
+                LaunchedEffect(Unit) { leaderboardViewModel.refresh() }
+
                 GroupSwitcherScreen(
                     groups = boardState.groups.map {
                         GroupInfo(
@@ -186,14 +195,33 @@ fun MainShell(modifier: Modifier = Modifier) {
                     activeGroupId = boardState.activeGroup?.groupId.orEmpty(),
                     onBackClick = popBackStack,
                     onJoinAnotherClick = { navigateTo(ScreenRoute.JoinGroup) },
+                    onCreateGroupClick = { navigateTo(ScreenRoute.CreateGroup) },
+                    onShareClick = { group ->
+                        // The group's document id is its join code, so no lookup
+                        // is needed to invite someone later.
+                        val message = String.format(
+                            ScrollaStrings.GROUP_SHARE_TEMPLATE,
+                            group.name,
+                            group.id
+                        )
+                        val send = Intent(Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            putExtra(Intent.EXTRA_TEXT, message)
+                        }
+                        context.startActivity(Intent.createChooser(send, null))
+                    },
                     onGroupClick = { groupId ->
                         leaderboardViewModel.selectGroup(groupId)
-                        popBackStack()
+                        // Land on the board for the group just picked. Popping back
+                        // to wherever the user came from made selection feel inert.
+                        routeStack = listOf(ScreenRoute.MainTabs)
+                        selectedTab = 1
                     }
                 )
             }
             is ScreenRoute.JoinGroup -> {
                 val groupViewModel: GroupViewModel = viewModel()
+                val leaderboardViewModel: LeaderboardViewModel = viewModel()
                 val isLoading by groupViewModel.isLoading.collectAsState()
                 val errorMessage by groupViewModel.errorMessage.collectAsState()
                 
@@ -207,7 +235,10 @@ fun MainShell(modifier: Modifier = Modifier) {
                     onJoinClick = { code ->
                         groupViewModel.joinGroup(code) {
                             groupViewModel.clearError()
-                            popBackStack() // Go back to groups list or home on success
+                            leaderboardViewModel.refresh()
+                            // Straight to the board for the group just joined.
+                            routeStack = listOf(ScreenRoute.MainTabs)
+                            selectedTab = 1
                         }
                     },
                     onCreateGroupClick = { 
@@ -218,6 +249,7 @@ fun MainShell(modifier: Modifier = Modifier) {
             }
             is ScreenRoute.CreateGroup -> {
                 val groupViewModel: GroupViewModel = viewModel()
+                val leaderboardViewModel: LeaderboardViewModel = viewModel()
                 val isLoading by groupViewModel.isLoading.collectAsState()
                 val errorMessage by groupViewModel.errorMessage.collectAsState()
 
@@ -228,10 +260,20 @@ fun MainShell(modifier: Modifier = Modifier) {
                         groupViewModel.clearError()
                         popBackStack()
                     },
-                    onCreateClick = { name -> 
-                        groupViewModel.createGroup(name) {
+                    createdCode = createdGroupCode,
+                    onDoneClick = {
+                        createdGroupCode = null
+                        groupViewModel.clearError()
+                        routeStack = listOf(ScreenRoute.MainTabs)
+                        selectedTab = 1
+                    },
+                    onCreateClick = { name ->
+                        groupViewModel.createGroup(name) { code ->
                             groupViewModel.clearError()
-                            popBackStack() // Go back on success
+                            // Show the code rather than popping — it is the only
+                            // way anyone else can ever join this group.
+                            createdGroupCode = code
+                            leaderboardViewModel.refresh()
                         }
                     }
                 )
@@ -347,6 +389,8 @@ private fun MainTabsScreen(
                         entries = boardState.entries,
                         groupStats = boardState.groupStats ?: GroupStats(0f, 0f, 0f),
                         groupBestDay = boardState.groupBestDay,
+                        memberCount = boardState.activeGroup?.memberCount,
+                        onSwitchGroupClick = onManageGroupsClick,
                         emptyBoardMessage = if (boardState.activeGroup == null) {
                             ScrollaStrings.LEADERBOARD_EMPTY_NO_GROUP
                         } else {

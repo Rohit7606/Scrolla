@@ -1,6 +1,7 @@
 package com.scrolla.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -83,6 +84,10 @@ fun LeaderboardScreen(
     groupBestDay: String? = "0.4 km by Lewis",
     /** Shown in place of the rows — distinguishes "no group" from "no totals synced yet". */
     emptyBoardMessage: String = ScrollaStrings.LEADERBOARD_EMPTY_NO_TOTALS,
+    /** How many people are in this group, including those who have not synced today. */
+    memberCount: Int? = null,
+    /** Opens the group switcher. Null hides the affordance entirely. */
+    onSwitchGroupClick: (() -> Unit)? = null,
     onHallOfFameClick: () -> Unit = {}
 ) {
     val spacing = MaterialTheme.spacing
@@ -110,11 +115,43 @@ fun LeaderboardScreen(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             SectionLabel("GROUP · $dateLabel")
-            Text(
-                text = groupName,
-                style = ScrollaType.Display,
-                color = MaterialTheme.colorScheme.onBackground
-            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .then(
+                        if (onSwitchGroupClick != null) {
+                            Modifier.clickable(onClick = onSwitchGroupClick)
+                        } else {
+                            Modifier
+                        }
+                    ),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = groupName,
+                    style = ScrollaType.Display,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                if (onSwitchGroupClick != null) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                        contentDescription = "Switch group",
+                        modifier = Modifier.size(22.dp),
+                        tint = colors.textLow
+                    )
+                }
+            }
+            // Only members who have synced today appear as rows, so say how many
+            // of the group that is rather than letting a short list read as the
+            // whole group.
+            if (memberCount != null && memberCount > 0) {
+                Text(
+                    text = "${entries.size} of $memberCount synced today",
+                    style = ScrollaType.Caption,
+                    color = colors.textLow
+                )
+            }
         }
 
         // ─── GROUP STAT STRIP ──────────────────────────────────────

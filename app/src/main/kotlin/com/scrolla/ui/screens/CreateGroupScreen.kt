@@ -1,5 +1,12 @@
 ﻿package com.scrolla.ui.screens
 
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.unit.sp
+import com.scrolla.ui.theme.ScrollaType
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -53,7 +60,10 @@ fun CreateGroupScreen(
     isLoading: Boolean = false,
     errorMessage: String? = null,
     onBackClick: () -> Unit = {},
-    onCreateClick: (String) -> Unit = {}
+    onCreateClick: (String) -> Unit = {},
+    /** Non-null once the group exists — the screen switches to showing its join code. */
+    createdCode: String? = null,
+    onDoneClick: () -> Unit = {}
 ) {
     val spacing = MaterialTheme.spacing
     var groupName by remember { mutableStateOf("") }
@@ -94,7 +104,7 @@ fun CreateGroupScreen(
                 }
                 Spacer(modifier = Modifier.width(spacing.extraSmall))
                 Text(
-                    text = "Create Group",
+                    text = if (createdCode != null) "Group created" else "Create Group",
                     style = MaterialTheme.typography.headlineLarge,
                     color = MaterialTheme.colorScheme.onBackground
                 )
@@ -103,6 +113,17 @@ fun CreateGroupScreen(
             Spacer(modifier = Modifier.height(spacing.extraLarge))
 
             // ─── CONTENT ──────────────────────────────────────────────
+            if (createdCode != null) {
+                // A group nobody can join is not a group. The code is the whole
+                // point of creating one, so it gets the screen to itself rather
+                // than a toast on the way back.
+                GroupCodeResult(
+                    code = createdCode,
+                    onDoneClick = onDoneClick
+                )
+                return@Column
+            }
+
             AnimatedVisibility(
                 visible = isVisible,
                 enter = fadeIn(tween(400)) + slideInVertically(tween(400), initialOffsetY = { 50 })
@@ -182,6 +203,75 @@ fun CreateGroupScreen(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun ColumnScope.GroupCodeResult(
+    code: String,
+    onDoneClick: () -> Unit
+) {
+    val spacing = MaterialTheme.spacing
+    val clipboard = LocalClipboardManager.current
+    var copied by remember { mutableStateOf(false) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .weight(1f)
+            .padding(horizontal = spacing.medium),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(
+            text = ScrollaStrings.GROUP_CODE_LABEL,
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+            textAlign = TextAlign.Center
+        )
+
+        Spacer(modifier = Modifier.height(spacing.large))
+
+        Text(
+            text = code,
+            style = ScrollaType.FigureMedium.copy(letterSpacing = 8.sp),
+            color = MaterialTheme.colorScheme.primary,
+            textAlign = TextAlign.Center,
+            modifier = Modifier
+                .fillMaxWidth()
+                .bentoCard(padding = spacing.medium)
+        )
+
+        Spacer(modifier = Modifier.height(spacing.large))
+
+        Text(
+            text = ScrollaStrings.GROUP_CODE_SHARE_SUBTEXT,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center
+        )
+
+        Spacer(modifier = Modifier.height(spacing.extraLarge))
+
+        ScrollaPrimaryButton(
+            text = if (copied) "Copied" else ScrollaStrings.GROUP_CODE_COPY_LINK,
+            onClick = {
+                clipboard.setText(AnnotatedString(code))
+                copied = true
+            },
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(modifier = Modifier.height(spacing.medium))
+
+        Text(
+            text = "Done",
+            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier
+                .clickable(onClick = onDoneClick)
+                .padding(spacing.medium)
+        )
     }
 }
 

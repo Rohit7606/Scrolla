@@ -23,6 +23,8 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.ui.unit.sp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
@@ -63,7 +65,9 @@ fun GroupSwitcherScreen(
     activeGroupId: String = "1",
     onBackClick: () -> Unit = {},
     onGroupClick: (String) -> Unit = {},
-    onJoinAnotherClick: () -> Unit = {}
+    onJoinAnotherClick: () -> Unit = {},
+    onCreateGroupClick: () -> Unit = {},
+    onShareClick: (GroupInfo) -> Unit = {}
 ) {
     val spacing = MaterialTheme.spacing
     val scrollState = rememberScrollState()
@@ -134,6 +138,17 @@ fun GroupSwitcherScreen(
                         onClick = onJoinAnotherClick,
                         modifier = Modifier.fillMaxWidth(0.6f)
                     )
+                    Spacer(modifier = Modifier.height(spacing.medium))
+                    Text(
+                        text = ScrollaStrings.GROUP_SWITCHER_CREATE,
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.SemiBold
+                        ),
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier
+                            .clickable(onClick = onCreateGroupClick)
+                            .padding(spacing.medium)
+                    )
                 }
             } else {
                 // List of groups
@@ -155,6 +170,7 @@ fun GroupSwitcherScreen(
                                 group = group,
                                 isActive = isActive,
                                 onClick = { onGroupClick(group.id) },
+                                onShareClick = { onShareClick(group) },
                                 modifier = Modifier.padding(horizontal = spacing.medium, vertical = spacing.small)
                             )
                         }
@@ -168,19 +184,28 @@ fun GroupSwitcherScreen(
                         enter = androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(400, delayMillis = 100 + (groups.size * 50))) + 
                                 androidx.compose.animation.slideInVertically(androidx.compose.animation.core.tween(400, delayMillis = 100 + (groups.size * 50)), initialOffsetY = { 20 })
                     ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable(onClick = onJoinAnotherClick)
-                                .padding(horizontal = spacing.medium, vertical = spacing.medium),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
+                        Column(modifier = Modifier.fillMaxWidth()) {
                             Text(
                                 text = ScrollaStrings.GROUP_SWITCHER_ADD,
                                 style = MaterialTheme.typography.titleMedium.copy(
                                     fontWeight = FontWeight.SemiBold
                                 ),
-                                color = MaterialTheme.colorScheme.primary
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable(onClick = onJoinAnotherClick)
+                                    .padding(horizontal = spacing.medium, vertical = spacing.medium)
+                            )
+                            Text(
+                                text = ScrollaStrings.GROUP_SWITCHER_CREATE,
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    fontWeight = FontWeight.SemiBold
+                                ),
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable(onClick = onCreateGroupClick)
+                                    .padding(horizontal = spacing.medium, vertical = spacing.medium)
                             )
                         }
                     }
@@ -197,6 +222,7 @@ private fun GroupCard(
     group: GroupInfo,
     isActive: Boolean,
     onClick: () -> Unit,
+    onShareClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val containerColor = if (isActive) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f)
@@ -224,8 +250,24 @@ private fun GroupCard(
             
             Spacer(modifier = Modifier.height(4.dp))
             
+            Spacer(modifier = Modifier.height(4.dp))
+
             Text(
-                text = "${group.memberCount} members" + if (group.isWidgetGroup) " · ${ScrollaStrings.GROUP_SWITCHER_WIDGET_LABEL}" else "",
+                text = "${ScrollaStrings.GROUP_SWITCHER_CODE_LABEL} ${group.id}",
+                style = MaterialTheme.typography.bodyMedium.copy(letterSpacing = 1.5.sp),
+                color = if (isActive) contentColor.copy(alpha = 0.9f) else MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Text(
+                text = buildString {
+                    // "Active" spelled out: the tick and the tinted card were not
+                    // reading as state on device.
+                    if (isActive) append("Active · ")
+                    append("${group.memberCount} members")
+                    if (group.isWidgetGroup) append(" · ${ScrollaStrings.GROUP_SWITCHER_WIDGET_LABEL}")
+                },
                 style = MaterialTheme.typography.bodyMedium,
                 color = if (isActive) contentColor.copy(alpha = 0.8f) else MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -237,6 +279,15 @@ private fun GroupCard(
                 contentDescription = "Active group",
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(24.dp)
+            )
+        }
+
+        IconButton(onClick = onShareClick) {
+            Icon(
+                imageVector = Icons.Filled.Share,
+                contentDescription = "Share ${group.name} invite code",
+                tint = if (isActive) contentColor else MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(20.dp)
             )
         }
     }
