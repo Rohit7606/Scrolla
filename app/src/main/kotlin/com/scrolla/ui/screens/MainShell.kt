@@ -155,7 +155,7 @@ fun MainShell(
                     phoneLinked = settingsState.phoneLinked,
                     onBackClick = popBackStack,
                     onSignOutClick = {
-                        settingsViewModel.signOut()
+                        settingsViewModel.signOut(context)
                         onSignedOut()
                     },
                     onFixBatteryClick = {
