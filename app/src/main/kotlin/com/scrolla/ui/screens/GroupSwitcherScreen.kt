@@ -63,7 +63,8 @@ fun GroupSwitcherScreen(
     activeGroupId: String = "1",
     onBackClick: () -> Unit = {},
     onGroupClick: (String) -> Unit = {},
-    onJoinAnotherClick: () -> Unit = {}
+    onJoinAnotherClick: () -> Unit = {},
+    onCreateGroupClick: () -> Unit = {}
 ) {
     val spacing = MaterialTheme.spacing
     val scrollState = rememberScrollState()
@@ -134,6 +135,17 @@ fun GroupSwitcherScreen(
                         onClick = onJoinAnotherClick,
                         modifier = Modifier.fillMaxWidth(0.6f)
                     )
+                    Spacer(modifier = Modifier.height(spacing.medium))
+                    Text(
+                        text = ScrollaStrings.GROUP_SWITCHER_CREATE,
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.SemiBold
+                        ),
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier
+                            .clickable(onClick = onCreateGroupClick)
+                            .padding(spacing.medium)
+                    )
                 }
             } else {
                 // List of groups
@@ -168,19 +180,28 @@ fun GroupSwitcherScreen(
                         enter = androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(400, delayMillis = 100 + (groups.size * 50))) + 
                                 androidx.compose.animation.slideInVertically(androidx.compose.animation.core.tween(400, delayMillis = 100 + (groups.size * 50)), initialOffsetY = { 20 })
                     ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable(onClick = onJoinAnotherClick)
-                                .padding(horizontal = spacing.medium, vertical = spacing.medium),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
+                        Column(modifier = Modifier.fillMaxWidth()) {
                             Text(
                                 text = ScrollaStrings.GROUP_SWITCHER_ADD,
                                 style = MaterialTheme.typography.titleMedium.copy(
                                     fontWeight = FontWeight.SemiBold
                                 ),
-                                color = MaterialTheme.colorScheme.primary
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable(onClick = onJoinAnotherClick)
+                                    .padding(horizontal = spacing.medium, vertical = spacing.medium)
+                            )
+                            Text(
+                                text = ScrollaStrings.GROUP_SWITCHER_CREATE,
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    fontWeight = FontWeight.SemiBold
+                                ),
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable(onClick = onCreateGroupClick)
+                                    .padding(horizontal = spacing.medium, vertical = spacing.medium)
                             )
                         }
                     }
@@ -225,7 +246,13 @@ private fun GroupCard(
             Spacer(modifier = Modifier.height(4.dp))
             
             Text(
-                text = "${group.memberCount} members" + if (group.isWidgetGroup) " · ${ScrollaStrings.GROUP_SWITCHER_WIDGET_LABEL}" else "",
+                text = buildString {
+                    // "Active" spelled out: the tick and the tinted card were not
+                    // reading as state on device.
+                    if (isActive) append("Active · ")
+                    append("${group.memberCount} members")
+                    if (group.isWidgetGroup) append(" · ${ScrollaStrings.GROUP_SWITCHER_WIDGET_LABEL}")
+                },
                 style = MaterialTheme.typography.bodyMedium,
                 color = if (isActive) contentColor.copy(alpha = 0.8f) else MaterialTheme.colorScheme.onSurfaceVariant
             )

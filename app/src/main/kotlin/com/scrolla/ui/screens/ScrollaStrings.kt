@@ -211,6 +211,7 @@ object ScrollaStrings {
     const val GROUP_SWITCHER_TITLE = "Your groups"
     const val GROUP_SWITCHER_WIDGET_LABEL = "Widget group"
     const val GROUP_SWITCHER_ADD = "+ Join another group"
+    const val GROUP_SWITCHER_CREATE = "+ Create a new group"
     const val GROUP_SWITCHER_EMPTY = "You're not in any groups yet"
     const val GROUP_SWITCHER_EMPTY_BUTTON = "Join a group"
     const val JOIN_GROUP_TITLE = "Join a group"
