@@ -46,7 +46,7 @@ import com.scrolla.ui.theme.spacing
 fun WeeklyRecapScreen(
     modifier: Modifier = Modifier,
     weeklyDistanceKm: Float = 7.8f,
-    landmarkText: String = "that's longer than a half marathon",
+    landmarkText: String? = null,
     onShareClick: () -> Unit = {},
     onSkipClick: () -> Unit = {}
 ) {
@@ -176,12 +176,12 @@ fun WeeklyRecapScreen(
 
             // Landmark
             androidx.compose.animation.AnimatedVisibility(
-                visible = isVisible,
-                enter = androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(500, delayMillis = 700)) + 
+                visible = isVisible && landmarkText != null,
+                enter = androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(500, delayMillis = 700)) +
                         androidx.compose.animation.slideInVertically(androidx.compose.animation.core.tween(500, delayMillis = 700), initialOffsetY = { 20 })
             ) {
                 Text(
-                    text = landmarkText,
+                    text = landmarkText.orEmpty(),
                     style = MaterialTheme.typography.headlineSmall.copy(
                         fontWeight = FontWeight.Medium,
                         letterSpacing = (-0.01).em,

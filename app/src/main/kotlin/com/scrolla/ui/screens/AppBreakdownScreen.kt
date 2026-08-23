@@ -62,7 +62,8 @@ fun AppBreakdownScreen(
     modifier: Modifier = Modifier,
     hasData: Boolean = true,
     topApp: String = "Instagram",
-    targetRank: String = "1st place",
+    /** Null until the group leaderboard has data — the nudge is hidden rather than guessed. */
+    targetRank: String? = null,
     apps: List<BreakdownAppUsage> = listOf(
         BreakdownAppUsage("Instagram", 1.2f, 0.5f),
         BreakdownAppUsage("TikTok", 0.8f, 0.33f),
@@ -165,14 +166,16 @@ fun AppBreakdownScreen(
                                 style = MaterialTheme.typography.titleMedium,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = String.format(ScrollaStrings.APP_BREAKDOWN_NUDGE_TEMPLATE, topApp, targetRank),
-                                style = MaterialTheme.typography.bodyLarge.copy(
-                                    lineHeight = 24.sp
-                                ),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                            if (targetRank != null) {
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = String.format(ScrollaStrings.APP_BREAKDOWN_NUDGE_TEMPLATE, topApp, targetRank),
+                                    style = MaterialTheme.typography.bodyLarge.copy(
+                                        lineHeight = 24.sp
+                                    ),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
                     }
                     

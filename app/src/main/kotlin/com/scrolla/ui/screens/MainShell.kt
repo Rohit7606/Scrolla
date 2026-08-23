@@ -131,13 +131,44 @@ fun MainShell(modifier: Modifier = Modifier) {
                 )
             }
             is ScreenRoute.Settings -> {
-                SettingsScreen(onBackClick = popBackStack)
+                val settingsViewModel: SettingsViewModel = viewModel()
+                val settingsState by settingsViewModel.uiState.collectAsState()
+
+                SettingsScreen(
+                    serviceHealthState = settingsState.serviceHealth,
+                    deviceOem = settingsState.deviceOem,
+                    displayName = settingsState.displayName,
+                    phoneLinked = settingsState.phoneLinked,
+                    onBackClick = popBackStack,
+                    onSignOutClick = { settingsViewModel.signOut() }
+                )
             }
             is ScreenRoute.PersonalRecords -> {
-                PersonalRecordsScreen(onBackClick = popBackStack)
+                val recordsViewModel: PersonalRecordsViewModel = viewModel()
+                val recordsState by recordsViewModel.uiState.collectAsState()
+
+                PersonalRecordsScreen(
+                    hasData = recordsState.hasData,
+                    bestDayKm = recordsState.bestDayKm,
+                    bestDayDate = recordsState.bestDayDate,
+                    bestAvgKm = recordsState.bestAvgKm,
+                    bestAvgDate = recordsState.bestAvgDate,
+                    onBackClick = popBackStack
+                )
             }
             is ScreenRoute.HallOfFame -> {
-                HallOfFameScreen(onBackClick = popBackStack)
+                val fameViewModel: HallOfFameViewModel = viewModel()
+                val fameState by fameViewModel.uiState.collectAsState()
+
+                HallOfFameScreen(
+                    hasRecord = fameState.hasRecord,
+                    recordHolderName = fameState.recordHolderName,
+                    recordDistanceKm = fameState.recordDistanceKm,
+                    recordDate = fameState.recordDate,
+                    isCurrentUserHolder = fameState.isCurrentUserHolder,
+                    gapToRecordKm = fameState.gapToRecordKm,
+                    onBackClick = popBackStack
+                )
             }
             is ScreenRoute.ManageGroups -> {
                 val leaderboardViewModel: LeaderboardViewModel = viewModel()
@@ -206,13 +237,28 @@ fun MainShell(modifier: Modifier = Modifier) {
                 )
             }
             is ScreenRoute.WeeklyRecap -> {
+                val recapViewModel: WeeklyRecapViewModel = viewModel()
+                val recapState by recapViewModel.uiState.collectAsState()
+
                 WeeklyRecapScreen(
+                    weeklyDistanceKm = recapState.weeklyDistanceKm,
+                    landmarkText = recapState.landmarkText,
                     onSkipClick = popBackStack,
                     onShareClick = popBackStack
                 )
             }
             is ScreenRoute.AppBreakdown -> {
-                AppBreakdownScreen(onBackClick = popBackStack)
+                val breakdownViewModel: AppBreakdownViewModel = viewModel()
+                val breakdownState by breakdownViewModel.uiState.collectAsState()
+
+                AppBreakdownScreen(
+                    hasData = breakdownState.hasData,
+                    topApp = breakdownState.topApp,
+                    // Needs the group leaderboard, which needs A's sync.
+                    targetRank = null,
+                    apps = breakdownState.apps,
+                    onBackClick = popBackStack
+                )
             }
         }
     }

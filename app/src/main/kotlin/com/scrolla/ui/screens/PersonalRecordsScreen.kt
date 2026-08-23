@@ -53,8 +53,9 @@ fun PersonalRecordsScreen(
     hasData: Boolean = true,
     bestDayKm: Float = 0.4f,
     bestDayDate: String = "July 12",
-    bestAvgKm: Float = 1.2f,
-    bestAvgDate: String = "July 8 - 14",
+    /** Null until seven consecutive days of history exist. */
+    bestAvgKm: Float? = null,
+    bestAvgDate: String? = null,
     onBackClick: () -> Unit = {}
 ) {
     val spacing = MaterialTheme.spacing
@@ -142,16 +143,20 @@ fun PersonalRecordsScreen(
                         )
                     }
                     
-                    androidx.compose.animation.AnimatedVisibility(
-                        visible = isVisible,
-                        enter = androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(300, delayMillis = 200)) + 
-                                androidx.compose.animation.slideInVertically(androidx.compose.animation.core.tween(300, delayMillis = 200), initialOffsetY = { 20 })
-                    ) {
-                        RecordCard(
-                            label = ScrollaStrings.RECORDS_SEVEN_DAY_LABEL,
-                            distanceKm = bestAvgKm,
-                            date = bestAvgDate
-                        )
+                    // Only once seven consecutive days exist — a "best week"
+                    // computed over a shorter run would not be one.
+                    if (bestAvgKm != null && bestAvgDate != null) {
+                        androidx.compose.animation.AnimatedVisibility(
+                            visible = isVisible,
+                            enter = androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(300, delayMillis = 200)) +
+                                    androidx.compose.animation.slideInVertically(androidx.compose.animation.core.tween(300, delayMillis = 200), initialOffsetY = { 20 })
+                        ) {
+                            RecordCard(
+                                label = ScrollaStrings.RECORDS_SEVEN_DAY_LABEL,
+                                distanceKm = bestAvgKm,
+                                date = bestAvgDate
+                            )
+                        }
                     }
                     
                     Spacer(modifier = Modifier.height(spacing.extraExtraLarge))
