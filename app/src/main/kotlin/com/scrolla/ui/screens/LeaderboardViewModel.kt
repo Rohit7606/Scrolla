@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.scrolla.auth.AuthRepository
 import com.scrolla.firestore.GroupMembership
 import com.scrolla.firestore.GroupRepository
+import com.scrolla.model.DistanceFormatter
 import com.scrolla.model.ScrollaConstants
 import com.scrolla.room.ScrollRepository
 import com.scrolla.ui.ScrollaGraph
@@ -127,7 +128,9 @@ class LeaderboardViewModel(
                     )
                 },
                 groupStats = buildStats(),
-                groupBestDay = record?.let { "${it.recordKm} km by ${it.recordHolder}" }
+                groupBestDay = record?.let {
+                    "${DistanceFormatter.formatDistance(it.recordKm)} by ${it.recordHolder}"
+                }
             )
 
             lastLoadedAt = System.currentTimeMillis()

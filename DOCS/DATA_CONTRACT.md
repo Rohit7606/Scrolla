@@ -356,6 +356,17 @@ object DistanceFormatter {
      *  B calls this everywhere a km number appears in one run of text. */
     fun formatKm(km: Float): String = String.format(Locale.US, "%.1f km", km)
 
+    /** Adaptive display, added 2026-08-23 (B) after the first device run.
+     *  Measured on-device, a heavy day of scrolling is ~0.1-0.5 km (A's S0.7 test:
+     *  ~24 m per 5 minutes continuous), so a km figure to one decimal reads "0.0"
+     *  for most of every day. Below a rounded 1000 m the figure is shown in metres.
+     *  formatDisplayValue/formatDisplayUnit pair for the split-typography screens;
+     *  formatDistance is the two joined; formatDistanceSpoken is for screen readers. */
+    fun formatDisplayValue(km: Float): String   // "176" or "1.2"
+    fun formatDisplayUnit(km: Float): String    // "m" or "km"
+    fun formatDistance(km: Float): String       // "176 m" or "1.2 km"
+    fun formatDistanceSpoken(km: Float): String // "176 metres" or "1.2 kilometres"
+
     /** The same number without the unit: "2.3", "0.8", "12.1".
      *  Added 2026-08-23 (B) — the redesigned screens set the figure and the unit as two
      *  separate Text composables in different type styles, so those sites cannot use

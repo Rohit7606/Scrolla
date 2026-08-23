@@ -273,7 +273,7 @@ private fun AppUsageRow(
         Spacer(modifier = Modifier.width(16.dp))
         
         Text(
-            text = DistanceFormatter.formatKm(app.distanceKm),
+            text = DistanceFormatter.formatDistance(app.distanceKm),
             style = MaterialTheme.typography.titleMedium.copy(
                 fontFeatureSettings = "tnum"
             ),
