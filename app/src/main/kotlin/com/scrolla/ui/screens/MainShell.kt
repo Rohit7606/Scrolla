@@ -1,5 +1,7 @@
 package com.scrolla.ui.screens
 import kotlinx.parcelize.Parcelize
+import android.content.Intent
+import androidx.compose.ui.platform.LocalContext
 import android.os.Parcelable
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
@@ -83,6 +85,7 @@ private val destinations = listOf(
 
 @Composable
 fun MainShell(modifier: Modifier = Modifier) {
+    val context = LocalContext.current
     var routeStack by rememberSaveable { mutableStateOf(listOf<ScreenRoute>(ScreenRoute.MainTabs)) }
     var selectedTab by rememberSaveable { mutableIntStateOf(0) }
     // Survives rotation so a freshly created code is never lost before it is shared.
@@ -193,6 +196,20 @@ fun MainShell(modifier: Modifier = Modifier) {
                     onBackClick = popBackStack,
                     onJoinAnotherClick = { navigateTo(ScreenRoute.JoinGroup) },
                     onCreateGroupClick = { navigateTo(ScreenRoute.CreateGroup) },
+                    onShareClick = { group ->
+                        // The group's document id is its join code, so no lookup
+                        // is needed to invite someone later.
+                        val message = String.format(
+                            ScrollaStrings.GROUP_SHARE_TEMPLATE,
+                            group.name,
+                            group.id
+                        )
+                        val send = Intent(Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            putExtra(Intent.EXTRA_TEXT, message)
+                        }
+                        context.startActivity(Intent.createChooser(send, null))
+                    },
                     onGroupClick = { groupId ->
                         leaderboardViewModel.selectGroup(groupId)
                         // Land on the board for the group just picked. Popping back
