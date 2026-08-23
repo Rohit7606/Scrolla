@@ -139,7 +139,8 @@ fun WeeklyRecapScreen(
                             fontSize = 140.sp,
                             lineHeight = 140.sp,
                             letterSpacing = (-0.05).em,
-                            fontWeight = FontWeight.Light,
+                            // No fontWeight: Instrument Serif has one master.
+                            // Light is silently ignored, Bold is synthesised.
                             fontFeatureSettings = "tnum"
                         ),
                         color = MaterialTheme.colorScheme.onBackground

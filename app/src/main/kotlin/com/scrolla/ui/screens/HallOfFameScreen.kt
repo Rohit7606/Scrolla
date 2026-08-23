@@ -53,7 +53,7 @@ import com.scrolla.ui.components.bounceClick
 fun HallOfFameScreen(
     modifier: Modifier = Modifier,
     hasRecord: Boolean = true,
-    recordHolderName: String = "Priya",
+    recordHolderName: String = "Lewis",
     recordDistanceKm: Float = 0.4f,
     recordDate: String = "July 12",
     isCurrentUserHolder: Boolean = false,
@@ -197,7 +197,6 @@ fun HallOfFameScreen(
                             Text(
                                 text = ScrollaFormatters.formatDistance(recordDistanceKm),
                                 style = MaterialTheme.typography.displayMedium.copy(
-                                    fontWeight = FontWeight.Light,
                                     letterSpacing = (-0.03).em,
                                     fontFeatureSettings = "tnum"
                                 ),

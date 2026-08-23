@@ -167,7 +167,7 @@ fun SignInScreen(
                 ) {
                     Text(
                         text = ScrollaStrings.SIGN_IN_HEADLINE,
-                        style = MaterialTheme.typography.displayLarge.copy(lineHeight = 62.sp),
+                        style = MaterialTheme.typography.displayLarge,
                         color = headlineColor,
                         modifier = Modifier
                             .semantics { heading() }

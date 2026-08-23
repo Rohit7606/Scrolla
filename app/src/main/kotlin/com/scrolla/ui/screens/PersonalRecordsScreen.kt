@@ -189,7 +189,6 @@ private fun RecordCard(
             Text(
                 text = ScrollaFormatters.formatDistance(distanceKm),
                 style = MaterialTheme.typography.displayMedium.copy(
-                    fontWeight = FontWeight.Light,
                     letterSpacing = (-0.03).em,
                     fontFeatureSettings = "tnum"
                 ),
