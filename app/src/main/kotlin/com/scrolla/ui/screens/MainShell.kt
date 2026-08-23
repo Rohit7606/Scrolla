@@ -233,6 +233,9 @@ fun MainShell(
                     onBackClick = popBackStack,
                     onJoinAnotherClick = { navigateTo(ScreenRoute.JoinGroup) },
                     onCreateGroupClick = { navigateTo(ScreenRoute.CreateGroup) },
+                    onSetWidgetGroupClick = { group ->
+                        leaderboardViewModel.setPrimaryGroup(group.id)
+                    },
                     onShareClick = { group ->
                         // The group's document id is its join code, so no lookup
                         // is needed to invite someone later.
@@ -442,6 +445,7 @@ private fun MainTabsScreen(
                         groupBestDay = boardState.groupBestDay,
                         memberCount = boardState.activeGroup?.memberCount,
                         errorMessage = boardState.errorMessage,
+                        onRetryClick = { leaderboardViewModel.refresh() },
                         onSwitchGroupClick = onManageGroupsClick,
                         emptyBoardMessage = if (boardState.activeGroup == null) {
                             ScrollaStrings.LEADERBOARD_EMPTY_NO_GROUP

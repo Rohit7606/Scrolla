@@ -219,6 +219,7 @@ object ScrollaStrings {
     const val GROUP_SWITCHER_ADD = "+ Join another group"
     const val GROUP_SWITCHER_CREATE = "+ Create a new group"
     const val GROUP_SWITCHER_CODE_LABEL = "Code"
+    const val GROUP_SWITCHER_SET_WIDGET = "Use this group on the widget"
     const val GROUP_SHARE_TEMPLATE = "Join my Scrolla group \"%s\" — the one who scrolls least wins. Group code: %s"
     const val GROUP_SWITCHER_EMPTY = "You're not in any groups yet"
     const val GROUP_SWITCHER_EMPTY_BUTTON = "Join a group"
