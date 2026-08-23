@@ -1,10 +1,16 @@
 package com.scrolla.room
 
 import android.util.Log
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FieldValue
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.SetOptions
 import com.scrolla.model.DistanceFormatter
 import com.scrolla.model.ScrollaConstants
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withTimeout
 import java.time.LocalDate
 
 /**
@@ -78,7 +84,9 @@ interface ScrollRepository {
 class ScrollRepositoryImpl(
     private val scrollEventDao: ScrollEventDao,
     private val dailyTotalDao: DailyTotalDao,
-    private val serviceHealthDao: ServiceHealthDao
+    private val serviceHealthDao: ServiceHealthDao,
+    private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance(),
+    private val currentUserId: () -> String? = { FirebaseAuth.getInstance().currentUser?.uid }
 ) : ScrollRepository {
 
     private val tag = "ScrollRepository"
@@ -184,18 +192,70 @@ class ScrollRepositoryImpl(
     }
 
     override suspend fun triggerFirestoreSync() {
-        // TODO(S1.A9): Placeholder for B's Firestore layer.
-        // Per DATA_CONTRACT.md §3.3 the real sync writes today's totalKm to
-        // /groups/{groupId}/dailyTotals/{userId}_{date}. That logic lives in
-        // B's firestore/ folder, which has NOT been built yet (SPRINT_LOG.md:
-        // every S1.B* milestone is unchecked — B hasn't started Firestore work).
-        // This is a deliberate stub for an unbuilt dependency, NOT a bug:
-        // do not wire real Firestore calls here until B's firestore/ layer lands.
-        Log.i(
-            tag,
-            "triggerFirestoreSync() called but Firestore sync not yet available — " +
-                "B's firestore/ layer not implemented"
-        )
+        val userId = currentUserId()
+        if (userId == null) {
+            Log.i(tag, "triggerFirestoreSync() skipped — user is not signed in")
+            return
+        }
+        val date = today()
+        try {
+            val totalKm = getTodayTotalKm()
+            withTimeout(15_000L) {
+                val userGroups = firestore
+                    .collection("users").document(userId)
+                    .collection("groups").get().await()
+
+                for (groupDoc in userGroups.documents) {
+                    val groupId = groupDoc.id
+                    val displayName = groupDoc.getString("displayName") ?: "Unknown"
+                    val docId = "${userId}_${date}"
+
+                    firestore
+                        .collection("groups").document(groupId)
+                        .collection("dailyTotals").document(docId)
+                        .set(
+                            mapOf(
+                                "userId" to userId,
+                                "date" to date,
+                                "displayName" to displayName,
+                                "totalKm" to totalKm,
+                                "updatedAt" to FieldValue.serverTimestamp()
+                            ),
+                            SetOptions.merge()
+                        ).await()
+                }
+
+                Log.d(
+                    tag,
+                    "triggerFirestoreSync() successfully synced ${userGroups.documents.size} group(s) " +
+                        "for user=$userId, date=$date, totalKm=$totalKm"
+                )
+            }
+
+            // S1.A6 / Amendment 1: On success, update lastFirestoreSyncTimestamp and clear degradedReason
+            val current = serviceHealthDao.getOnce()
+            val now = System.currentTimeMillis()
+            val updated = if (current != null) {
+                current.copy(
+                    lastFirestoreSyncTimestamp = now,
+                    degradedReason = null
+                )
+            } else {
+                ServiceHealthState(
+                    id = 1,
+                    isServiceRunning = false,
+                    isAccessibilityServiceEnabled = true,
+                    lastEventTimestamp = 0L,
+                    lastRoomFlushTimestamp = 0L,
+                    lastFirestoreSyncTimestamp = now,
+                    degradedReason = null
+                )
+            }
+            serviceHealthDao.upsert(updated)
+        } catch (e: Exception) {
+            Log.e(tag, "triggerFirestoreSync() failed for user=$userId, date=$date", e)
+            markDegraded("triggerFirestoreSync: ${e.message}")
+        }
     }
 
     /**
