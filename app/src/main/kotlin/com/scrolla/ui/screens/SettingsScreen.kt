@@ -170,6 +170,13 @@ fun SettingsScreen(
                     val uiHealthState = when {
                         serviceHealthState == null -> UiServiceHealthState.UNKNOWN
                         !serviceHealthState.isAccessibilityServiceEnabled -> UiServiceHealthState.STOPPED
+                        // isServiceRunning is only ever set true by a successful
+                        // flush, and onServiceConnected() does not set it. So a
+                        // service enabled seconds ago has it false through no
+                        // fault of its own — reporting INTERRUPTED there accuses
+                        // the OS of killing something that has simply not had
+                        // anything to write yet.
+                        serviceHealthState.lastRoomFlushTimestamp == 0L -> UiServiceHealthState.UNKNOWN
                         !serviceHealthState.isServiceRunning -> UiServiceHealthState.INTERRUPTED
                         serviceHealthState.degradedReason != null -> UiServiceHealthState.DEGRADED
                         else -> UiServiceHealthState.ACTIVE
