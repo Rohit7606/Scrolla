@@ -414,9 +414,9 @@ private fun MainTabsScreen(
                         landmarkText = homeState.landmarkText,
                         hasSensorData = homeState.hasSensorData,
                         isLoading = homeState.isLoading,
-                        // Rank needs other members' totals from Firestore, which
-                        // only appear once A's triggerFirestoreSync() is implemented
-                        // (DATA_CONTRACT §3.3). Null until then — the card degrades.
+                        // Rank is unblocked as of 2026-08-24: A's sync is proven to write
+                        // totals for multiple members. Still null because HomeUiState carries
+                        // no rank field yet — wiring it is SPRINT_LOG S2.1's last clause.
                         rankPosition = null,
                         groupSize = null,
                         groupName = null,

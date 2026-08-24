@@ -190,10 +190,12 @@ every step. From 2026-08-16 to 2026-08-23 that flow was silently impossible.
 
 - [x] **P2.1a** Second Google account, second physical device.
 - [x] **P2.1b** Create a group on device 1, share the code, join from device 2.
-- [ ] **P2.1c** Both devices scroll; confirm both appear on **both** leaderboards
-      with the right numbers and the right ascending order. *Partially done —
-      confirmed on one device. Ascending order needs two differing values to be
-      meaningful, and the friend's own view has not been checked.*
+- [x] **P2.1c** Both devices scroll; confirm both appear on **both** leaderboards
+      with the right numbers and the right ascending order. *Passed 2026-08-24.
+      Ascending order observed with two differing values, and the Home-vs-
+      leaderboard figure matched on the second device too — checked by its owner,
+      which is the stronger form of the test since it runs a different uid against
+      the same rules. This also closes sprint item S2.9.*
 - [ ] **P2.1d** Confirm the group record (`recordKm`) updates and that the
       improvement-only rule behaves with two writers. **Cannot pass as written —
       see P2.6.**

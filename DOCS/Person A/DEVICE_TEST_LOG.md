@@ -26,12 +26,58 @@ List every device in the friend group here before testing begins. These are the 
 | Person | Device | Manufacturer | Model | Android version | Tested? |
 |---|---|---|---|---|---|
 | A | — | — | — | — | ☐ |
-| B | — | — | — | — | ☐ |
-| Friend 1 | — | — | — | — | ☐ |
+| B | OPPO | OPPO | CPH2565 | — | ☑ |
+| Friend 1 | _model not yet recorded_ | _to fill_ | _to fill_ | _to fill_ | ☑ |
 | Friend 2 | — | — | — | — | ☐ |
 | Friend 3 | — | — | — | — | ☐ |
 
 > Fill this in before Sprint 2 ends. The OEM battery whitelist UI (Screen 8) must cover every manufacturer listed here. If a new friend joins the group later, add their device and recheck the whitelist UI.
+
+---
+
+## 2A. TEST RESULTS
+
+### 2026-08-24 — Multi-user end-to-end (SPRINT_LOG S2.9, S2.4; PREMIUM_CHECKLIST P2.1)
+
+**First test in this log, and the first time Scrolla ran with more than one participant.**
+
+| | Device B | Device Friend 1 |
+|---|---|---|
+| Manufacturer | OPPO | _to fill_ |
+| Model | CPH2565 | _to fill_ |
+| Android version | _to fill_ | _to fill_ |
+| Install method | — | sideloaded APK |
+
+**What was done:** Friend 1 installed the APK, signed in with their own Google
+account, and joined an existing group using a shared code. Both devices scrolled.
+Both then compared their Home figure against the group leaderboard.
+
+**Result: pass.**
+
+- Leaderboard rendered "2 of 2 synced today" — so `joinGroup()`'s `arrayUnion`
+  on `members` committed, A's `triggerFirestoreSync()` wrote a `dailyTotals`
+  document for **both** users, `getGroupLeaderboard()` read both back, and the
+  deployed security rules permitted every step from two different accounts.
+- Ascending order (lowest wins) confirmed on screen with two differing values —
+  verified as behaviour, not only as `sortedBy { it.totalKm }` by inspection.
+- Home figure matched leaderboard figure **on both devices independently**. The
+  second device's check is the stronger one: a different uid, evaluated against
+  the same rules, resolving "You" versus a display name through a different branch
+  of `LeaderboardViewModel`.
+
+**Why this mattered:** from 2026-08-16 to 2026-08-23 the deployed rules granted
+`create` but not `update` on `/groups/{groupId}`, so joining a group was silently
+impossible. Every multi-user milestone in the sprint log was unverifiable in
+principle, not merely untested.
+
+**Still to fill in for this entry:** Friend 1's manufacturer, model and Android
+version, and B's Android version. The Section 1 release gate counts devices and
+manufacturers, and cannot be assessed until the manufacturer is recorded.
+
+**Not covered by this test:** service survival with screen off, OEM battery
+killing, reboot survival, widget updates (no widget exists yet), and the group
+record path — which cannot be tested at all, because nothing in the app writes
+`recordKm` (PREMIUM_CHECKLIST P2.6).
 
 ---
 
