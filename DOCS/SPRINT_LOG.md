@@ -77,7 +77,7 @@
 | S2.1 | Home screen (Screen 5) built, reading real `getTodayTotalKm()` from `ScrollRepository`. Shows landmark from `DistanceFormatter.nearestLandmark()`. Shows group rank from Firestore. Rotating insight card wired to ≥1 real insight type. | B | ☐ | 2026-08-23 | R — **3 of 4 clauses done and device-verified.** `HomeViewModel` reads `getTodayTotalKm()`, the landmark comes from `nearestLandmark()`, and the insight card is wired to the real peak hour. Nothing constructed `ScrollRepositoryImpl` before this; `ui/ScrollaGraph.kt` is now the composition root. **Group rank is the missing clause** — it needs other members' totals, which do not exist until A implements `triggerFirestoreSync()`. The standing card degrades rather than inventing a rank, so this stays unchecked until A's sync lands. |
 | S2.2 | Home screen verified: km value shown equals value logged to Logcat by A's sensor during same session. Not checked vs mock data. | Both | ☑ | 2026-08-23 | R — Verified on OPPO CPH2565 by pulling `scrolla_database` off the device rather than reading Logcat: 56 rows in `scroll_events`, SUM(scrollCm) = 1,764.541, `daily_totals.totalKm` = 0.01764540746808052, top app `com.instagram.android` = 1,762.436 cm. Home displayed the same figure. Method differs from the milestone text (DB pull, not Logcat) — the DB is what A's service writes, so this checks the same number one step later. Definitely not mock data. |
 | S2.3 | Firestore sync timer in B's ViewModel: calls `triggerFirestoreSync()` every `ScrollaConstants.FIRESTORE_SYNC_INTERVAL_MS`. Also called on app foreground via `DefaultLifecycleObserver`. | B | ☑ | 2026-08-23 | R — `SyncViewModel.runPeriodicSync()` on the 15-minute constant, plus a foreground call via `RefreshOnResume` (a `LifecycleEventObserver` on ON_RESUME rather than `DefaultLifecycleObserver` — same trigger, works inside Compose). **B's side only:** `triggerFirestoreSync()` is still A's logged no-op, so this schedule has no cloud effect yet. It starts working the moment A implements the write, with no B-side change. |
-| S2.4 | Leaderboard screen (Screen 6) polls `/groups/{groupId}/dailyTotals/` on tab open, staleness check (`ScrollaConstants.LEADERBOARD_CACHE_STALE_MS`). Never uses `onSnapshot()`. Ranked ascending by `totalKm` (lowest wins). | B | ☐ |  | R 2026-08-23 — **Code complete, unverifiable.** `GroupRepository.getGroupLeaderboard()` is a one-shot `get()` (never `onSnapshot`), sorted ascending; `LeaderboardViewModel.refreshIfStale()` skips the read inside `LEADERBOARD_CACHE_STALE_MS` and runs on tab open and on resume. Cannot be checked off: nothing writes `/dailyTotals/` until A's sync exists, so the board renders its empty state and the read path has never returned a row. |
+| S2.4 | Leaderboard screen (Screen 6) polls `/groups/{groupId}/dailyTotals/` on tab open, staleness check (`ScrollaConstants.LEADERBOARD_CACHE_STALE_MS`). Never uses `onSnapshot()`. Ranked ascending by `totalKm` (lowest wins). | B | ☑ | 2026-08-24 | R 2026-08-24 — **Verified live with two accounts.** A second device joined the group and the board rendered "2 of 2 synced today" with a real row for each member, so the read path returns rows for the first time. Ascending order is correct by inspection (`sortedBy { it.totalKm }`) but has not been seen with two *differing* values on screen. Superseded note follows: R 2026-08-23 — **Code complete, unverifiable.** `GroupRepository.getGroupLeaderboard()` is a one-shot `get()` (never `onSnapshot`), sorted ascending; `LeaderboardViewModel.refreshIfStale()` skips the read inside `LEADERBOARD_CACHE_STALE_MS` and runs on tab open and on resume. Cannot be checked off: nothing writes `/dailyTotals/` until A's sync exists, so the board renders its empty state and the read path has never returned a row. |
 | S2.5 | Group switcher (Screen 9) displays all groups from `/users/{userId}/groups/` as scrollable list. Tapping group updates active leaderboard. | B | ☐ |  | R 2026-08-23 (evening) — Code complete and now usable, but not yet verified end to end. Rebuilt after device testing exposed five problems, all from the group flows predating any real group data: (1) the join code was generated and then discarded, so a created group could never be joined by anyone; (2) creating a group was reachable only from inside the join screen; (3) a new group did not appear until the screen was switched away and back, because the switcher renders a cached list; (4) selecting a group set the active group then popped back to wherever the user came from, so nothing visibly changed; (5) there was no route to another group from the Group tab and no indication of which group was shown. All five fixed on `b/group-flow-fixes`. Still unchecked: switching between two real groups has never been exercised, because no test account has ever had two. |
 | S2.6 | Widget (small size) built. Shows `getTodayTotalKm()` and nearest landmark. Updates via `AlarmManager` (not `WorkManager` — more reliable on OEM devices). Tapping widget opens Home screen. | A | ☐ | | |
 | S2.7 | Service Health screen (Screen 8) wired to `observeServiceHealth()` Flow. Shows live `isServiceRunning` status, `lastFirestoreSyncTimestamp`, and `degradedReason` if non‑null. OEM battery steps from S1.A7 accessible here. | B (UI) + A (data) | ☐ |  | Groundwork 2026-08-16 (`37912a1`): B's duplicate `ServiceHealthState` enum removed in favour of A's Room entity. **Collector added 2026-08-23** — `SettingsViewModel` collects `observeServiceHealth()` (collected, never polled); the card renders `isServiceRunning`, `isAccessibilityServiceEnabled` and `degradedReason`, with `deviceOem` from `Build.MANUFACTURER` driving the OEM copy. **Bug fixed in passing:** a null health row mapped to ACTIVE, so a fresh install claimed "Tracking is active" having never received an event — added an explicit UNKNOWN state. **Two gaps:** `lastFirestoreSyncTimestamp` is not displayed, and stays 0 until A's sync writes it. |
@@ -94,7 +94,7 @@
 | S3.1 | Insights screen (Screen 7): weekly bar chart (MPAndroidChart, `getRecentDailyTotals(7)`), top apps breakdown (`getTodayTopApps()`), peak hour callout (`getTodayPeakHour()`) with time‑of‑day landmark framing. Privacy note (“stays on this device, never shared”) visible on screen. | B | ☑ | 2026-08-23 | R — `InsightsViewModel` wired to all three sources; privacy note present. Chart is hand-built Compose, **not MPAndroidChart** — the dependency was never added, and the bars need hit-testing plus a selected state the redesign already implements. Deviation recorded rather than hidden. Charts a calendar week (Mon–Sun) rather than the trailing 7 days, marking days after today as future rather than zero. Device-verified on OPPO CPH2565: real app names render after the package-visibility fix. |
 | S3.2 | App breakdown detail screen (Screen 14): per‑app totals plus “cutting X by 20% would put you in 1st” nudge. Confirmed no per‑app data sent to Firestore any point. | B | ☐ |  | R 2026-08-23 — Wired to `getTodayTopApps()`. **Privacy clause structurally enforced:** `AppBreakdownViewModel` takes `ScrollRepository` and nothing else — no `GroupRepository`, so per-app figures have no code path to Firestore at all. Percentages are shares of the five apps shown, not of the whole day, because the DAO caps at 5. **The nudge is not implemented** — "would put you in 1st" needs the group leaderboard, so `targetRank` is null and the line is hidden. |
 | S3.3 | Personal records screen (Screen 12): lowest day ever (`getPersonalBestDay()`), first time under self‑set threshold, milestone copy from `UI_COPY.md`. | B | ☐ |  | R 2026-08-23 — Best day wired to `getPersonalBestDay()`. The best-week card computes the quietest 7-day window over **consecutive calendar dates**, not consecutive rows: a day with no scrolling has no row, so a row-based window would silently span a gap and report a week that never happened. Hidden until 7 consecutive days exist, so it cannot be seen yet — the test device has one day of history. "First time under a self-set threshold" is not implemented; there is no threshold-setting UI anywhere. |
-| S3.4 | Group hall of fame screen (Screen 13): reads `recordKm`, `recordHolder`, `recordDate` from group metadata doc. Displays “progress toward record” alongside absolute best (framing fix `scrolla_project_summary.md` Sec 16). | B | ☐ |  | R 2026-08-23 — `HallOfFameViewModel` reads all three fields via `getGroupRecord()` and computes the gap against the user's own best day. **Double-blocked:** no record can exist until A's sync runs, and separately the deployed rules granted `create` but not `update` on `/groups/{groupId}`, so `recordKm` could never be written by anyone. Rules fix pending A's review. Renders its empty state today. |
+| S3.4 | Group hall of fame screen (Screen 13): reads `recordKm`, `recordHolder`, `recordDate` from group metadata doc. Displays “progress toward record” alongside absolute best (framing fix `scrolla_project_summary.md` Sec 16). | B | ☐ |  | R 2026-08-23 — `HallOfFameViewModel` reads all three fields via `getGroupRecord()` and computes the gap against the user's own best day. **Correction 2026-08-24: it was triple-blocked, and the third cause is the only one left.** The first two blockers named here (A's sync missing; rules granting `create` but not `update`) are both now cleared — and S3.4 still cannot work, because **nothing anywhere in `app/src/main` writes `recordKm`, `recordHolder` or `recordDate`.** Every occurrence in the source is a read, a data-class field, a ViewModel mapping or a Compose preview default; the only Firestore writes that exist are group creation, membership, the `members` arrayUnion, the `isPrimary` batch and A's `dailyTotals` sync. `LeaderboardViewModel.groupBestDay` is therefore always null, and `isRecordImprovement()` — written, reviewed by A, and verified in the Rules Playground in both directions — guards a write no client makes. This stayed hidden because the read path, the previews and the security rules for the field all exist, so the feature looked complete from every angle except the one that mattered. Tracked as PREMIUM_CHECKLIST P2.6. Renders its empty state today. |
 | S3.5 | Weekly recap shareable card (Screen 11): generates shareable image with km, group rank, landmark comparison, badge if earned. Uses Android `Bitmap` + share intent. | B | ☐ |  | R 2026-08-23 — **Only the data is wired.** `WeeklyRecapViewModel` supplies the 7-day total and a proximity-gated landmark. The actual milestone — Bitmap generation and a share intent — **is not implemented at all**: `onShareClick` currently just pops the back stack. Group rank and badges also missing. Treat this row as barely started. |
 | S3.6 | Join group screen (Screen 10): validates 6‑digit code format client‑side before Firestore query. Shows clear “group not found” state if code absent. | B | ☐ |  | R 2026-08-23 — Screen and `GroupViewModel` wiring exist and "group not found" is handled. **Discovered 2026-08-23: joining had never worked.** The deployed rules allowed `create` but not `update` on `/groups/{groupId}`, and `joinGroup()` calls `groupRef.update("members", arrayUnion(userId))` — denied since the rules went live on 2026-08-16. Rules fixed, reviewed by A (REVIEW_LOG #4) and **deployed 2026-08-23** after a Rules Playground pass. Separately, the invite code is now visible: the group document id **is** the join code (`createGroup` writes `.document(groupCode)`), so every membership already carried it — the switcher now shows it with a share sheet. **Still unchecked: a second account has never joined a group.** That is the one test that proves this row. |
 | S3.7 | Profile page (Screen 15): displays name, list of groups with primary toggle, “link phone number” entry point (S1.B4), “delete my account” flow (deletes Auth account + all `/users/{userId}/` Firestore docs + replaces name with “[deleted]” in hall of fame entries). Sign out. | B | ☐ |  | R 2026-08-23 — Done: real display name from Auth, group count and primary group name, personal best and 7-day averages, sign out via `SettingsViewModel`. `GroupRepository.setPrimaryGroup()` exists (batched, so exactly one membership holds the flag) but **no UI calls it**. Still missing entirely: phone linking (S1.B4) and the whole delete-account flow. **Also not possible today, and it is the rules rather than the UI:** renaming a group matches neither `isSelfJoin()` nor `isRecordImprovement()`, so it is denied; and leaving a group is half-blocked — the membership document can be deleted but removal from the group's `members` array fails `hasAll()`, which would leave the departed member counted forever. Both need a third and fourth rule plus A's review before any UI is worth building. |
@@ -115,7 +115,7 @@
 |---|---|---|
 | Sprint 0 | Complete | ☑ |
 | Sprint 1 | In progress — A complete (S1.A1–A10 ☑). B: 9 of 10 done (S1.B1–B3b, B5–B10 ☑). Only **S1.B4** (phone linking) remains. | — |
-| Sprint 2 | In progress — **no screen renders mock data any more.** S2.2 and S2.3 ☑. S2.1 is 3 of 4 clauses (group rank blocked). S2.4/S2.5/S2.7/S2.8 are code-complete but unverifiable or partial. S2.6 (widget) is A's and untouched. S2.9 needs A's sync. | ☑ (S1.A9) |
+| Sprint 2 | In progress — **the multi-user pipeline is proven end to end as of 2026-08-24.** S2.2, S2.3 and S2.4 ☑. S2.1's group-rank clause is now unblocked. S2.5 needs one account in two groups; S2.7/S2.8 partial. S2.6 (widget) is A's and untouched. S2.9 is half-run — the sync and the board are confirmed, the Home-vs-leaderboard number match is not. | ☑ (S1.A9) |
 | Sprint 3 | In progress — S3.1 ☑. S3.2/S3.3/S3.4/S3.6/S3.7 wired but incomplete or blocked; S3.5 barely started (no Bitmap/share). S3.8–S3.15 untouched. | — |
 
 > Update Status column to "In progress" or "Complete" as you go. The "Gate cleared?" column for Sprint 0 and Sprint 2 must be checked before next sprint begins — do not skip this.
@@ -182,3 +182,62 @@
 > **What is now blocked on people rather than code:** S2.9, S2.4, S2.5, S3.4 and the S3.2 nudge all need a second account joining a group and syncing. The whole social half of the app has never had more than one participant.
 >
 > **Standing caveat, narrowed:** Home, Insights and the group flows have now been exercised on an OPPO CPH2565. Personal Records, Hall of Fame, App Breakdown, Weekly Recap and Settings remain compile-verified only.
+
+---
+
+**2026-08-24 — Person B. The social half works.**
+
+**A second person used this app.** A friend installed the APK on their own
+device, signed in with their own Google account, joined a group with a shared
+code, and the Leaderboard rendered **"2 of 2 synced today"**.
+
+That one line is worth spelling out, because it is a live proof of every link in
+the chain at once: `joinGroup()`'s `arrayUnion` on `members` actually commits
+(otherwise `memberCount` would be 1), A's `triggerFirestoreSync()` wrote a
+`dailyTotals` document for *both* users, `getGroupLeaderboard()` read both back,
+and the deployed security rules permitted all of it from two different accounts.
+Between 2026-08-16 and 2026-08-23 that flow was silently impossible. It is the
+first time Scrolla has existed as a multi-user app rather than a single-player
+one with social code attached.
+
+**S2.4 is checked off.** The leaderboard read path has returned real rows for the
+first time. One honest caveat: ascending order is correct by inspection
+(`sortedBy { it.totalKm }`) but has not been seen on screen with two genuinely
+different values, so the ranking itself is verified as code and not as behaviour.
+
+**S2.9 is half-run.** The sync and the board are confirmed. Its actual assertion
+— that the km on the leaderboard equals the km on Home for the same person in the
+same session — has not been checked. That is a five-minute test and it is the one
+that proves the *number* rather than the plumbing.
+
+**And the test immediately turned up something no build or review had caught.**
+Chasing what else the second account unblocked, I grepped for the group-record
+write path and there isn't one. **Nothing anywhere in `app/src/main` writes
+`recordKm`, `recordHolder` or `recordDate`** — every occurrence is a read, a
+data-class field, a ViewModel mapping, or a Compose preview default.
+
+So S3.4 was never "double-blocked" as this log recorded it. It was triple-blocked,
+and the two causes we knew about are now the two that are fixed. The Hall of Fame
+renders its empty state permanently, `LeaderboardViewModel.groupBestDay` is always
+null, and `isRecordImprovement()` — which we wrote, A reviewed, and we verified in
+the Rules Playground in both directions — guards a write that no client makes.
+
+It stayed hidden for an instructive reason: the read path existed, the previews
+existed, the ViewModels existed, and the security rules existed. The feature
+looked finished from every angle except "who writes this?". Worth generalising —
+when a screen reads a Firestore field, grep for the write before calling it
+code-complete.
+
+Now tracked as **P2.6** in `PREMIUM_CHECKLIST.md`. It needs an ownership decision
+first: the natural trigger point is after a successful sync in A's
+`ScrollRepositoryImpl`, but the group-document write is B's per §2, so it is an
+edit-together seam. It also needs care that the record is only written for a
+*finished* day — lowest wins, so a running total written mid-morning would set a
+new record every single day.
+
+**Next, in order:**
+1. **Log both devices in `DEVICE_TEST_LOG.md`** (P2.1e). Its release gate wants 3
+   devices and 2 manufacturers; this is entry one, and the log is currently empty.
+2. **Finish S2.9** — the Home-vs-leaderboard number match.
+3. **P2.6** — agree ownership, then write the record.
+4. **P0.1** — the first unit tests, starting with `DistanceFormatter`.

@@ -175,20 +175,66 @@ Worth proving rather than asserting.
 
 ## P2 — Reliability
 
-### P2.1 — The second-account test `[Both]`
+### P2.1 — The second-account test `[Both]` — ◐ **mostly passed 2026-08-24**
 
-**Still the single highest-value outstanding item in the project.** No group has
-ever had more than one participant. S2.4, S2.5, S2.9, S3.4 and the S3.2 nudge are
-all blocked behind it, and the last round proved that code written without a real
-second party tends to be wrong in ways review does not catch.
+**This was the single highest-value outstanding item in the project, and it
+passed.** A friend installed the APK on a second device, signed in with their own
+Google account, joined a group by code, and the Leaderboard rendered
+**"2 of 2 synced today"**.
 
-- [ ] **P2.1a** Second Google account, second physical device.
-- [ ] **P2.1b** Create a group on device 1, share the code, join from device 2.
-- [ ] **P2.1c** Both devices scroll; confirm both appear on both leaderboards with
-      the right numbers and the right ascending order.
+That one line is a live end-to-end proof of the entire social pipeline:
+`joinGroup()`'s `arrayUnion` on `members` actually commits (so `memberCount` is
+2), A's `triggerFirestoreSync()` wrote a `dailyTotals` document for *both* users,
+`getGroupLeaderboard()` read both back, and the deployed security rules permitted
+every step. From 2026-08-16 to 2026-08-23 that flow was silently impossible.
+
+- [x] **P2.1a** Second Google account, second physical device.
+- [x] **P2.1b** Create a group on device 1, share the code, join from device 2.
+- [ ] **P2.1c** Both devices scroll; confirm both appear on **both** leaderboards
+      with the right numbers and the right ascending order. *Partially done —
+      confirmed on one device. Ascending order needs two differing values to be
+      meaningful, and the friend's own view has not been checked.*
 - [ ] **P2.1d** Confirm the group record (`recordKm`) updates and that the
-      improvement-only rule behaves with two writers.
-- [ ] **P2.1e** Log it in `DEVICE_TEST_LOG.md`.
+      improvement-only rule behaves with two writers. **Cannot pass as written —
+      see P2.6.**
+- [ ] **P2.1e** Log it in `DEVICE_TEST_LOG.md`, including both devices in the
+      Section 2 table. That log's release gate wants 3 devices and 2
+      manufacturers; this is the first entry.
+
+### P2.6 — Nothing writes the group record `[B]` — *found 2026-08-24*
+
+**No code anywhere in `app/src/main` writes `recordKm`, `recordHolder` or
+`recordDate`.** Every single occurrence is a read (`GroupRepository:217`), a
+data-class field, a ViewModel mapping, or a Compose preview default. The only
+Firestore writes that exist are group creation, membership, the `members`
+arrayUnion, the `isPrimary` batch, and A's `dailyTotals` sync.
+
+Consequences, all currently invisible because they render as empty states:
+
+- S3.4 (Hall of Fame) renders its empty state permanently, not just until sync
+  works.
+- `LeaderboardViewModel.groupBestDay` is always null, so the group best-day line
+  never appears.
+- `isRecordImprovement()` — which we wrote, A reviewed, and we verified in the
+  Rules Playground in both directions — guards a write that no client makes.
+
+The sprint log called S3.4 "double-blocked" on A's sync and on the rules. Both
+blockers have since been cleared and it still would not work, because a third
+cause was never logged. It stayed hidden because the read path, the previews and
+the security rules for the field all exist — the feature looks complete from
+every angle except the one that matters.
+
+- [ ] **P2.6a** Decide where the record is written. Most natural: after a
+      successful `triggerFirestoreSync()`, compare the user's completed-day total
+      against `recordKm` and write if lower. Note "lowest wins" — the record is a
+      *minimum*, which is why `isRecordImprovement()` tests `<=`.
+- [ ] **P2.6b** Settle whether it is A's or B's. The trigger point sits in A's
+      `ScrollRepositoryImpl`; the Firestore group-document write is B's per §2.
+      This is an edit-together seam and needs agreeing before either writes code.
+- [ ] **P2.6c** Only write a record for a *finished* day. Writing mid-day makes
+      every morning a new record, since the running total starts near zero and
+      lowest wins.
+- [ ] **P2.6d** Then P2.1d becomes testable.
 
 ### P2.2 — Screens never run on a device `[B]`
 
