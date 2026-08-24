@@ -1,0 +1,106 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&amp;family=Space+Grotesk:wght@400;500;700&amp;display=swap">
+  <style>
+    body { margin: 0; background: #121110; }
+    a { color: #ED6A5A; }
+    a:hover { color: #F08475; }
+  </style>
+</helmet>
+
+<div style="width: 1080px; min-height: 1240px; background: #121110; color: #F5F1EE; font-family: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif; padding: 52px; box-sizing: border-box; display: flex; flex-direction: column; gap: 40px;">
+
+  <div style="display: flex; flex-direction: column; gap: 16px; max-width: 800px;">
+    <div style="font-size: 11px; font-weight: 500; letter-spacing: 0.18em; color: #857E78;">ONBOARDING · SIX PHASES · READ FROM SOURCE</div>
+    <div style="font-family: 'Instrument Serif', Georgia, serif; font-size: 48px; line-height: 1.08; color: #F5F1EE;">The empty space is not a spacing bug. It is instructed.</div>
+    <div style="font-size: 15.5px; line-height: 1.6; color: #A39D98; text-wrap: pretty;">RevealPhase puts <span style="color:#F5F1EE;">Spacer(weight(0.25f))</span> above the content and <span style="color:#F5F1EE;">Spacer(weight(0.75f))</span> below it — an explicit instruction to dump three quarters of the leftover height under the punchline. Five of the other phases use a plain <span style="color:#F5F1EE;">weight(1f)</span>, so every screen has the same hole; Reveal is simply where it shows, because Reveal has the least content to hide it.</div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px;">
+
+    <div style="background: #1A1817; border: 1px solid #2A2624; border-radius: 20px; padding: 24px 26px; display: flex; flex-direction: column; gap: 11px;">
+      <div style="display: flex; align-items: baseline; gap: 13px;">
+        <span style="font-family: 'Instrument Serif', Georgia, serif; font-size: 24px; color: #ED6A5A;">01</span>
+        <span style="font-size: 18px; font-weight: 500;">One skeleton, six times</span>
+      </div>
+      <div style="font-size: 13px; line-height: 1.6; color: #857E78; border-left: 2px solid #2E2A28; padding-left: 13px;">Question, Reveal, Invitation, Permission, Battery and Join all read: content top-aligned, one weighted void, button pinned to the bottom.</div>
+      <div style="font-size: 14px; line-height: 1.6; color: #F5F1EE;">Six screens that should feel like a narrative arc instead feel like one template with the words swapped.</div>
+    </div>
+
+    <div style="background: #1A1817; border: 1px solid #2A2624; border-radius: 20px; padding: 24px 26px; display: flex; flex-direction: column; gap: 11px;">
+      <div style="display: flex; align-items: baseline; gap: 13px;">
+        <span style="font-family: 'Instrument Serif', Georgia, serif; font-size: 24px; color: #ED6A5A;">02</span>
+        <span style="font-size: 18px; font-weight: 500;">Nothing scrolls</span>
+      </div>
+      <div style="font-size: 13px; line-height: 1.6; color: #857E78; border-left: 2px solid #2E2A28; padding-left: 13px;">There is no verticalScroll anywhere in the file. PermissionPhase carries a headline, a subhead and nine bullets in three groups.</div>
+      <div style="font-size: 14px; line-height: 1.6; color: #F5F1EE;">The file declares its own 2.0 font-scale preview. At that scale the permission screen cannot fit, and the button cannot be reached — onboarding dead-ends.</div>
+    </div>
+
+    <div style="background: #1A1817; border: 1px solid #2A2624; border-radius: 20px; padding: 24px 26px; display: flex; flex-direction: column; gap: 11px;">
+      <div style="display: flex; align-items: baseline; gap: 13px;">
+        <span style="font-family: 'Instrument Serif', Georgia, serif; font-size: 24px; color: #ED6A5A;">03</span>
+        <span style="font-size: 18px; font-weight: 500;">The ground stopped being a colour</span>
+      </div>
+      <div style="font-size: 13px; line-height: 1.6; color: #857E78; border-left: 2px solid #2E2A28; padding-left: 13px;">Lines 125–169 give every phase its own glow x, y, radius and alpha. Reveal runs at 0.40, with a second radial underneath drawn at full-strength primary.</div>
+      <div style="font-size: 14px; line-height: 1.6; color: #F5F1EE;">That is the muddy brown wash in your screenshot — and it is why the coral number reads soft: it is coral sitting on coral.</div>
+    </div>
+
+    <div style="background: #1A1817; border: 1px solid #2A2624; border-radius: 20px; padding: 24px 26px; display: flex; flex-direction: column; gap: 11px;">
+      <div style="display: flex; align-items: baseline; gap: 13px;">
+        <span style="font-family: 'Instrument Serif', Georgia, serif; font-size: 24px; color: #ED6A5A;">04</span>
+        <span style="font-size: 18px; font-weight: 500;">The guess is collected, then discarded</span>
+      </div>
+      <div style="font-size: 13px; line-height: 1.6; color: #857E78; border-left: 2px solid #2E2A28; padding-left: 13px;">selectedGuess is rendered once, as grey text in a grey chip, and never referenced again.</div>
+      <div style="font-size: 14px; line-height: 1.6; color: #F5F1EE;">You ask people to commit to an answer and then never tell them how wrong they were. Being out by 2800× is the most interesting fact in the whole flow and it is computed nowhere.</div>
+    </div>
+
+    <div style="background: #1A1817; border: 1px solid #2A2624; border-radius: 20px; padding: 24px 26px; display: flex; flex-direction: column; gap: 11px;">
+      <div style="display: flex; align-items: baseline; gap: 13px;">
+        <span style="font-family: 'Instrument Serif', Georgia, serif; font-size: 24px; color: #ED6A5A;">05</span>
+        <span style="font-size: 18px; font-weight: 500;">The accent bar beside the punchline</span>
+      </div>
+      <div style="font-size: 13px; line-height: 1.6; color: #857E78; border-left: 2px solid #2E2A28; padding-left: 13px;">A 3dp coral rule, 52dp tall, at 30% alpha, sitting to the left of two lines of text.</div>
+      <div style="font-size: 14px; line-height: 1.6; color: #F5F1EE;">It is the one decoration worth removing on sight, and it is doing nothing the two type weights are not already doing.</div>
+    </div>
+
+    <div style="background: #1A1817; border: 1px solid #2A2624; border-radius: 20px; padding: 24px 26px; display: flex; flex-direction: column; gap: 11px;">
+      <div style="display: flex; align-items: baseline; gap: 13px;">
+        <span style="font-family: 'Instrument Serif', Georgia, serif; font-size: 24px; color: #ED6A5A;">06</span>
+        <span style="font-size: 18px; font-weight: 500;">The peak is in the wrong place</span>
+      </div>
+      <div style="font-size: 13px; line-height: 1.6; color: #857E78; border-left: 2px solid #2E2A28; padding-left: 13px;">Reveal is phase two of six. Four screens of permissions, battery settings and group codes follow it.</div>
+      <div style="font-size: 14px; line-height: 1.6; color: #F5F1EE;">That order is probably right — earn the permission ask with the payoff — but it means Reveal is carrying the whole flow's motivation, and right now it is the emptiest screen in it.</div>
+    </div>
+
+  </div>
+
+  <div style="background: #1A1817; border: 1px solid #3A2F2C; border-radius: 20px; padding: 28px 32px; display: flex; flex-direction: column; gap: 16px;">
+    <div style="font-size: 11px; font-weight: 500; letter-spacing: 0.18em; color: #ED6A5A;">CHOSEN · OPTION A, SCALE PROOF — WITH THE GLOW KEPT</div>
+    <div style="font-family: 'Instrument Serif', Georgia, serif; font-size: 28px; line-height: 1.25; color: #F5F1EE; max-width: 860px; text-wrap: pretty;">The void becomes the argument, and the glow earns its place by coming from the thing being measured.</div>
+    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px;">
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="font-size: 10.5px; font-weight: 500; letter-spacing: 0.16em; color: #857E78;">ANCHORED, NOT SCATTERED</div>
+        <div style="font-size: 13.5px; line-height: 1.6; color: #A39D98;">One radial at the foot of the coral column, roughly 44% across and 66% down, so the light reads as emitted by the bar rather than smeared over the screen. The bar carries a matching bloom of its own.</div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="font-size: 10.5px; font-weight: 500; letter-spacing: 0.16em; color: #857E78;">CAPPED AT 0.24, NOT 0.40</div>
+        <div style="font-size: 13.5px; line-height: 1.6; color: #A39D98;">And the second full-strength radial underneath is gone. That one was the actual source of the brown — it was drawn at full primary opacity at its centre.</div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="font-size: 10.5px; font-weight: 500; letter-spacing: 0.16em; color: #857E78;">A SCRIM OVER THE TOP THIRD</div>
+        <div style="font-size: 13.5px; line-height: 1.6; color: #A39D98;">The number, the chip and the punchline all sit on near-black. Glow below the fold of the eye, type above it — that is what stops coral landing on coral.</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>
