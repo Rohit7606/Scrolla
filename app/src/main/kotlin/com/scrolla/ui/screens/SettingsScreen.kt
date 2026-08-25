@@ -32,6 +32,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -73,6 +74,10 @@ private fun formatHealthTime(timestamp: Long?, template: String, neverText: Stri
     )
 }
 
+/** What the user must type to enable the delete button. Not localised on
+ *  purpose: it is a fixed token, not prose. */
+private const val DELETE_KEYWORD = "DELETE"
+
 enum class UiServiceHealthState {
     ACTIVE,
     STOPPED,
@@ -106,15 +111,81 @@ fun SettingsScreen(
     onEditNameClick: () -> Unit = {},
     onAddPhoneClick: () -> Unit = {},
     onSignOutClick: () -> Unit = {},
-    onDeleteAccountClick: () -> Unit = {}
+    onDeleteAccountClick: () -> Unit = {},
+    /** True while deletion is in flight — the row must not be tappable twice. */
+    isDeleting: Boolean = false,
+    /** Non-null when deletion failed. Shown instead of closing silently, because
+     *  a user who thinks they are deleted and is not has been actively misled. */
+    deleteError: String? = null,
+    onDismissDeleteError: () -> Unit = {}
 ) {
     val spacing = MaterialTheme.spacing
     val scrollState = rememberScrollState()
 
     var isVisible by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
     var showSignOutConfirm by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    var showDeleteConfirm by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    var deleteConfirmText by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf("") }
     androidx.compose.runtime.LaunchedEffect(Unit) {
         isVisible = true
+    }
+
+    if (deleteError != null) {
+        AlertDialog(
+            onDismissRequest = onDismissDeleteError,
+            title = { Text(ScrollaStrings.SETTINGS_DELETE_TITLE) },
+            text = { Text(deleteError) },
+            confirmButton = {
+                TextButton(onClick = onDismissDeleteError) {
+                    Text(ScrollaStrings.ERROR_DISMISS)
+                }
+            }
+        )
+    }
+
+    if (showDeleteConfirm) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirm = false; deleteConfirmText = "" },
+            title = { Text(ScrollaStrings.SETTINGS_DELETE_TITLE) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(spacing.medium)) {
+                    Text(ScrollaStrings.SETTINGS_DELETE_BODY)
+                    // SETTINGS_DELETE_INPUT_HINT has existed since the copy was
+                    // first written and had never been rendered. A type-to-confirm
+                    // gate is the right weight for an action with no undo, and it
+                    // was already the intended design.
+                    OutlinedTextField(
+                        value = deleteConfirmText,
+                        onValueChange = { deleteConfirmText = it },
+                        singleLine = true,
+                        label = { Text(ScrollaStrings.SETTINGS_DELETE_INPUT_HINT) },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = deleteConfirmText.trim().equals(DELETE_KEYWORD, ignoreCase = false),
+                    onClick = {
+                        showDeleteConfirm = false
+                        deleteConfirmText = ""
+                        onDeleteAccountClick()
+                    }
+                ) {
+                    Text(
+                        ScrollaStrings.SETTINGS_DELETE_CONFIRM,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+            },
+            // The safe choice says what it does. "Cancel" next to a deletion
+            // prompt is ambiguous about which thing is being cancelled.
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirm = false; deleteConfirmText = "" }) {
+                    Text(ScrollaStrings.SETTINGS_DELETE_CANCEL)
+                }
+            }
+        )
     }
 
     if (showSignOutConfirm) {
@@ -333,10 +404,19 @@ fun SettingsScreen(
                         )
                         
                         SettingsItem(
-                            label = ScrollaStrings.SETTINGS_DELETE_ACCOUNT,
-                            onClick = onDeleteAccountClick,
+                            label = if (isDeleting) {
+                                ScrollaStrings.SETTINGS_DELETE_IN_PROGRESS
+                            } else {
+                                ScrollaStrings.SETTINGS_DELETE_ACCOUNT
+                            },
+                            // Was `enabled = false` and had never done anything.
+                            // For an app built on an accessibility service this
+                            // is the trust affordance, not a nice-to-have: you
+                            // cannot ask someone to let you watch every scroll
+                            // they make and then offer no way out.
+                            onClick = { showDeleteConfirm = true },
                             isDestructive = true,
-                            enabled = false
+                            enabled = !isDeleting
                         )
                     }
                 }

@@ -36,6 +36,7 @@ class GroupRepository(
     private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
 ) {
     companion object {
+        const val DELETED_HOLDER = "[deleted]"
         private const val TAG = "GroupRepository"
         private const val GROUP_CODE_LENGTH = 6
     }
@@ -227,6 +228,103 @@ class GroupRepository(
             Result.success(record)
         } catch (e: Exception) {
             Log.e(TAG, "Failed to load record for group: $groupId", e)
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Erases everything this user has in Firestore, ahead of deleting the
+     * account itself.
+     *
+     * **Order is not incidental.** Every rule in `firestore.rules` is gated on
+     * `signedIn()` and `request.auth.uid`, so all of this must happen while the
+     * account still exists. Delete the Firebase user first and the data becomes
+     * permanently unreachable — orphaned rows nobody can see or remove, in an
+     * app whose deletion promise is the reason the screen exists.
+     *
+     * Removes, in order:
+     *  1. every `dailyTotals` document the user wrote, in every group
+     *  2. the user from each group's `members` array (`isSelfLeave()`)
+     *  3. the user's own membership records under `/users/{uid}/groups/`
+     *  4. the `/users/{uid}` profile document
+     *
+     * Best-effort per group: one group failing must not strand the rest. The
+     * failures are collected and returned so the caller can decide whether the
+     * account deletion should still proceed.
+     */
+    suspend fun deleteAllUserData(userId: String, displayName: String): Result<List<String>> {
+        val problems = mutableListOf<String>()
+        return try {
+            val groups = getUserGroups(userId).getOrElse {
+                return Result.failure(it)
+            }
+
+            for (group in groups) {
+                try {
+                    // 1. Scrub the user's name off the group record if they hold
+                    // it. SETTINGS_DELETE_BODY promises exactly this ("your name
+                    // in group history will be replaced with '[deleted]'"), and
+                    // without it a deleted account's name lives on indefinitely
+                    // on the Hall of Fame of every group they were in.
+                    //
+                    // Must happen BEFORE leaving the group: isRecordImprovement()
+                    // requires `request.auth.uid in resource.data.members`, so
+                    // once the arrayRemove below lands, this write is denied
+                    // forever. The record value itself is preserved — the rule
+                    // permits an equal recordKm, so the group keeps its history
+                    // and loses only the name.
+                    val record = getGroupRecord(group.groupId).getOrNull()
+                    if (record != null && record.recordHolder == displayName) {
+                        firestore.collection("groups").document(group.groupId)
+                            .update(
+                                mapOf(
+                                    "recordKm" to record.recordKm,
+                                    "recordHolder" to DELETED_HOLDER,
+                                    "recordDate" to record.recordDate
+                                )
+                            ).await()
+                    }
+
+                    // 2. This user's daily totals in this group. Queried rather
+                    // than guessed by id, because the id encodes a date and we
+                    // do not know which dates exist.
+                    val totals = firestore.collection("groups")
+                        .document(group.groupId)
+                        .collection("dailyTotals")
+                        .whereEqualTo("userId", userId)
+                        .get().await()
+                    for (doc in totals.documents) {
+                        doc.reference.delete().await()
+                    }
+
+                    // 3. Leave the group.
+                    firestore.collection("groups").document(group.groupId)
+                        .update("members", FieldValue.arrayRemove(userId))
+                        .await()
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to clear user data from group ${group.groupId}", e)
+                    problems += group.groupId
+                }
+
+                // 4. The user's own record of this membership. Deleted even if
+                // the group-side cleanup failed, so the app stops showing a
+                // group the user believes they have left.
+                try {
+                    firestore.collection("users").document(userId)
+                        .collection("groups").document(group.groupId)
+                        .delete().await()
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to delete membership record ${group.groupId}", e)
+                    problems += group.groupId
+                }
+            }
+
+            // 5. The profile document itself.
+            firestore.collection("users").document(userId).delete().await()
+
+            Result.success(problems.distinct())
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to delete user data for $userId", e)
             Result.failure(e)
         }
     }

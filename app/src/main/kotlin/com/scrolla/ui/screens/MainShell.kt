@@ -158,6 +158,12 @@ fun MainShell(
                         settingsViewModel.signOut(context)
                         onSignedOut()
                     },
+                    isDeleting = settingsState.isDeleting,
+                    deleteError = settingsState.deleteError,
+                    onDismissDeleteError = { settingsViewModel.dismissDeleteError() },
+                    onDeleteAccountClick = {
+                        settingsViewModel.deleteAccount(context) { onSignedOut() }
+                    },
                     onFixBatteryClick = {
                         // The health card's action button was inert, which is the
                         // worst place for a dead control: it only appears when
