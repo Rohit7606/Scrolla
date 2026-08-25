@@ -127,6 +127,15 @@ object ScrollaStrings {
     const val ERROR_COULDNT_LOAD = "Couldn't load — showing last known ranking"
     const val ERROR_RETRY = "Something went wrong — tap to retry"
     const val ERROR_DISMISS = "OK"
+    const val ERROR_RETRY_ACTION = "Retry"
+    const val ERROR_PRIMARY_GROUP = "Couldn't set that as your main group"
+    const val ERROR_EXPORT_FAILED = "Couldn't build your export"
+
+    /** Deletion stopped part-way. Deliberately explicit that the account still
+     *  exists — a user who believes they are deleted and is not has been
+     *  actively misled, which is worse than a visible failure. */
+    const val SETTINGS_DELETE_PARTIAL =
+        "Some of your data couldn't be removed, so your account was kept. Try again when you have a better connection."
     const val ERROR_CANT_SYNC = "Couldn't sync — will retry automatically"
     const val ERROR_LAST_UPDATED_PREFIX = "Last updated"
 
