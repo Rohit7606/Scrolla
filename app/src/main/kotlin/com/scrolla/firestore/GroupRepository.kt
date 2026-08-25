@@ -6,6 +6,9 @@ import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
 import kotlin.random.Random
 
+/** Raised when a user tries to join a group they are already a member of. */
+class AlreadyInGroupException : Exception("You're already in this group")
+
 /** One group the user belongs to, joined with the group's own metadata. */
 data class GroupMembership(
     val groupId: String,
@@ -107,14 +110,24 @@ class GroupRepository(
                 return Result.failure(Exception("Group not found — check the code"))
             }
 
-            // 2. Add user to group's members array
+            // 2. Refuse a re-join rather than silently rewriting the membership.
+            // Rejoining recomputed isPrimary from "do I have any groups", which is
+            // false once you have one — so re-entering your own code cleared the
+            // primary flag and with it the widget's group.
+            val existing = firestore.collection("users").document(userId)
+                .collection("groups").document(code).get().await()
+            if (existing.exists()) {
+                return Result.failure(AlreadyInGroupException())
+            }
+
+            // 3. Add user to group's members array
             groupRef.update("members", FieldValue.arrayUnion(userId)).await()
 
-            // 3. Determine if this should be their primary group
+            // 4. First group becomes the primary one (the widget reads it).
             val userGroups = firestore.collection("users").document(userId).collection("groups").get().await()
             val isPrimary = userGroups.isEmpty
 
-            // 4. Create user membership document
+            // 5. Create user membership document
             val membershipData = mapOf(
                 "joinedAt" to FieldValue.serverTimestamp(),
                 "isPrimary" to isPrimary,

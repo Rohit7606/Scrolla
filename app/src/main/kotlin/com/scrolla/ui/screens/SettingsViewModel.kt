@@ -1,5 +1,6 @@
 package com.scrolla.ui.screens
 
+import android.content.Context
 import android.os.Build
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -49,7 +50,7 @@ class SettingsViewModel(
         }
     }
 
-    fun signOut() {
-        authRepository.signOut()
+    fun signOut(context: Context) {
+        authRepository.signOut(context)
     }
 }

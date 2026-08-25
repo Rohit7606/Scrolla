@@ -34,7 +34,25 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        // S1.A8: re-check accessibility-service enablement on every foreground start.
+        refreshAccessibilityStatus()
+    }
+
+    /**
+     * S1.A8: re-check accessibility-service enablement on every foreground return.
+     *
+     * This used to sit in onCreate() and its comment claimed "every foreground
+     * start", but onCreate runs once per activity creation. Enabling or disabling
+     * the service in Android Settings and coming back left the persisted state
+     * stale, so the health card kept reporting whatever was true at launch — which
+     * is exactly the moment the user is looking at it to confirm their change
+     * took effect.
+     */
+    override fun onResume() {
+        super.onResume()
+        refreshAccessibilityStatus()
+    }
+
+    private fun refreshAccessibilityStatus() {
         // Persist only isAccessibilityServiceEnabled, preserving all other fields.
         lifecycleScope.launch {
             try {
@@ -118,7 +136,12 @@ class MainActivity : ComponentActivity() {
                             )
                         }
                         "home" -> {
-                            MainShell()
+                            MainShell(
+                                onSignedOut = {
+                                    isSignedIn = false
+                                    currentScreen = "signin"
+                                }
+                            )
                         }
                     }
                 }

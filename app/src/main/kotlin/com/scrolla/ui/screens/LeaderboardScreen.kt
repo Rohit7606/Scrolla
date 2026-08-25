@@ -88,6 +88,12 @@ fun LeaderboardScreen(
     memberCount: Int? = null,
     /** Opens the group switcher. Null hides the affordance entirely. */
     onSwitchGroupClick: (() -> Unit)? = null,
+    /** A failed read. Shown in place of the empty state, which would otherwise
+     *  report "nothing synced yet" for what is actually a network error. */
+    errorMessage: String? = null,
+    /** Retries a failed load. Without this an error was terminal until the user
+     *  left the tab and came back. */
+    onRetryClick: () -> Unit = {},
     onHallOfFameClick: () -> Unit = {}
 ) {
     val spacing = MaterialTheme.spacing
@@ -198,7 +204,38 @@ fun LeaderboardScreen(
                 .padding(top = spacing.large),
             verticalArrangement = Arrangement.spacedBy(2.dp)
         ) {
-            if (entries.isEmpty()) {
+            if (errorMessage != null) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = ScrollaStrings.ERROR_COULDNT_LOAD,
+                        style = ScrollaType.Body,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                    Text(
+                        text = ScrollaStrings.ERROR_RETRY,
+                        style = ScrollaType.Body,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier
+                            .clickable(onClick = onRetryClick)
+                            .padding(vertical = 8.dp)
+                    )
+                }
+            } else if (memberCount == 1) {
+                // S3.12: a board of one is not a ranking. Show progress instead of
+                // telling a solo user they are in 1st place out of themselves.
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = ScrollaStrings.LEADERBOARD_EMPTY_SOLO_HEADLINE,
+                        style = ScrollaType.Row,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = ScrollaStrings.LEADERBOARD_EMPTY_SOLO_BODY,
+                        style = ScrollaType.Body,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            } else if (entries.isEmpty()) {
                 Text(
                     text = emptyBoardMessage,
                     style = ScrollaType.Body,

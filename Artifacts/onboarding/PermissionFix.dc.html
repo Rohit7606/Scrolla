@@ -1,0 +1,75 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&amp;family=Space+Grotesk:wght@400;500;700&amp;display=swap">
+  <style>
+    body { margin: 0; background: #121110; }
+    a { color: #ED6A5A; }
+    a:hover { color: #F08475; }
+  </style>
+</helmet>
+
+<div style="width: 390px; height: 844px; background: #14100E; color: #F5F1EE; font-family: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif; display: flex; flex-direction: column; overflow: hidden; position: relative;">
+
+  <div style="position: absolute; left: 0; top: 0; right: 0; bottom: 0; background: radial-gradient(100% 40% at 50% 100%, rgba(237, 106, 90, 0.13) 0%, rgba(237, 106, 90, 0.04) 42%, rgba(237, 106, 90, 0) 76%); pointer-events: none;"></div>
+
+  <div style="position: relative; display: flex; gap: 4px; padding: 26px 24px 0 24px;">
+    <div style="flex-grow: 1; height: 2px; border-radius: 999px; background: #ED6A5A;"></div>
+    <div style="flex-grow: 1; height: 2px; border-radius: 999px; background: #ED6A5A;"></div>
+    <div style="flex-grow: 1; height: 2px; border-radius: 999px; background: #ED6A5A;"></div>
+    <div style="flex-grow: 1; height: 2px; border-radius: 999px; background: #ED6A5A;"></div>
+    <div style="flex-grow: 1; height: 2px; border-radius: 999px; background: #2E2624;"></div>
+    <div style="flex-grow: 1; height: 2px; border-radius: 999px; background: #2E2624;"></div>
+  </div>
+
+  <div style="position: relative; display: flex; flex-direction: column; gap: 10px; padding: 30px 24px 0 24px;">
+    <div style="font-family: 'Instrument Serif', Georgia, serif; font-size: 34px; line-height: 1.1; color: #F5F1EE;">One permission needed</div>
+    <div style="font-size: 14px; line-height: 1.5; color: #A8918A; text-wrap: pretty;">Scrolla measures distance through Android's Accessibility service — the same one screen readers use.</div>
+  </div>
+
+  <div style="position: relative; display: flex; flex-direction: column; gap: 12px; padding: 26px 24px 0 24px;">
+
+    <div style="border: 1px solid #2E2624; border-radius: 18px; padding: 16px 18px; display: flex; flex-direction: column; gap: 12px;">
+      <div style="font-size: 10.5px; font-weight: 500; letter-spacing: 0.16em; color: #3FBE9C;">WHAT IT READS</div>
+      <div style="display: flex; flex-direction: column; gap: 9px;">
+        <div style="display:flex;align-items:flex-start;gap:10px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#3FBE9C" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:3px;"><path d="M4 12.5l5 5L20 6.5"></path></svg><div style="font-size:13.5px;line-height:1.45;color:#F5F1EE;">How far a view scrolls, in pixels</div></div>
+        <div style="display:flex;align-items:flex-start;gap:10px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#3FBE9C" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:3px;"><path d="M4 12.5l5 5L20 6.5"></path></svg><div style="font-size:13.5px;line-height:1.45;color:#F5F1EE;">Which app is in the foreground</div></div>
+        <div style="display:flex;align-items:flex-start;gap:10px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#3FBE9C" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:3px;"><path d="M4 12.5l5 5L20 6.5"></path></svg><div style="font-size:13.5px;line-height:1.45;color:#F5F1EE;">The time of day it happened</div></div>
+      </div>
+    </div>
+
+    <div style="border: 1px solid #2E2624; border-radius: 18px; padding: 16px 18px; display: flex; flex-direction: column; gap: 12px;">
+      <div style="font-size: 10.5px; font-weight: 500; letter-spacing: 0.16em; color: #E0A34A;">WHAT IT NEVER SEES</div>
+      <div style="display: flex; flex-direction: column; gap: 9px;">
+        <div style="display:flex;align-items:flex-start;gap:10px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#E0A34A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:3px;"><path d="M6 6l12 12"></path><path d="M18 6L6 18"></path></svg><div style="font-size:13.5px;line-height:1.45;color:#F5F1EE;">What you are reading or watching</div></div>
+        <div style="display:flex;align-items:flex-start;gap:10px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#E0A34A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:3px;"><path d="M6 6l12 12"></path><path d="M18 6L6 18"></path></svg><div style="font-size:13.5px;line-height:1.45;color:#F5F1EE;">Text, images or passwords</div></div>
+        <div style="display:flex;align-items:flex-start;gap:10px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#E0A34A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:3px;"><path d="M6 6l12 12"></path><path d="M18 6L6 18"></path></svg><div style="font-size:13.5px;line-height:1.45;color:#F5F1EE;">Anything you type</div></div>
+      </div>
+    </div>
+
+    <div style="border: 1px solid #2E2624; border-radius: 18px; padding: 16px 18px; display: flex; flex-direction: column; gap: 12px;">
+      <div style="font-size: 10.5px; font-weight: 500; letter-spacing: 0.16em; color: #6E6560;">WHERE IT GOES</div>
+      <div style="display: flex; flex-direction: column; gap: 9px;">
+        <div style="display:flex;align-items:flex-start;gap:10px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8B837D" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:3px;"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8.5 11V8a3.5 3.5 0 0 1 7 0v3"></path></svg><div style="font-size:13.5px;line-height:1.45;color:#F5F1EE;">Distance stays on this phone</div></div>
+        <div style="display:flex;align-items:flex-start;gap:10px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8B837D" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:3px;"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8.5 11V8a3.5 3.5 0 0 1 7 0v3"></path></svg><div style="font-size:13.5px;line-height:1.45;color:#F5F1EE;">Your group sees one number a day</div></div>
+        <div style="display:flex;align-items:flex-start;gap:10px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8B837D" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:3px;"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8.5 11V8a3.5 3.5 0 0 1 7 0v3"></path></svg><div style="font-size:13.5px;line-height:1.45;color:#F5F1EE;">The per-app split never leaves</div></div>
+      </div>
+    </div>
+
+  </div>
+
+  <div style="position: relative; margin-top: auto; display: flex; flex-direction: column; gap: 14px; padding: 22px 24px 34px 24px;">
+    <div style="font-size: 12.5px; color: #8B837D; text-align: center; text-decoration: underline; text-underline-offset: 3px;">Why does Scrolla need this?</div>
+    <div style="background: #ED6A5A; color: #2A0F09; border-radius: 999px; padding: 17px; text-align: center; font-size: 15.5px; font-weight: 500;">Grant permission</div>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

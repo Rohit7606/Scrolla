@@ -1,0 +1,41 @@
+{
+  "artboards": [
+    { "file": "Audit.dc.html", "x": 0, "y": 0, "w": 1120, "h": 1600, "title": "Audit — what is actually wrong" },
+    { "file": "Foundations.dc.html", "x": 1280, "y": 0, "w": 900, "h": 1600, "title": "Foundations — the new system" },
+    { "file": "Main.dc.html", "x": 0, "y": 1760, "w": 390, "h": 844, "title": "Today" },
+    { "file": "Leaderboard.dc.html", "x": 510, "y": 1760, "w": 390, "h": 844, "title": "Group" },
+    { "file": "Insights.dc.html", "x": 1020, "y": 1760, "w": 390, "h": 844, "title": "Insights" },
+    { "file": "Profile.dc.html", "x": 1530, "y": 1760, "w": 390, "h": 844, "title": "You" }
+  ],
+  "annotations": [
+    {
+      "id": "read-order",
+      "x": 0,
+      "y": -170,
+      "w": 520,
+      "text": "Read left to right: the audit is every criticism with the value it currently holds in the source, the foundations board is the system that answers it, and the four phones are the same four screens rebuilt on that system.\n\nNothing here changes the product. Same data, same copy, same flows."
+    },
+    {
+      "id": "coral-rule",
+      "x": 2010,
+      "y": 1760,
+      "w": 330,
+      "text": "The whole redesign rests on one rule:\n\nCoral means you, here, now.\n\nToday's number. Your row. Today's bar. The tab you are on. Count them across the four screens — four appearances, and Profile spends none, because Profile is an archive.\n\nEverything the app currently paints coral is neutral here, and the screens got louder, not quieter, for it."
+    },
+    {
+      "id": "try-the-chart",
+      "x": 2010,
+      "y": 2120,
+      "w": 330,
+      "text": "Tap the bars on Insights.\n\nEach one is a full-height 44px column, and the selection is visible. Today stays coral whichever day you pick, so you never lose your place.\n\nIn the app today, the bars are not tappable at all — only the single-letter labels underneath are, and the selection has no visual state."
+    },
+    {
+      "id": "dark-first",
+      "x": 2010,
+      "y": 2560,
+      "w": 330,
+      "text": "Shown dark because that is when people scroll, and because dark is where the current palette suffers least. The foundations board carries the light ladder and the light accent so the same screens resolve correctly in both — which is the fix for the hero failing contrast in light mode today."
+    }
+  ],
+  "launch": { "view": "canvas" }
+}

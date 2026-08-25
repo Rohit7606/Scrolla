@@ -1,7 +1,7 @@
 # SOCIAL_PROGRESS.md — Person B (Social & Experience Track)
 **Owner:** Person B
 **Track:** `ui/`, `firestore/`, `auth/`, `leaderboard/`, `gamification/`
-**Last updated:** 2026-08-16
+**Last updated:** 2026-08-24
 **AI agents reading this:** This is Person B's working file. Before suggesting any implementation in B's folders, read the current status, known issues, and dependency sections. Never suggest wiring a Compose screen to real sensor data until Section 1's handoff status shows ✅. Cross-reference `DATA_CONTRACT.md` Section 4 for every function B calls from `ScrollRepository`. Never write to Firestore daily totals directly — only `triggerFirestoreSync()` does that (A's function, B calls it on a timer).
 
 ---
@@ -10,15 +10,18 @@
 
 > _(B updates this line at the end of every session so A knows where things stand without reading the whole file)_
 
-**Sprint 1 (B's sub-track):** 🟡 In progress — S1.B1–B3 complete, S1.B4–B10 remaining
-**Sprint 2:** 🟡 Partially unblocked — All 15 Compose screens exist as UI shells (mock data), navigation wired via MainShell. Waiting on real `ScrollRepository` wiring + Firestore backend.
-**Sprint 3:** Not started
+**Sprint 1 (B's sub-track):** 🟢 9 of 10 — only **S1.B4** (phone linking) remains, deferred to Sprint 3.
+**Sprint 2:** ✅ **B's track is complete.** S2.1, S2.2, S2.3, S2.4, S2.5 and S2.9 all checked off. No screen renders mock data. Remaining Sprint 2 work is A's: S2.6 (widget, untouched).
+**Sprint 3:** 🟡 In progress — S3.1 done; S3.2/S3.3/S3.6/S3.7 partial; S3.4 blocked (see below); S3.5 barely started.
 
 **Waiting on A for:**
-- `DistanceFormatter.cmToKm()` — still missing from `model/DistanceFormatter.kt` per S1.A9 known gap. B's screens use `ScrollaFormatters` (presentation-only) as a stopgap, but real data flow needs the model-layer function.
-- Confirmation that `triggerFirestoreSync()` stub in `ScrollRepository` is ready to be replaced with real Firestore write logic (B owns the Firestore side, but A owns the function signature).
+- **S2.6 — the widget.** Nothing exists in `app/src` (no `AppWidgetProvider`, no Glance). B has already shipped `setPrimaryGroup()` specifically so the widget can read the primary group, so this is a built producer with no consumer.
+- **P2.4 — `isServiceRunning` is inferred, not observed.** `onServiceConnected()` does not set it; only a successful `flushBatch()` does, so a freshly enabled service reads as not running. B added a UI-side guard (a never-flushed row maps to UNKNOWN rather than INTERRUPTED), but the accurate fix is in A's service.
+- **P2.6 — an ownership decision on the group record.** See Section 10, issue 7.
 
-**What B has built so far:** All 15 Compose screens exist as UI shells with mock/default data. Full navigation architecture (`MainShell` + `ScreenRoute` sealed class) is wired in `MainActivity`. Splash → SignIn → Onboarding → Home flow is complete with SharedPreferences persistence for `isFirstLaunch`. Firebase Auth (Google Sign-In) is functional end-to-end. No Firestore backend code exists yet (no rules, no repositories, no sync logic).
+**Resolved since 2026-08-16:** `DistanceFormatter.cmToKm()` landed (S1.B10) and both tracks now use it. `triggerFirestoreSync()` is implemented, merged, and **proven on two devices**.
+
+**What B has built:** all 15 screens wired to real data through ViewModels, with `ui/ScrollaGraph.kt` as the composition root. Firestore rules written, A-reviewed and deployed. Group create/join/switch flows working with real groups. The multi-user pipeline verified end to end on 2026-08-24 with a second account on a second device.
 
 ---
 
@@ -38,10 +41,10 @@ Each screen is tracked independently. A screen is not "done" until it has: real 
 
 | # | Screen | File | Status | Real data? | Empty state? | Error state? | Device checked? |
 |---|---|---|---|---|---|---|---|
-| 5 | Home (default tab) | `ui/screens/HomeScreen.kt` | 🟡 UI shell complete | ☐ mock data | ☐ | ☐ sync error | ☐ |
-| 6 | Leaderboard | `ui/screens/LeaderboardScreen.kt` | 🟡 UI shell complete | ☐ mock data | ☐ group of 1 | ☐ network error | ☐ |
-| 7 | Insights | `ui/screens/InsightsScreen.kt` | 🟡 UI shell complete | ☐ mock data | ☐ no data yet | ☐ | ☐ |
-| 8 | Profile | `ui/screens/ProfileScreen.kt` | 🟡 UI shell complete | ☐ mock data | N/A | ☐ delete failed | ☐ |
+| 5 | Home (default tab) | `ui/screens/HomeScreen.kt` | ✅ Verified on device | ☑ `HomeViewModel` + group rank via `selfStanding()` | ☑ dash, not 0.0, before any data | ☐ sync error | ☑ |
+| 6 | Leaderboard | `ui/screens/LeaderboardScreen.kt` | ✅ Verified on device | ☑ `LeaderboardViewModel` | ☑ no-group and no-totals states are distinct | ☑ error + retry | ☑ 2 accounts, 2026-08-24 |
+| 7 | Insights | `ui/screens/InsightsScreen.kt` | 🟢 Code complete | ☑ `InsightsViewModel` | ☑ | ☐ | ☑ |
+| 8 | Profile | `ui/screens/ProfileScreen.kt` | 🟢 Code complete | ☑ `ProfileViewModel` | N/A | ☐ delete failed | ☐ |
 
 ### Layer 3 — Detail Screens (Screens 9–15)
 
@@ -98,7 +101,9 @@ Every time B verifies that the Firestore sync is working end-to-end, log it here
 
 | # | Date | Test | Expected | Actual | Pass? | Notes |
 |---|---|---|---|---|---|---|
-| — | — | No sync tests run yet | — | — | — | — |
+| 1 | 2026-08-24 | S2.T1 basic sync, two accounts | A `dailyTotals` doc per user with today's date and non-zero `totalKm` | Leaderboard read "2 of 2 synced today" with a real row each | ✅ | First multi-user sync in the project's history |
+| 2 | 2026-08-24 | S2.T3 multi-group write | Same `userId_date` doc under both groups | One account in two groups (2 members / 1 member); switching re-fetches correctly | ✅ | Closes S2.5 |
+| 3 | 2026-08-24 | S2.T4 no `onSnapshot()` | Zero matches for `addSnapshotListener` | Zero matches | ✅ | Re-run this grep before every PR |
 
 **Critical sync tests to run before Sprint 2 is marked complete:**
 
@@ -120,21 +125,24 @@ Per the loophole audit and `SPRINT_LOG.md` S2.8 and S3.x: empty states and error
 
 | Screen | Empty state | Empty state wired? | Error state | Error state wired? |
 |---|---|---|---|---|
-| Home | "No data yet — keep scrolling today" | ☐ | Sync error banner with last-synced time | ☐ |
-| Leaderboard | Personal stats when group size = 1 | ☐ | "Couldn't load — tap to retry" | ☐ |
+| Home | Dash + "waiting for the first scroll", never a confident 0.0 | ☑ | — (Room-backed; `ScrollRepository` returns safe defaults and never throws) | N/A |
+| Leaderboard | Personal stats when group size = 1 | ☑ | "Couldn't load — tap to retry" | ☑ with retry |
 | Leaderboard | "[left]" label for departed members | ☐ | — | — |
-| Insights | "Start scrolling to see your stats" | ☐ | — | — |
-| Group switcher | "You're not in any groups yet" | ☐ | — | — |
-| Join group | — | — | "Group not found — check the code" | ☐ |
+| Insights | "Start scrolling to see your stats" | ☑ | — (Room-backed) | N/A |
+| Group switcher | "You're not in any groups yet" | ☑ | — | ☐ |
+| Join group | — | — | "Group not found — check the code" | ☑ |
 | Personal records | "Need at least 2 days of data" | ☐ | — | — |
-| Hall of fame | "No record set yet — you could be first" | ☐ | — | — |
+| Hall of fame | "No record set yet — you could be first" | ☑ | "Couldn't load your groups — tap to retry" | ☑ with retry (2026-08-24) |
 | Recap card | "Need a full week of data" | ☐ | — | — |
 | App breakdown | "No app data yet today" | ☐ | — | — |
 | Settings / Service Health | — | — | "Tracking stopped — tap to fix" | ☐ |
 | Sign in | — | — | "Sign-in failed — try again" | ☑ (onSignInError callback wired) |
-| Profile — delete account | — | — | "Couldn't delete — try again" | ☐ |
+| Profile — groups row | — | — | "Couldn't load your groups — tap to retry" | ☑ (2026-08-24) |
+| Profile — delete account | — | — | "Couldn't delete — try again" | ☐ blocked on P0.4 |
 
-> **Rule:** A blank white screen or a crash is never an acceptable empty or error state. If you're unsure what the empty state should say, check `UI_COPY.md` before inventing copy inline.
+> **Rule:** A blank white screen or a crash is never an acceptable empty or error state.
+>
+> **Corollary added 2026-08-24, learned the hard way:** an empty state shown *because a read failed* is worse than a blank screen, not better. `HallOfFameViewModel` and `ProfileViewModel` both read Firestore through `getOrNull()`, which discards the error — so a dropped connection rendered as "no record set yet — you could be first" and "You're not in any groups yet". The second was told to users who were in two groups. Those are confident false statements, which is the failure mode this rule exists to prevent, arriving through the door the rule left open. **Never call a Firestore read with `getOrNull()` behind an empty state.** If you're unsure what the empty state should say, check `UI_COPY.md` before inventing copy inline.
 
 ---
 
@@ -142,14 +150,14 @@ Per the loophole audit and `SPRINT_LOG.md` S2.8 and S3.x: empty states and error
 
 | Feature | Screen | Status | Data source | Notes |
 |---|---|---|---|---|
-| Reverse leaderboard (lowest wins) | Screen 6 | 🟡 UI shell | Mock data | Ranked ascending by totalKm — UI built, no Firestore wiring |
-| Landmark comparison | Screen 5 | 🟡 UI shell | Mock string | Placeholder text, not wired to `DistanceFormatter.nearestLandmark()` |
+| Reverse leaderboard (lowest wins) | Screen 6 | ✅ Verified | `getGroupLeaderboard()` | Ascending confirmed on screen with two differing values, 2026-08-24 |
+| Landmark comparison | Screen 5 | 🟢 Complete | `DistanceFormatter.nearestLandmark()` | Gated to 0.5–2.0× in `HomeViewModel` — the contract function returns the nearest landmark however absurd, so 10 cm would otherwise read "Eiffel Tower" |
 | Most improved highlight | Screen 6 | 🟡 UI shell | Mock string | Banner UI exists with placeholder, not wired to Firestore |
 | Most consistent recognition | Screen 6 | 🔴 Not started | Firestore — 7-day variance | Lowest variance wins |
 | Personal records | Screen 13 | 🟡 UI shell | Mock data | `PersonalRecordsScreen.kt` exists with mock records |
-| Time-of-day insight framing | Screen 5 rotating | 🟡 UI shell | Mock string | Insight card exists in HomeScreen with hardcoded text |
+| Time-of-day insight framing | Screen 5 rotating | 🟢 Complete | `getTodayPeakHour()` | Card hides entirely when there is no peak hour yet |
 | App-comparison nudge | Screen 15 | 🔴 Not started | `getTodayTopApps()` from Room | "cutting [app] by 20% would put you in 1st" — never synced |
-| Group hall of fame | Screen 14 | 🟡 UI shell | Mock data | `HallOfFameScreen.kt` exists with mock record holder |
+| Group hall of fame | Screen 14 | 🔴 Blocked | — | Reads `recordKm` correctly, but **nothing writes it** — see Section 10, issue 7 |
 | Weekly recap shareable card | Screen 12 | 🟡 UI shell | Mock data | `WeeklyRecapScreen.kt` exists, share button present, no Bitmap generation |
 | Home rotating insight | Screen 5 | 🟡 UI shell | Mock string | One card visible, rotation logic not implemented |
 
@@ -166,15 +174,15 @@ Priority order (show the first one that has data available):
 
 The reverse leaderboard is the core mechanic of the whole app. Check every item here before considering the leaderboard screen complete:
 
-- [ ] Documents sorted **ascending** by `totalKm` — lowest km = Rank 1 (winner). A descending sort is the first mistake an AI agent will make since most leaderboards sort descending.
+- [x] Documents sorted **ascending** by `totalKm` — lowest km = Rank 1 (winner). A descending sort is the first mistake an AI agent will make since most leaderboards sort descending. *Verified on screen 2026-08-24 with two differing values, not only by inspection.*
 - [ ] "You" row is visually distinct — highlighted accent colour, not just rank number.
 - [ ] Rank 1 row uses a success/green highlight — the winner has the *smallest* number, which looks counterintuitive and needs visual reinforcement.
 - [ ] Numbers show `totalKm` only — no per-app breakdown, no `topApp` field, no insight about *why* a user's number is high. Per `DATA_CONTRACT.md` Section 3.2 and `scrolla_project_summary.md` Section 5 (privacy fix).
-- [ ] A group of exactly 1 member shows personal stats, not "Rank 1 of 1" (that would make the reverse mechanic look broken).
+- [x] A group of exactly 1 member shows personal stats, not "Rank 1 of 1" (that would make the reverse mechanic look broken). *Enforced in two places: the Leaderboard screen, and `selfStanding()` which returns null below 2 synced members so Home's standing card shows a dash. Unit-tested.*
 - [ ] A departed member shows "[left]" next to their name in historical views, not their actual display name.
-- [ ] Group switcher correctly re-fetches the leaderboard for the newly selected group, not cached data from the previous group.
+- [x] Group switcher correctly re-fetches the leaderboard for the newly selected group, not cached data from the previous group. *Verified 2026-08-24 with one account in two groups (2 members and 1 member). `selectGroup()` clears `lastLoadedGroupId` before refreshing.*
 - [ ] Most improved banner is visually separate from the ranked list — it's a different kind of recognition, not "rank 0."
-- [ ] Leaderboard data refreshes on tab open (with staleness check) AND when `triggerFirestoreSync()` completes — not on a separate timer.
+- [x] Leaderboard data refreshes on tab open (with staleness check). *Home reads the same activity-scoped `LeaderboardViewModel` rather than fetching its own copy, so showing rank on Home costs no additional Firestore reads and the two screens cannot disagree.* Still open: refreshing when `triggerFirestoreSync()` completes.
 
 ---
 
@@ -208,6 +216,8 @@ Same purpose as A's decisions log — prevents an AI agent from "correcting" an 
 | 1 | 2026-08-16 | `BatteryWhitelistScreen.kt` is dead code — unreferenced anywhere after `OnboardingScreen` refactor. Should be deleted. | 🟢 Low | Cleanup | ☑ |
 | 2 | 2026-08-16 | `SettingsScreen.kt` defines its own `ServiceHealthState` enum (`ACTIVE`, `STOPPED`, `DEGRADED`, `INTERRUPTED`) which shadows A's Room entity `com.scrolla.room.ServiceHealthState`. When wiring real data, must reconcile or map between them. | 🟡 High | S2 | ☑ |
 | 6 | 2026-08-16 | `GoogleSignInOptions` API used in `SignInScreen.kt` is deprecated by Google. Should migrate to Credential Manager API before v1 release. | 🟡 High | S3 | ☐ |
+| 7 | 2026-08-24 | **Nothing anywhere in `app/src/main` writes `recordKm`, `recordHolder` or `recordDate`.** Every occurrence is a read, a data-class field, a ViewModel mapping or a Compose preview default. So S3.4 renders its empty state permanently, `LeaderboardViewModel.groupBestDay` is always null, and `isRecordImprovement()` — written, A-reviewed and Playground-verified in both directions — guards a write no client makes. The sprint log called S3.4 "double-blocked" on sync and rules; both are now fixed and it still would not work. Needs an ownership decision first: the natural trigger is after a successful sync in A's `ScrollRepositoryImpl`, but the group-document write is B's per §2. Also needs care that only a **finished** day sets a record — lowest wins, so a running total written mid-morning would break the record daily. Tracked as PREMIUM_CHECKLIST P2.6. | 🔴 Critical | S3 | ☐ |
+| 8 | 2026-08-24 | `HomeScreen` declares `rankPosition: Int? = 2` and `HallOfFameScreen` declares `recordHolderName = "Lewis"` / `recordDate = "July 12"` as **default parameter values**. Preview scaffolding, but one careless call site away from rendering a fabricated number in an app whose stated discipline is never showing a plausible fake one. Tracked as PREMIUM_CHECKLIST P4.2. | 🟡 High | S3 | ☐ |
 
 **Severity guide:**
 - 🔴 **Critical:** Wrong data shown to user (wrong km, wrong rank, phantom Firestore reads). Blocks release.
@@ -281,6 +291,20 @@ A running scratchpad for in-progress thoughts, things to pick up next session, q
   4. Delete dead code: `BatteryWhitelistScreen.kt`, possibly `SignInActivity.kt` — ✅ Done.
   5. Fix remaining encoding artifacts in `ScrollaFormatters.kt` — ✅ Done.
   6. Reconcile `SettingsScreen.ServiceHealthState` enum with Room entity before wiring real data — ✅ Done.
+
+**2026-08-24**
+- **The social half of the app works.** A friend installed the APK on a second device, signed in with their own Google account, joined a group by code, and the leaderboard rendered "2 of 2 synced today". That single line proves `joinGroup()`'s `arrayUnion` commits, A's `triggerFirestoreSync()` wrote for **both** users, `getGroupLeaderboard()` read both back, and the deployed rules permitted every step across two accounts. From 2026-08-16 to 2026-08-23 that flow was silently impossible.
+- Ascending order confirmed on screen with two differing values — verified as behaviour, not only as `sortedBy` by inspection.
+- Home-vs-leaderboard figures matched **on both devices independently**. The second device's check is the stronger one: a different uid against the same rules, resolving "You" versus a display name through a different branch. **S2.9 closed.**
+- S2.5 closed: one account in two groups (2 members / 1 member), switching re-fetches correctly.
+- **Built group rank (S2.1's last clause).** `ui/screens/GroupStanding.kt` — `selfStanding()` derives the user's position from the Group tab's own activity-scoped `LeaderboardViewModel`, so Home costs no extra Firestore reads and the two screens cannot disagree. Ties share the better rank; everyone sits at 0.0 km each morning and list position would otherwise hand out an arbitrary 3rd place. The denominator is members who have **synced today**, not group size. Returns null in four cases rather than inventing a position.
+- **First unit tests in the project's history.** `GroupStandingTest` — 10 tests, passing in debug and release. `selfStanding()` was deliberately written as a pure function over UI state so it needs no injection seam; the ViewModels themselves still do (PREMIUM_CHECKLIST P0.1f).
+- **Found:** nothing writes the group record. See Section 10, issue 7. Worth generalising — when a screen reads a Firestore field, grep for the write before calling it code-complete.
+- **Next session priorities:**
+  1. Device-check the new rank card with two accounts (it is compile- and unit-verified only).
+  2. P2.6 — agree ownership of the record write with A, then implement.
+  3. P0.1b — `DistanceFormatterTest`, now that the test source set exists.
+  4. P0.4 — account deletion, the biggest trust gap.
 
 ---
 

@@ -23,7 +23,11 @@ data class ProfileUiState(
     val groupCount: Int = 0,
     val primaryGroupName: String? = null,
     val hallOfFameGapKm: Float? = null,
-    val isRecordHolder: Boolean = false
+    val isRecordHolder: Boolean = false,
+    /** Non-null when the group read failed. Distinct from having no groups —
+     *  the screen said "You're not in any groups yet" to users in two of them
+     *  whenever Firestore was unreachable. */
+    val errorMessage: String? = null
 )
 
 class ProfileViewModel(
@@ -52,9 +56,16 @@ class ProfileViewModel(
             val thisWeek = fortnight.take(7)
             val lastWeek = fortnight.drop(7)
 
-            val groups = user?.uid
-                ?.let { groupRepository.getUserGroups(it).getOrNull() }
-                .orEmpty()
+            // A failed group read must not render as "no groups" — see errorMessage.
+            // The Room-backed figures above stay valid either way, so only the group
+            // half of the screen degrades.
+            var groupsError: String? = null
+            val groups = user?.uid?.let { uid ->
+                groupRepository.getUserGroups(uid).getOrElse { error ->
+                    groupsError = error.message ?: ScrollaStrings.ERROR_GROUPS_UNAVAILABLE
+                    emptyList()
+                }
+            }.orEmpty()
             val primary = groups.firstOrNull { it.isPrimary } ?: groups.firstOrNull()
 
             val record = primary?.groupId
@@ -76,7 +87,8 @@ class ProfileViewModel(
                 } else {
                     null
                 },
-                isRecordHolder = record != null && bestDay != null && bestDay.totalKm <= record.recordKm
+                isRecordHolder = record != null && bestDay != null && bestDay.totalKm <= record.recordKm,
+                errorMessage = groupsError
             )
         }
     }

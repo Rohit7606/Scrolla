@@ -9,7 +9,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import java.time.DayOfWeek
 import java.time.LocalDate
 
 data class InsightsUiState(
@@ -53,29 +52,38 @@ class InsightsViewModel(
     }
 
     /**
-     * The chart is a calendar week (Monday → Sunday), not the trailing seven days,
-     * so "this week" means the same thing here as it does to the user. Days after
-     * today are marked future rather than zero — an empty bar and a day that has
-     * not happened yet are different things.
+     * The last seven days ending today, rolling — not the current calendar week.
+     *
+     * A Monday-anchored week throws away everything the user just did: on a Monday
+     * the chart showed one real bar and six empty days, with Sunday's scrolling
+     * invisible despite being yesterday. A trailing window always shows seven days
+     * of actual history, and today is always the rightmost bar.
+     *
+     * Nothing is in the future here by construction, so no bar is ever a
+     * placeholder for a day that has not happened.
      */
     private fun buildWeek(totalsByDay: Map<String, Float>): List<DayData> {
         val today = LocalDate.now()
-        val monday = today.with(DayOfWeek.MONDAY)
-        return (0L..6L).map { offset ->
-            val date = monday.plusDays(offset)
-            val key = date.toString()
+        val start = today.minusDays((WINDOW_DAYS - 1).toLong())
+        val yesterday = today.minusDays(1)
+        return (0 until WINDOW_DAYS).map { offset ->
+            val date = start.plusDays(offset.toLong())
             val isToday = date == today
             DayData(
                 dayLabel = date.dayOfWeek.name.take(1),
-                distanceKm = totalsByDay[key] ?: 0f,
+                distanceKm = totalsByDay[date.toString()] ?: 0f,
                 isToday = isToday,
-                isFuture = date.isAfter(today),
-                fullLabel = if (isToday) {
-                    "Today"
-                } else {
-                    date.dayOfWeek.name.lowercase().replaceFirstChar { it.uppercase() }
+                isFuture = false,
+                fullLabel = when {
+                    isToday -> "Today"
+                    date == yesterday -> "Yesterday"
+                    else -> date.dayOfWeek.name.lowercase().replaceFirstChar { it.uppercase() }
                 }
             )
         }
+    }
+
+    private companion object {
+        const val WINDOW_DAYS = 7
     }
 }

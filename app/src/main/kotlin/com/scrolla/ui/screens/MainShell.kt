@@ -2,6 +2,9 @@ package com.scrolla.ui.screens
 import kotlinx.parcelize.Parcelize
 import android.content.Intent
 import androidx.compose.ui.platform.LocalContext
+import android.provider.Settings
+import com.scrolla.device.BatteryWhitelistHelper
+import android.net.Uri
 import android.os.Parcelable
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
@@ -47,6 +50,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.scrolla.model.DistanceFormatter
 import com.scrolla.ui.components.RefreshOnResume
 import com.scrolla.ui.theme.ScrollaType
 import com.scrolla.ui.theme.scrollaColors
@@ -84,7 +88,12 @@ private val destinations = listOf(
 )
 
 @Composable
-fun MainShell(modifier: Modifier = Modifier) {
+fun MainShell(
+    modifier: Modifier = Modifier,
+    /** Signing out clears the Firebase session; without this the shell stayed on
+     *  screen showing a logged-in UI backed by a dead session. */
+    onSignedOut: () -> Unit = {}
+) {
     val context = LocalContext.current
     var routeStack by rememberSaveable { mutableStateOf(listOf<ScreenRoute>(ScreenRoute.MainTabs)) }
     var selectedTab by rememberSaveable { mutableIntStateOf(0) }
@@ -145,7 +154,35 @@ fun MainShell(modifier: Modifier = Modifier) {
                     displayName = settingsState.displayName,
                     phoneLinked = settingsState.phoneLinked,
                     onBackClick = popBackStack,
-                    onSignOutClick = { settingsViewModel.signOut() }
+                    onSignOutClick = {
+                        settingsViewModel.signOut(context)
+                        onSignedOut()
+                    },
+                    onFixBatteryClick = {
+                        // The health card's action button was inert, which is the
+                        // worst place for a dead control: it only appears when
+                        // tracking is already broken. Route each failure to the
+                        // screen that actually fixes it.
+                        val health = settingsState.serviceHealth
+                        // No health row means tracking has never run, so the
+                        // useful destination is Accessibility, not battery.
+                        if (health == null || !health.isAccessibilityServiceEnabled) {
+                            context.startActivity(
+                                Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
+                                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            )
+                        } else if (!BatteryWhitelistHelper().openBatterySettings(context)) {
+                            // openBatterySettings returns false when no OEM intent
+                            // resolved. Fall back to this app's settings page so the
+                            // button never does nothing.
+                            context.startActivity(
+                                Intent(
+                                    Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                                    Uri.fromParts("package", context.packageName, null)
+                                ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            )
+                        }
+                    }
                 )
             }
             is ScreenRoute.PersonalRecords -> {
@@ -170,6 +207,8 @@ fun MainShell(modifier: Modifier = Modifier) {
                     recordHolderName = fameState.recordHolderName,
                     recordDistanceKm = fameState.recordDistanceKm,
                     recordDate = fameState.recordDate,
+                    errorMessage = fameState.errorMessage,
+                    onRetryClick = { fameViewModel.refresh() },
                     isCurrentUserHolder = fameState.isCurrentUserHolder,
                     gapToRecordKm = fameState.gapToRecordKm,
                     onBackClick = popBackStack
@@ -196,6 +235,9 @@ fun MainShell(modifier: Modifier = Modifier) {
                     onBackClick = popBackStack,
                     onJoinAnotherClick = { navigateTo(ScreenRoute.JoinGroup) },
                     onCreateGroupClick = { navigateTo(ScreenRoute.CreateGroup) },
+                    onSetWidgetGroupClick = { group ->
+                        leaderboardViewModel.setPrimaryGroup(group.id)
+                    },
                     onShareClick = { group ->
                         // The group's document id is its join code, so no lookup
                         // is needed to invite someone later.
@@ -286,7 +328,20 @@ fun MainShell(modifier: Modifier = Modifier) {
                     weeklyDistanceKm = recapState.weeklyDistanceKm,
                     landmarkText = recapState.landmarkText,
                     onSkipClick = popBackStack,
-                    onShareClick = popBackStack
+                    onShareClick = {
+                        // S3.5's Bitmap card is not built yet; sharing the figure
+                        // as text is honest and does something, where popping the
+                        // back stack looked like the share had silently failed.
+                        val message = String.format(
+                            ScrollaStrings.RECAP_SHARE_TEMPLATE,
+                            DistanceFormatter.formatDistance(recapState.weeklyDistanceKm)
+                        )
+                        val send = Intent(Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            putExtra(Intent.EXTRA_TEXT, message)
+                        }
+                        context.startActivity(Intent.createChooser(send, null))
+                    }
                 )
             }
             is ScreenRoute.AppBreakdown -> {
@@ -353,19 +408,31 @@ private fun MainTabsScreen(
                     val homeViewModel: HomeViewModel = viewModel()
                     val homeState by homeViewModel.uiState.collectAsState()
 
+                    // The standing card reads the Group tab's own ViewModel rather
+                    // than fetching a second copy. viewModel() here resolves to the
+                    // activity's store, so this is the same instance the Leaderboard
+                    // uses — one staleness window, one set of Firestore reads, and no
+                    // way for the two screens to disagree about the same rank.
+                    val leaderboardViewModel: LeaderboardViewModel = viewModel()
+                    val boardState by leaderboardViewModel.uiState.collectAsState()
+                    val standing = boardState.selfStanding()
+
                     RefreshOnResume { homeViewModel.refresh() }
+                    LaunchedEffect(Unit) { leaderboardViewModel.refreshIfStale() }
+                    RefreshOnResume { leaderboardViewModel.refreshIfStale() }
 
                     HomeScreen(
                         scrollDistanceKm = homeState.todayKm,
                         yesterdayKm = homeState.yesterdayKm,
                         landmarkText = homeState.landmarkText,
                         hasSensorData = homeState.hasSensorData,
-                        // Rank needs other members' totals from Firestore, which
-                        // only appear once A's triggerFirestoreSync() is implemented
-                        // (DATA_CONTRACT §3.3). Null until then — the card degrades.
-                        rankPosition = null,
-                        groupSize = null,
-                        groupName = null,
+                        isLoading = homeState.isLoading,
+                        // Null until a rank is genuinely true — see selfStanding().
+                        rankPosition = standing?.rankPosition,
+                        groupSize = standing?.groupSize,
+                        // Named even without a rank, so the card reads "— / College
+                        // Friends" rather than disowning a group the user is in.
+                        groupName = standing?.groupName ?: boardState.activeGroup?.groupName,
                         insightLabel = ScrollaStrings.HOME_INSIGHT_PEAK_HOUR_LABEL,
                         insightBody = homeState.peakHour?.let { hour ->
                             "Most of it happens between ${ScrollaFormatters.formatHourRange(hour)}."
@@ -390,6 +457,8 @@ private fun MainTabsScreen(
                         groupStats = boardState.groupStats ?: GroupStats(0f, 0f, 0f),
                         groupBestDay = boardState.groupBestDay,
                         memberCount = boardState.activeGroup?.memberCount,
+                        errorMessage = boardState.errorMessage,
+                        onRetryClick = { leaderboardViewModel.refresh() },
                         onSwitchGroupClick = onManageGroupsClick,
                         emptyBoardMessage = if (boardState.activeGroup == null) {
                             ScrollaStrings.LEADERBOARD_EMPTY_NO_GROUP
@@ -429,6 +498,7 @@ private fun MainTabsScreen(
                         hallOfFameGapKm = profileState.hallOfFameGapKm,
                         isRecordHolder = profileState.isRecordHolder,
                         groupCount = profileState.groupCount,
+                        errorMessage = profileState.errorMessage,
                         primaryGroupName = profileState.primaryGroupName,
                         onSettingsClick = onSettingsClick,
                         onPersonalRecordsClick = onPersonalRecordsClick,

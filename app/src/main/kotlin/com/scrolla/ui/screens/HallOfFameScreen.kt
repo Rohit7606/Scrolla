@@ -5,6 +5,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.animation.core.tween
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -59,6 +60,11 @@ fun HallOfFameScreen(
     recordDate: String = "July 12",
     isCurrentUserHolder: Boolean = false,
     gapToRecordKm: Float = 1.9f,
+    /** Non-null when the read failed. Takes priority over the no-record empty
+     *  state — offering "you could be first" because the network dropped is a
+     *  different claim entirely. */
+    errorMessage: String? = null,
+    onRetryClick: () -> Unit = {},
     onBackClick: () -> Unit = {}
 ) {
     val spacing = MaterialTheme.spacing
@@ -114,7 +120,25 @@ fun HallOfFameScreen(
                 visible = isVisible,
                 enter = androidx.compose.animation.fadeIn(tween(400)) + androidx.compose.animation.slideInVertically(tween(400), initialOffsetY = { 20 })
             ) {
-                if (!hasRecord) {
+                if (errorMessage != null) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f)
+                            .padding(horizontal = spacing.medium),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Text(
+                            text = ScrollaStrings.ERROR_GROUPS_UNAVAILABLE,
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier
+                                .clickable(onClick = onRetryClick)
+                                .padding(vertical = 8.dp)
+                        )
+                    }
+                } else if (!hasRecord) {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()

@@ -1,0 +1,181 @@
+{
+  "pages": [
+    {
+      "id": "page-1",
+      "name": "Built"
+    },
+    {
+      "id": "page-4",
+      "name": "Reveal alternatives"
+    },
+    {
+      "id": "page-2",
+      "name": "Not chosen"
+    }
+  ],
+  "artboards": [
+    {
+      "file": "Main.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "page": "page-1",
+      "title": "Reveal"
+    },
+    {
+      "file": "RevealGap.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "page": "page-4",
+      "title": "Gap · the distance between"
+    },
+    {
+      "file": "RevealType.dc.html",
+      "x": 510,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "page": "page-4",
+      "title": "Type · no diagram at all"
+    },
+    {
+      "file": "RevealWalk.dc.html",
+      "x": 1020,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "page": "page-4",
+      "title": "Walk · draw the punchline"
+    },
+    {
+      "file": "QuestionFix.dc.html",
+      "x": 510,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "page": "page-1",
+      "title": "Question"
+    },
+    {
+      "file": "PermissionFix.dc.html",
+      "x": 1020,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "page": "page-1",
+      "title": "Permission"
+    },
+    {
+      "file": "JoinGroupA.dc.html",
+      "x": 1530,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "page": "page-1",
+      "title": "Join group"
+    },
+    {
+      "file": "Diagnosis.dc.html",
+      "x": 0,
+      "y": 1000,
+      "w": 1080,
+      "h": 1300,
+      "page": "page-1",
+      "title": "What was wrong across all six phases"
+    },
+    {
+      "file": "OptionB.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "page": "page-2",
+      "title": "Reveal B · Centred"
+    },
+    {
+      "file": "OptionC.dc.html",
+      "x": 510,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "page": "page-2",
+      "title": "Reveal C · Poster"
+    },
+    {
+      "file": "InvitationA.dc.html",
+      "x": 1020,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "page": "page-2",
+      "title": "Ranking A · How it works"
+    },
+    {
+      "file": "InvitationB.dc.html",
+      "x": 1530,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "page": "page-2",
+      "title": "Ranking B · Pull quote"
+    },
+    {
+      "file": "JoinGroupB.dc.html",
+      "x": 2040,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "page": "page-2",
+      "title": "Join B · Reassurance"
+    }
+  ],
+  "annotations": [
+    {
+      "id": "opt-gap",
+      "x": 0,
+      "y": 900,
+      "w": 390,
+      "page": "page-4",
+      "text": "Gap — keep a diagram, but make the DISTANCE BETWEEN the two the subject rather than either value. Two points on one line, the multiple set large in the space between them.\n\nHonest for ranges: a point is a position, not a measurement. For \"several kilometres\" the two dots sit together and the middle reads \"you were here too\".\n\nRisk: it is still a diagram, and diagrams are what has failed twice."
+    },
+    {
+      "id": "opt-type",
+      "x": 510,
+      "y": 900,
+      "w": 390,
+      "page": "page-4",
+      "text": "Type — no diagram at all. 2,800x becomes a second hero at 100px, and the two values sit underneath as a plain two-row table.\n\nThe screen becomes three type moments, which is what the hero already proves this app is good at. Nothing to misread, nothing to fabricate, works identically for all three answers.\n\nRisk: the quietest of the three. If you wanted the reveal to feel like an event, this is not it."
+    },
+    {
+      "id": "opt-walk",
+      "x": 1020,
+      "y": 900,
+      "w": 390,
+      "page": "page-4",
+      "text": "Walk — stop illustrating the number and illustrate the punchline instead. \"A 35-minute walk\" drawn as a dotted route that snakes down the screen, ending in \"35 minutes later\".\n\nIt is the only option that adds a feeling rather than a fact, and it is motivated by copy you already wrote.\n\nRisk: it drops the multiple entirely, so how wrong they were is carried only by the closing line."
+    },
+    {
+      "id": "archive",
+      "x": 0,
+      "y": -170,
+      "w": 620,
+      "page": "page-2",
+      "text": "Explored, not built. Reveal B and C lost to A. Both Ranking directions were rejected for complicating a screen that already worked. Join B lost to A."
+    },
+    {
+      "id": "bars-back",
+      "x": 0,
+      "y": 900,
+      "w": 390,
+      "page": "page-1",
+      "text": "Two bars, as before. The range-versus-point problem is solved in how they are DRAWN rather than by removing one:\n\nthe measurement is solid with a hard top edge, the guess fades out at the top because it was never a precise claim.\n\nSo \"several kilometres\" reads as somewhere around here, not as an assertion of 3 km, and the label stays in the user’s own words."
+    }
+  ],
+  "launch": {
+    "view": "canvas",
+    "page": "page-1"
+  }
+}

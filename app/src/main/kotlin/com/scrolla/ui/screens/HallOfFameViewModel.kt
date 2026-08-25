@@ -20,7 +20,11 @@ data class HallOfFameUiState(
     val recordDistanceKm: Float = 0f,
     val recordDate: String = "",
     val isCurrentUserHolder: Boolean = false,
-    val gapToRecordKm: Float = 0f
+    val gapToRecordKm: Float = 0f,
+    /** Non-null when the read failed, which is not the same as there being no
+     *  record yet — the screen must not offer "be the first" because Firestore
+     *  was unreachable. */
+    val errorMessage: String? = null
 )
 
 /**
@@ -48,12 +52,35 @@ class HallOfFameViewModel(
             _uiState.value = _uiState.value.copy(isLoading = true)
 
             val user = authRepository.currentUser
-            val groups = user?.uid
-                ?.let { groupRepository.getUserGroups(it).getOrNull() }
-                .orEmpty()
+            val userId = user?.uid
+            if (userId == null) {
+                _uiState.value = HallOfFameUiState(isLoading = false, hasRecord = false)
+                return@launch
+            }
+
+            // getOrNull() here used to make a failed read indistinguishable from an
+            // empty one, so a dropped connection rendered as "no record set yet —
+            // you could be first". Absence and failure are different states.
+            val groups = groupRepository.getUserGroups(userId).getOrElse { error ->
+                _uiState.value = HallOfFameUiState(
+                    isLoading = false,
+                    hasRecord = false,
+                    errorMessage = error.message ?: ScrollaStrings.ERROR_GROUPS_UNAVAILABLE
+                )
+                return@launch
+            }
             val primary = groups.firstOrNull { it.isPrimary } ?: groups.firstOrNull()
-            val record = primary?.groupId
-                ?.let { groupRepository.getGroupRecord(it).getOrNull() }
+
+            val record = primary?.groupId?.let { groupId ->
+                groupRepository.getGroupRecord(groupId).getOrElse { error ->
+                    _uiState.value = HallOfFameUiState(
+                        isLoading = false,
+                        hasRecord = false,
+                        errorMessage = error.message ?: ScrollaStrings.ERROR_GROUPS_UNAVAILABLE
+                    )
+                    return@launch
+                }
+            }
 
             if (record == null) {
                 _uiState.value = HallOfFameUiState(isLoading = false, hasRecord = false)

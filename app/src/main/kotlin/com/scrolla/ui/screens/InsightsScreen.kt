@@ -229,6 +229,15 @@ fun InsightsScreen(
             val totalDistance = topApps.sumOf { it.distanceKm.toDouble() }.toFloat()
 
             Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                if (topApps.isEmpty()) {
+                    // A labelled heading over blank space reads as broken. Say why
+                    // it is empty instead.
+                    Text(
+                        text = ScrollaStrings.INSIGHTS_EMPTY_TOP_APPS,
+                        style = ScrollaType.Body,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
                 topApps.take(5).forEachIndexed { index, app ->
                     AppRow(
                         appName = app.appName,

@@ -28,6 +28,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.outlined.BatteryAlert
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -52,6 +53,25 @@ import com.scrolla.ui.theme.ErrorDark
 import com.scrolla.ui.theme.ErrorLight
 import com.scrolla.ui.components.bentoCard
 import com.scrolla.ui.components.bounceClick
+
+/**
+ * Formats a health timestamp as a short local time, or the "never" copy when the
+ * field has never been written. Shows the date too once the timestamp is older
+ * than today, so a stale figure cannot be mistaken for one from this morning.
+ */
+private fun formatHealthTime(timestamp: Long?, template: String, neverText: String): String {
+    if (timestamp == null || timestamp <= 0L) return neverText
+    val now = java.util.Calendar.getInstance()
+    val then = java.util.Calendar.getInstance().apply { timeInMillis = timestamp }
+    val sameDay = now.get(java.util.Calendar.YEAR) == then.get(java.util.Calendar.YEAR) &&
+        now.get(java.util.Calendar.DAY_OF_YEAR) == then.get(java.util.Calendar.DAY_OF_YEAR)
+    val pattern = if (sameDay) "HH:mm" else "d MMM, HH:mm"
+    return String.format(
+        template,
+        java.text.SimpleDateFormat(pattern, java.util.Locale.getDefault())
+            .format(java.util.Date(timestamp))
+    )
+}
 
 enum class UiServiceHealthState {
     ACTIVE,
@@ -92,8 +112,30 @@ fun SettingsScreen(
     val scrollState = rememberScrollState()
 
     var isVisible by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    var showSignOutConfirm by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
     androidx.compose.runtime.LaunchedEffect(Unit) {
         isVisible = true
+    }
+
+    if (showSignOutConfirm) {
+        AlertDialog(
+            onDismissRequest = { showSignOutConfirm = false },
+            title = { Text(ScrollaStrings.SETTINGS_SIGN_OUT_TITLE) },
+            text = { Text(ScrollaStrings.SETTINGS_SIGN_OUT_BODY) },
+            confirmButton = {
+                TextButton(onClick = {
+                    showSignOutConfirm = false
+                    onSignOutClick()
+                }) {
+                    Text(ScrollaStrings.SETTINGS_SIGN_OUT)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showSignOutConfirm = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 
     Box(
@@ -147,6 +189,13 @@ fun SettingsScreen(
                     val uiHealthState = when {
                         serviceHealthState == null -> UiServiceHealthState.UNKNOWN
                         !serviceHealthState.isAccessibilityServiceEnabled -> UiServiceHealthState.STOPPED
+                        // isServiceRunning is only ever set true by a successful
+                        // flush, and onServiceConnected() does not set it. So a
+                        // service enabled seconds ago has it false through no
+                        // fault of its own — reporting INTERRUPTED there accuses
+                        // the OS of killing something that has simply not had
+                        // anything to write yet.
+                        serviceHealthState.lastRoomFlushTimestamp == 0L -> UiServiceHealthState.UNKNOWN
                         !serviceHealthState.isServiceRunning -> UiServiceHealthState.INTERRUPTED
                         serviceHealthState.degradedReason != null -> UiServiceHealthState.DEGRADED
                         else -> UiServiceHealthState.ACTIVE
@@ -158,7 +207,7 @@ fun SettingsScreen(
                             body = ScrollaStrings.SETTINGS_HEALTH_ACTIVE_SUBTITLE,
                             icon = Icons.Filled.CheckCircle,
                             iconTint = if (androidx.compose.foundation.isSystemInDarkTheme()) SuccessDark else SuccessLight,
-                            buttonText = null
+                            buttonText = ScrollaStrings.SETTINGS_HEALTH_ACTIVE_BUTTON
                         )
                         UiServiceHealthState.STOPPED -> HealthContent(
                             title = ScrollaStrings.SETTINGS_HEALTH_STOPPED_TITLE,
@@ -179,7 +228,7 @@ fun SettingsScreen(
                             body = ScrollaStrings.SETTINGS_HEALTH_UNKNOWN_BODY,
                             icon = Icons.Outlined.BatteryAlert,
                             iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            buttonText = null
+                            buttonText = ScrollaStrings.SETTINGS_HEALTH_UNKNOWN_BUTTON
                         )
                         UiServiceHealthState.INTERRUPTED -> HealthContent(
                             title = ScrollaStrings.SETTINGS_HEALTH_INTERRUPTED_TITLE,
@@ -193,6 +242,26 @@ fun SettingsScreen(
                     HealthCard(
                         content = healthContent,
                         onButtonClick = onFixBatteryClick,
+                        // Last *recorded* comes first, ahead of last synced. Sync
+                        // freshness says Firestore is reachable; it says nothing about
+                        // whether the accessibility service is still alive. On
+                        // 2026-08-25 the service crashed at 09:34 and this card still
+                        // read "Tracking is active" nine hours later, because every
+                        // signal it consults is a latch that is only ever set true.
+                        // A visible "last recorded 09:34" is the one thing on the card
+                        // that can contradict its own headline.
+                        footnote = listOfNotNull(
+                            formatHealthTime(
+                                serviceHealthState?.lastRoomFlushTimestamp,
+                                ScrollaStrings.SETTINGS_HEALTH_LAST_RECORDED,
+                                ScrollaStrings.SETTINGS_HEALTH_NEVER_RECORDED
+                            ),
+                            formatHealthTime(
+                                serviceHealthState?.lastFirestoreSyncTimestamp,
+                                ScrollaStrings.SETTINGS_HEALTH_LAST_SYNC,
+                                ScrollaStrings.SETTINGS_HEALTH_NEVER_SYNCED
+                            )
+                        ).joinToString(" · "),
                         modifier = Modifier.padding(horizontal = spacing.medium)
                     )
                 }
@@ -217,7 +286,8 @@ fun SettingsScreen(
                         SettingsItem(
                             label = ScrollaStrings.SETTINGS_DISPLAY_NAME_LABEL,
                             value = displayName,
-                            onClick = onEditNameClick
+                            onClick = onEditNameClick,
+                            enabled = false
                         )
                         
                         androidx.compose.material3.HorizontalDivider(
@@ -229,7 +299,8 @@ fun SettingsScreen(
                             label = ScrollaStrings.SETTINGS_BACKUP_LABEL,
                             value = if (phoneLinked) ScrollaStrings.SETTINGS_BACKUP_LINKED else ScrollaStrings.SETTINGS_BACKUP_ADD,
                             onClick = onAddPhoneClick,
-                            valueColor = if (phoneLinked) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary
+                            valueColor = if (phoneLinked) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary,
+                            enabled = false
                         )
                     }
 
@@ -243,7 +314,10 @@ fun SettingsScreen(
                     ) {
                         SettingsItem(
                             label = ScrollaStrings.SETTINGS_SIGN_OUT,
-                            onClick = onSignOutClick,
+                            // Confirm first: signing out is one tap from a
+                            // destructive-feeling outcome, and the copy for the
+                            // dialog was already written and never shown.
+                            onClick = { showSignOutConfirm = true },
                             isDestructive = false // Standard color
                         )
                         
@@ -255,7 +329,8 @@ fun SettingsScreen(
                         SettingsItem(
                             label = ScrollaStrings.SETTINGS_DELETE_ACCOUNT,
                             onClick = onDeleteAccountClick,
-                            isDestructive = true
+                            isDestructive = true,
+                            enabled = false
                         )
                     }
                 }
@@ -278,6 +353,7 @@ private data class HealthContent(
 private fun HealthCard(
     content: HealthContent,
     onButtonClick: () -> Unit,
+    footnote: String? = null,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -317,6 +393,15 @@ private fun HealthCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 
+                if (footnote != null) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = footnote,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                    )
+                }
+
                 if (content.buttonText != null) {
                     Spacer(modifier = Modifier.height(16.dp))
                     TextButton(
@@ -356,12 +441,16 @@ private fun SettingsItem(
     value: String? = null,
     onClick: () -> Unit,
     valueColor: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.onSurfaceVariant,
-    isDestructive: Boolean = false
+    isDestructive: Boolean = false,
+    /** False for features that do not exist yet: the row greys out and stops
+     *  responding to taps, rather than looking live and doing nothing. */
+    enabled: Boolean = true
 ) {
+    val rowAlpha = if (enabled) 1f else 0.38f
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .bounceClick(onClick = onClick)
+            .then(if (enabled) Modifier.bounceClick(onClick = onClick) else Modifier)
             .padding(horizontal = MaterialTheme.spacing.medium, vertical = 16.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
@@ -369,16 +458,15 @@ private fun SettingsItem(
         Text(
             text = label,
             style = MaterialTheme.typography.bodyLarge,
-            color = if (isDestructive) (if (androidx.compose.foundation.isSystemInDarkTheme()) ErrorDark else ErrorLight) else MaterialTheme.colorScheme.onSurface
+            color = (if (isDestructive) (if (androidx.compose.foundation.isSystemInDarkTheme()) ErrorDark else ErrorLight) else MaterialTheme.colorScheme.onSurface)
+                .copy(alpha = rowAlpha)
         )
-        
-        if (value != null) {
-            Text(
-                text = value,
-                style = MaterialTheme.typography.bodyLarge,
-                color = valueColor
-            )
-        }
+
+        Text(
+            text = if (enabled) (value ?: "") else ScrollaStrings.SETTINGS_NOT_YET_AVAILABLE,
+            style = MaterialTheme.typography.bodyLarge,
+            color = if (enabled) valueColor else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = rowAlpha)
+        )
     }
 }
 

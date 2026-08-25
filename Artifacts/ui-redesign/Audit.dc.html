@@ -1,0 +1,139 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&amp;family=Space+Grotesk:wght@400;500;700&amp;display=swap">
+  <style>
+    body { margin: 0; background: #121110; }
+    a { color: #ED6A5A; }
+    a:hover { color: #F08475; }
+  </style>
+</helmet>
+
+<div style="width: 1120px; min-height: 1560px; background: #121110; color: #F5F1EE; font-family: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif; padding: 56px; box-sizing: border-box; display: flex; flex-direction: column; gap: 44px;">
+
+  <div style="display: flex; flex-direction: column; gap: 18px; max-width: 780px;">
+    <div style="font-size: 11px; font-weight: 500; letter-spacing: 0.18em; color: #857E78;">SCROLLA · UI AUDIT · READ FROM SOURCE</div>
+    <div style="font-family: 'Instrument Serif', Georgia, serif; font-size: 52px; line-height: 1.08; color: #F5F1EE;">Nothing here is ugly. It is undecided.</div>
+    <div style="font-size: 16px; line-height: 1.6; color: #A39D98; text-wrap: pretty;">The palette, the copy and the metaphor are genuinely good — "the one who scrolls least, wins" is better product writing than most shipped apps have. What separates this from the apps you are comparing it to is not taste, it is commitment: every screen is built from the same flat surface, spends the accent on everything, and animates its own entrance instead of its data. Ten specific things, each with the value it currently holds.</div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px;">
+
+    <div style="background: #1A1817; border: 1px solid #2A2624; border-radius: 20px; padding: 26px 28px; display: flex; flex-direction: column; gap: 12px;">
+      <div style="display: flex; align-items: baseline; gap: 14px;">
+        <span style="font-family: 'Instrument Serif', Georgia, serif; font-size: 26px; color: #ED6A5A;">01</span>
+        <span style="font-size: 19px; font-weight: 500; color: #F5F1EE;">The cards are invisible</span>
+      </div>
+      <div style="font-size: 13.5px; line-height: 1.6; color: #857E78; border-left: 2px solid #2E2A28; padding-left: 14px;">Theme.kt sets background, surface and surfaceContainer all to Neutral50 #F6F6F6. bentoCard fills with surfaceVariant at 15% over it — roughly #F5F5F6, one value off the page. Its border is onSurface at 5%, roughly #EFEFF0. There is no shadow anywhere in the app.</div>
+      <div style="font-size: 14.5px; line-height: 1.6; color: #F5F1EE; text-wrap: pretty;">So nothing sits on anything. Depth is the cheapest signal that an interface was built rather than laid out, and it is entirely absent.</div>
+      <div style="font-size: 13.5px; line-height: 1.6; color: #3FBE9C;">Fix — three real surface steps, plus one soft shadow in light and one tonal lift with a hairline in dark.</div>
+    </div>
+
+    <div style="background: #1A1817; border: 1px solid #2A2624; border-radius: 20px; padding: 26px 28px; display: flex; flex-direction: column; gap: 12px;">
+      <div style="display: flex; align-items: baseline; gap: 14px;">
+        <span style="font-family: 'Instrument Serif', Georgia, serif; font-size: 26px; color: #ED6A5A;">02</span>
+        <span style="font-size: 19px; font-weight: 500; color: #F5F1EE;">Coral is doing ten jobs</span>
+      </div>
+      <div style="font-size: 13.5px; line-height: 1.6; color: #857E78; border-left: 2px solid #2E2A28; padding-left: 14px;">#ED6A5A is the hero number, the ambient glow, every section label, every teaser icon, every chart bar, every progress fill, the self row, the nav pill, the most-improved line and the hall-of-fame link.</div>
+      <div style="font-size: 14.5px; line-height: 1.6; color: #F5F1EE; text-wrap: pretty;">The file headers literally say "Coral budget: 1 moment" and "1 thread". The code spends it ten times a screen. An accent that marks everything marks nothing.</div>
+      <div style="font-size: 13.5px; line-height: 1.6; color: #3FBE9C;">Fix — one meaning, held everywhere: coral is you, here, now. Nothing else earns it.</div>
+    </div>
+
+    <div style="background: #1A1817; border: 1px solid #2A2624; border-radius: 20px; padding: 26px 28px; display: flex; flex-direction: column; gap: 12px;">
+      <div style="display: flex; align-items: baseline; gap: 14px;">
+        <span style="font-family: 'Instrument Serif', Georgia, serif; font-size: 26px; color: #ED6A5A;">03</span>
+        <span style="font-size: 19px; font-weight: 500; color: #F5F1EE;">The hero number fails contrast</span>
+      </div>
+      <div style="font-size: 13.5px; line-height: 1.6; color: #857E78; border-left: 2px solid #2E2A28; padding-left: 14px;">120sp, FontWeight.Light, #ED6A5A on #F6F6F6 measures 2.9:1 — under the 3:1 floor for large text. primary stays Accent500 in both themes, so light mode never gets a darker coral. White on Accent500 is 3.1:1, so button labels fail too.</div>
+      <div style="font-size: 14.5px; line-height: 1.6; color: #F5F1EE; text-wrap: pretty;">The single most important element on the screen is the one that is hardest to read.</div>
+      <div style="font-size: 13.5px; line-height: 1.6; color: #3FBE9C;">Fix — treat the accent as a role, not a hex: #ED6A5A on dark, #B83E2B on light (5.3:1).</div>
+    </div>
+
+    <div style="background: #1A1817; border: 1px solid #2A2624; border-radius: 20px; padding: 26px 28px; display: flex; flex-direction: column; gap: 12px;">
+      <div style="display: flex; align-items: baseline; gap: 14px;">
+        <span style="font-family: 'Instrument Serif', Georgia, serif; font-size: 26px; color: #ED6A5A;">04</span>
+        <span style="font-size: 19px; font-weight: 500; color: #F5F1EE;">Thin is not the same as elegant</span>
+      </div>
+      <div style="font-size: 13.5px; line-height: 1.6; color: #857E78; border-left: 2px solid #2E2A28; padding-left: 14px;">Light on the hero, Thin on the 44sp leaderboard rank numerals at 40% alpha, Light on every stat figure and on the peak-time paragraph.</div>
+      <div style="font-size: 14.5px; line-height: 1.6; color: #F5F1EE; text-wrap: pretty;">Hairlines at display size read as tentative, not refined, and they disappear on low-end panels and in daylight — the exact devices this app targets. The rank numerals in particular are unreadable by design.</div>
+      <div style="font-size: 13.5px; line-height: 1.6; color: #3FBE9C;">Fix — get character from a display face that has some, not from stretching a UI sans to 120sp and thinning it.</div>
+    </div>
+
+    <div style="background: #1A1817; border: 1px solid #2A2624; border-radius: 20px; padding: 26px 28px; display: flex; flex-direction: column; gap: 12px;">
+      <div style="display: flex; align-items: baseline; gap: 14px;">
+        <span style="font-family: 'Instrument Serif', Georgia, serif; font-size: 26px; color: #ED6A5A;">05</span>
+        <span style="font-size: 19px; font-weight: 500; color: #F5F1EE;">The type scale is not actually used</span>
+      </div>
+      <div style="font-size: 13.5px; line-height: 1.6; color: #857E78; border-left: 2px solid #2E2A28; padding-left: 14px;">Type.kt defines 15 styles. The screens override them inline more than forty times with .copy(fontWeight=…, letterSpacing=…, lineHeight=…). bodyLarge still carries Material's 0.5sp Roboto tracking, then gets corrected to −0.01em at nearly every call site.</div>
+      <div style="font-size: 14.5px; line-height: 1.6; color: #F5F1EE; text-wrap: pretty;">A design system nobody calls without amending it is a list of suggestions. It is also why the spacing between text blocks never quite lines up across screens.</div>
+      <div style="font-size: 13.5px; line-height: 1.6; color: #3FBE9C;">Fix — six styles, right at the source, used verbatim. If a screen needs a seventh, it goes in the file.</div>
+    </div>
+
+    <div style="background: #1A1817; border: 1px solid #2A2624; border-radius: 20px; padding: 26px 28px; display: flex; flex-direction: column; gap: 12px;">
+      <div style="display: flex; align-items: baseline; gap: 14px;">
+        <span style="font-family: 'Instrument Serif', Georgia, serif; font-size: 26px; color: #ED6A5A;">06</span>
+        <span style="font-size: 19px; font-weight: 500; color: #F5F1EE;">The ambient glow shows nothing</span>
+      </div>
+      <div style="font-size: 13.5px; line-height: 1.6; color: #857E78; border-left: 2px solid #2E2A28; padding-left: 14px;">A full-screen radial gradient at alpha 0.06 over #F6F6F6 — about a one-value shift. Home drives it with two infinite animations, 12s and 18s, repainting the whole screen forever. Three other screens paint a static copy of it.</div>
+      <div style="font-size: 14.5px; line-height: 1.6; color: #F5F1EE; text-wrap: pretty;">It is invisible on a phone and bands on cheap panels. It is premium-feel cargo cult: the cost of atmosphere without the atmosphere.</div>
+      <div style="font-size: 13.5px; line-height: 1.6; color: #3FBE9C;">Fix — delete it. Get depth from the surface ladder instead.</div>
+    </div>
+
+    <div style="background: #1A1817; border: 1px solid #2A2624; border-radius: 20px; padding: 26px 28px; display: flex; flex-direction: column; gap: 12px;">
+      <div style="display: flex; align-items: baseline; gap: 14px;">
+        <span style="font-family: 'Instrument Serif', Georgia, serif; font-size: 26px; color: #ED6A5A;">07</span>
+        <span style="font-size: 19px; font-weight: 500; color: #F5F1EE;">Card padding is 16, 24 and 40</span>
+      </div>
+      <div style="font-size: 13.5px; line-height: 1.6; color: #857E78; border-left: 2px solid #2E2A28; padding-left: 14px;">Home's rank card passes padding = 16. Every Profile teaser takes the 24 default. Leaderboard's Hall of Fame chains .bentoCard().bounceClick().padding(16) — 40dp of padding, and because the click lands mid-chain the tap target is inset inside the card you can see.</div>
+      <div style="font-size: 14.5px; line-height: 1.6; color: #F5F1EE; text-wrap: pretty;">Three paddings for one component is the thing the eye reads as "unfinished" before it can say why.</div>
+      <div style="font-size: 13.5px; line-height: 1.6; color: #3FBE9C;">Fix — one card, one padding, click on the outside.</div>
+    </div>
+
+    <div style="background: #1A1817; border: 1px solid #2A2624; border-radius: 20px; padding: 26px 28px; display: flex; flex-direction: column; gap: 12px;">
+      <div style="display: flex; align-items: baseline; gap: 14px;">
+        <span style="font-family: 'Instrument Serif', Georgia, serif; font-size: 26px; color: #ED6A5A;">08</span>
+        <span style="font-size: 19px; font-weight: 500; color: #F5F1EE;">The intro animation replays forever</span>
+      </div>
+      <div style="font-size: 13.5px; line-height: 1.6; color: #857E78; border-left: 2px solid #2E2A28; padding-left: 14px;">Every block gets fadeIn + slideInVertically(30) at 100ms increments, triggered by LaunchedEffect(Unit). It sits inside an AnimatedContent keyed on the tab, so switching tabs remounts the screen and runs the whole 700ms cascade again.</div>
+      <div style="font-size: 14.5px; line-height: 1.6; color: #F5F1EE; text-wrap: pretty;">Charming once, irritating by the fourth tap, and it delays the number the user opened the app to see. Top apps animate what changed; this animates the page arriving.</div>
+      <div style="font-size: 13.5px; line-height: 1.6; color: #3FBE9C;">Fix — content is present at once. Animate the number counting and the bars filling; give tab changes direction, not a stagger.</div>
+    </div>
+
+    <div style="background: #1A1817; border: 1px solid #2A2624; border-radius: 20px; padding: 26px 28px; display: flex; flex-direction: column; gap: 12px;">
+      <div style="display: flex; align-items: baseline; gap: 14px;">
+        <span style="font-family: 'Instrument Serif', Georgia, serif; font-size: 26px; color: #ED6A5A;">09</span>
+        <span style="font-size: 19px; font-weight: 500; color: #F5F1EE;">The chart cannot be tapped</span>
+      </div>
+      <div style="font-size: 13.5px; line-height: 1.6; color: #857E78; border-left: 2px solid #2E2A28; padding-left: 14px;">selectedDay exists, but the Canvas has no hit testing. The only clickable element is the single-letter day label underneath — around 14dp tall, no touch target, no affordance. The selected bar gets no selected styling, so you cannot tell what you picked.</div>
+      <div style="font-size: 14.5px; line-height: 1.6; color: #F5F1EE; text-wrap: pretty;">The one genuinely interactive thing on Insights is the one thing that does not feel interactive.</div>
+      <div style="font-size: 13.5px; line-height: 1.6; color: #3FBE9C;">Fix — full-height column targets at 44dp minimum, and a selection you can see. Tap the bars on the Insights board to the right.</div>
+    </div>
+
+    <div style="background: #1A1817; border: 1px solid #2A2624; border-radius: 20px; padding: 26px 28px; display: flex; flex-direction: column; gap: 12px;">
+      <div style="display: flex; align-items: baseline; gap: 14px;">
+        <span style="font-family: 'Instrument Serif', Georgia, serif; font-size: 26px; color: #ED6A5A;">10</span>
+        <span style="font-size: 19px; font-weight: 500; color: #F5F1EE;">Press feedback was removed on purpose</span>
+      </div>
+      <div style="font-size: 13.5px; line-height: 1.6; color: #857E78; border-left: 2px solid #2E2A28; padding-left: 14px;">bounceClick passes indication = null, so there is no ripple. What replaces it is a 5% scale driven by an infinite pointerInput loop with requireUnconsumed = false, living inside a vertical scroll it competes with.</div>
+      <div style="font-size: 14.5px; line-height: 1.6; color: #F5F1EE; text-wrap: pretty;">A 5% scale is below the threshold most people notice, so on a slow tap the app appears not to respond at all — the single fastest way to feel cheap.</div>
+      <div style="font-size: 13.5px; line-height: 1.6; color: #3FBE9C;">Fix — keep the scale, put the ripple back, and let the gesture come from the standard clickable.</div>
+    </div>
+
+  </div>
+
+  <div style="background: #1A1817; border: 1px solid #3A2F2C; border-radius: 20px; padding: 30px 34px; display: flex; flex-direction: column; gap: 14px;">
+    <div style="font-size: 11px; font-weight: 500; letter-spacing: 0.18em; color: #ED6A5A;">THE ONE THING UNDERNEATH ALL TEN</div>
+    <div style="font-family: 'Instrument Serif', Georgia, serif; font-size: 30px; line-height: 1.25; color: #F5F1EE; max-width: 880px; text-wrap: pretty;">Every screen is the same object: a large title, then a vertical stack of full-width cards on a flat ground, entering with the same animation.</div>
+    <div style="font-size: 15px; line-height: 1.65; color: #A39D98; max-width: 880px; text-wrap: pretty;">The modifier is named bentoCard, but no bento exists — nothing is ever a different size, nothing sits beside anything, no screen has a shape you would recognise from across the room. The apps you want to be compared to differ from each other page to page: a hero screen looks nothing like a list screen looks nothing like a profile. Composition, not decoration, is the gap. The four screens to the right are the same content with that fixed.</div>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

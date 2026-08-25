@@ -129,6 +129,11 @@ object ScrollaStrings {
     const val ERROR_CANT_SYNC = "Couldn't sync — will retry automatically"
     const val ERROR_LAST_UPDATED_PREFIX = "Last updated"
 
+    /** Shown when a group read fails. Deliberately not "you have no groups" —
+     *  a failed read is not an empty result, and saying so to someone who is in
+     *  two groups is worse than saying nothing. */
+    const val ERROR_GROUPS_UNAVAILABLE = "Couldn't load your groups — tap to retry"
+
     // =========================================
     // Screen 7: Insights
     // =========================================
@@ -162,6 +167,17 @@ object ScrollaStrings {
 
     // Service Health
     const val SETTINGS_HEALTH_SECTION = "Service health"
+    const val SETTINGS_HEALTH_ACTIVE_BUTTON = "Battery settings"
+    const val SETTINGS_HEALTH_UNKNOWN_BUTTON = "Open accessibility settings"
+    const val SETTINGS_HEALTH_LAST_SYNC = "Last synced %s"
+
+    /** When tracking last recorded anything. This is the number that exposes a
+     *  dead accessibility service: a card claiming "active" above a "last
+     *  recorded 09:34" from this morning is visibly contradicting itself, which
+     *  is the whole point of showing it. */
+    const val SETTINGS_HEALTH_LAST_RECORDED = "Last recorded %s"
+    const val SETTINGS_HEALTH_NEVER_RECORDED = "Nothing recorded yet"
+    const val SETTINGS_HEALTH_NEVER_SYNCED = "Not synced yet"
     const val SETTINGS_HEALTH_UNKNOWN_TITLE = "Tracking status unknown"
     const val SETTINGS_HEALTH_UNKNOWN_BODY = "Scrolla has not recorded anything yet, so it cannot confirm tracking is working. Scroll in any app for a moment and check back."
     const val SETTINGS_HEALTH_ACTIVE_TITLE = "Tracking is active"
@@ -185,6 +201,8 @@ object ScrollaStrings {
 
     // Account
     const val SETTINGS_ACCOUNT_SECTION = "Account"
+    const val SETTINGS_NOT_YET_AVAILABLE = "Not yet available"
+    const val RECAP_SHARE_TEMPLATE = "I scrolled %s this week. Measured by Scrolla."
     const val SETTINGS_DISPLAY_NAME_LABEL = "Display name"
     const val SETTINGS_DISPLAY_NAME_PLACEHOLDER = "Your name"
     const val SETTINGS_DISPLAY_NAME_SUBTEXT = "Shown to friends on the leaderboard"
@@ -213,6 +231,7 @@ object ScrollaStrings {
     const val GROUP_SWITCHER_ADD = "+ Join another group"
     const val GROUP_SWITCHER_CREATE = "+ Create a new group"
     const val GROUP_SWITCHER_CODE_LABEL = "Code"
+    const val GROUP_SWITCHER_SET_WIDGET = "Use this group on the widget"
     const val GROUP_SHARE_TEMPLATE = "Join my Scrolla group \"%s\" — the one who scrolls least wins. Group code: %s"
     const val GROUP_SWITCHER_EMPTY = "You're not in any groups yet"
     const val GROUP_SWITCHER_EMPTY_BUTTON = "Join a group"

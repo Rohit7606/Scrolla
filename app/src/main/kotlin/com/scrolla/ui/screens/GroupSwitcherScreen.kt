@@ -67,7 +67,10 @@ fun GroupSwitcherScreen(
     onGroupClick: (String) -> Unit = {},
     onJoinAnotherClick: () -> Unit = {},
     onCreateGroupClick: () -> Unit = {},
-    onShareClick: (GroupInfo) -> Unit = {}
+    onShareClick: (GroupInfo) -> Unit = {},
+    /** Moves the widget's group. setPrimaryGroup() existed and worked; nothing
+     *  in the UI had ever called it, so the widget group could not be changed. */
+    onSetWidgetGroupClick: (GroupInfo) -> Unit = {}
 ) {
     val spacing = MaterialTheme.spacing
     val scrollState = rememberScrollState()
@@ -171,6 +174,7 @@ fun GroupSwitcherScreen(
                                 isActive = isActive,
                                 onClick = { onGroupClick(group.id) },
                                 onShareClick = { onShareClick(group) },
+                                onSetWidgetGroupClick = { onSetWidgetGroupClick(group) },
                                 modifier = Modifier.padding(horizontal = spacing.medium, vertical = spacing.small)
                             )
                         }
@@ -223,6 +227,7 @@ private fun GroupCard(
     isActive: Boolean,
     onClick: () -> Unit,
     onShareClick: () -> Unit,
+    onSetWidgetGroupClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val containerColor = if (isActive) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f)
@@ -259,6 +264,19 @@ private fun GroupCard(
             )
 
             Spacer(modifier = Modifier.height(4.dp))
+
+            if (!group.isWidgetGroup) {
+                Text(
+                    text = ScrollaStrings.GROUP_SWITCHER_SET_WIDGET,
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontWeight = FontWeight.SemiBold
+                    ),
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier
+                        .clickable(onClick = onSetWidgetGroupClick)
+                        .padding(vertical = 6.dp)
+                )
+            }
 
             Text(
                 text = buildString {

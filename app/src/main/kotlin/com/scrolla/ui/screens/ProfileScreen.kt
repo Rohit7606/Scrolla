@@ -67,6 +67,10 @@ fun ProfileScreen(
     isRecordHolder: Boolean = false,
     groupCount: Int = 2,
     primaryGroupName: String? = "College Friends",
+    /** Non-null when the group read failed. Without this the row fell back to
+     *  "not in any groups yet", which is a false statement rather than a
+     *  missing one. */
+    errorMessage: String? = null,
     onSettingsClick: () -> Unit = {},
     onPersonalRecordsClick: () -> Unit = {},
     onHallOfFameClick: () -> Unit = {},
@@ -270,11 +274,18 @@ fun ProfileScreen(
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         SectionLabel(ScrollaStrings.GROUP_SWITCHER_TITLE)
                         Text(
-                            text = primaryGroupName
-                                ?.let { "$groupCount groups · $it on widget" }
-                                ?: ScrollaStrings.PROFILE_NO_GROUPS,
+                            text = when {
+                                errorMessage != null -> ScrollaStrings.ERROR_GROUPS_UNAVAILABLE
+                                primaryGroupName != null ->
+                                    "$groupCount groups · $primaryGroupName on widget"
+                                else -> ScrollaStrings.PROFILE_NO_GROUPS
+                            },
                             style = ScrollaType.Body,
-                            color = MaterialTheme.colorScheme.onSurface
+                            color = if (errorMessage != null) {
+                                MaterialTheme.colorScheme.error
+                            } else {
+                                MaterialTheme.colorScheme.onSurface
+                            }
                         )
                     }
                     Icon(
