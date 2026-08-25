@@ -92,14 +92,30 @@ class SettingsViewModel(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isDeleting = true, deleteError = null)
 
-            groupRepository.deleteAllUserData(userId, user.displayName.orEmpty())
-                .onFailure { error ->
+            val problems = groupRepository.deleteAllUserData(userId, user.displayName.orEmpty())
+                .getOrElse { error ->
                     _uiState.value = _uiState.value.copy(
                         isDeleting = false,
                         deleteError = error.message ?: ScrollaStrings.SETTINGS_DELETE_ERROR
                     )
                     return@launch
                 }
+
+            // Any group that could not be cleared stops the whole deletion, and
+            // this is the one place it must. Every Firestore rule is gated on
+            // request.auth.uid, so dropping the credential now would make that
+            // leftover data permanently unreachable — nobody could see it and
+            // nobody could delete it, in the flow whose entire purpose is
+            // removal. Keeping the account is recoverable; a stranded orphan is
+            // not.
+            if (problems.isNotEmpty()) {
+                Log.w(TAG, "Aborting deletion — ${problems.size} group(s) not cleared: $problems")
+                _uiState.value = _uiState.value.copy(
+                    isDeleting = false,
+                    deleteError = ScrollaStrings.SETTINGS_DELETE_PARTIAL
+                )
+                return@launch
+            }
 
             // Wipe local history before dropping the credential. Room is not
             // reachable per-user — the database belongs to the install, so

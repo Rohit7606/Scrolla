@@ -122,6 +122,14 @@ requirement. For an app built on an AccessibilityService it is *the* trust
 affordance — you cannot ask someone to let you observe every scroll they make
 and then offer no exit.
 
+- [x] **P0.4g** Abort deletion if any group fails to clear. *Found 2026-08-25
+      reviewing P2.3: `deleteAllUserData()` returns the groups it could **not**
+      clear, and the caller was discarding that list and deleting the account
+      anyway. Since every rule is gated on `request.auth.uid`, dropping the
+      credential would have made that leftover data permanently unreachable —
+      nobody could see it, nobody could delete it, in the flow whose whole point
+      is removal. Now the account is kept and the user is told. A kept account is
+      recoverable; a stranded orphan is not.*
 - [x] **P0.4a** Implement deletion. *`GroupRepository.deleteAllUserData()` +
       `AuthRepository.deleteAccount()`. **Order is load-bearing:** every rule is
       gated on `request.auth.uid`, so deleting the Firebase account first would
@@ -336,15 +344,27 @@ occurrences. Every error state today is inline and permanent; there is no way to
 surface a transient failure such as `setPrimaryGroup` failing, which still sets
 an error message with no path to a human being.
 
-- [ ] **P2.3a** A `SnackbarHost` in `MainShell` and a shared way for any ViewModel
-      to push a transient message to it. *The remaining piece.*
+- [x] **P2.3a** A `SnackbarHost` in `MainShell` and a shared way for any
+      ViewModel to push a transient message to it. *Done 2026-08-25.
+      `ui/ScrollaMessages.kt` is a singleton `SharedFlow` bus, matching how
+      `ScrollaGraph` already works here rather than threading a callback through
+      every ViewModel. The host sits **above** `AnimatedContent`, not inside
+      `MainTabsScreen`'s `Scaffold` — inside it, a message raised on Settings or
+      Hall of Fame or the group flows would never appear.*
+      *It also fixed a live bug. `setPrimaryGroup`'s failure wrote to
+      `LeaderboardUiState.errorMessage`, the same field a failed **load** uses,
+      and `LeaderboardScreen` renders that field **instead of** the rows. One
+      failed tap blanked a leaderboard that was on screen and perfectly valid,
+      reporting a button's failure as the data's. It now raises a snackbar with
+      a working Retry.*
 - [x] **P2.3b** Route every existing `errorMessage` into a screen. *Done
       2026-08-24 — all four ViewModels now reach one.*
 - [x] **P2.3c** Errors that are recoverable get a retry action, not just a
       complaint. *Leaderboard and Hall of Fame both retry.*
-- [ ] **P2.3d** Distinguish "offline" from "failed" — nothing in the app currently
-      checks connectivity at all (no `ConnectivityManager` usage anywhere), so a
-      Firestore failure while offline reads as a generic error.
+- [ ] **P2.3d** Distinguish "offline" from "failed" — nothing in the app checks
+      connectivity at all (no `ConnectivityManager` usage anywhere), so a
+      Firestore failure while offline still reads as a generic error. The
+      snackbar makes this cheap to add now: the copy is the only missing part.
 
 ### P2.4 — `isServiceRunning` is inferred, not observed `[A]` — ☑ **done 2026-08-25**
 

@@ -10,6 +10,7 @@ import com.scrolla.model.DistanceFormatter
 import com.scrolla.model.ScrollaConstants
 import com.scrolla.room.ScrollRepository
 import com.scrolla.ui.ScrollaGraph
+import com.scrolla.ui.ScrollaMessages
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -73,7 +74,17 @@ class LeaderboardViewModel(
         viewModelScope.launch {
             groupRepository.setPrimaryGroup(userId, groupId)
                 .onSuccess { refresh() }
-                .onFailure { _uiState.value = _uiState.value.copy(errorMessage = it.message) }
+                // Not uiState.errorMessage: that field is what a failed *load*
+                // writes to, and LeaderboardScreen renders it instead of the
+                // rows. A failed tap would blank a board that was on screen and
+                // perfectly valid, reporting a button's failure as the data's.
+                .onFailure {
+                    ScrollaMessages.show(
+                        text = ScrollaStrings.ERROR_PRIMARY_GROUP,
+                        actionLabel = ScrollaStrings.ERROR_RETRY_ACTION,
+                        action = { setPrimaryGroup(groupId) }
+                    )
+                }
         }
     }
 
