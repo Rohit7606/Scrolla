@@ -254,18 +254,27 @@ had a real device pass.
 - [ ] **P2.2b** And each with *no* data present — the empty state is where the
       honesty rule usually breaks.
 
-### P2.3 — Errors reach the user `[B]` — *this is S2.8, still open*
+### P2.3 — Errors reach the user `[B]` — ◐ *S2.8 closed 2026-08-24; the Snackbar work remains*
 
-**There is no `Snackbar` anywhere in the app.** Zero occurrences. Only three
-screens render `errorMessage` at all (Create Group, Join Group, Leaderboard).
-`LeaderboardViewModel.setPrimaryGroup` sets an error message that has no path to
-a human being.
+**Update 2026-08-24 — S2.8 is closed.** All four ViewModels that carry an
+`errorMessage` now reach a screen: Create Group, Join Group, Leaderboard (with
+retry), Hall of Fame (with retry) and Profile. The last two were the real gap —
+they read Firestore through `getOrNull()`, so a failed read was
+indistinguishable from an empty one and rendered as "no record set yet" and
+"You're not in any groups yet" respectively. Telling someone in two groups they
+are in none is a false statement, not a missing one.
+
+**Still open:** there is no `Snackbar` anywhere in the app — still zero
+occurrences. Every error state today is inline and permanent; there is no way to
+surface a transient failure such as `setPrimaryGroup` failing, which still sets
+an error message with no path to a human being.
 
 - [ ] **P2.3a** A `SnackbarHost` in `MainShell` and a shared way for any ViewModel
-      to push a transient message to it.
-- [ ] **P2.3b** Route every existing `errorMessage` into it.
-- [ ] **P2.3c** Errors that are recoverable get a retry action, not just a
-      complaint.
+      to push a transient message to it. *The remaining piece.*
+- [x] **P2.3b** Route every existing `errorMessage` into a screen. *Done
+      2026-08-24 — all four ViewModels now reach one.*
+- [x] **P2.3c** Errors that are recoverable get a retry action, not just a
+      complaint. *Leaderboard and Hall of Fame both retry.*
 - [ ] **P2.3d** Distinguish "offline" from "failed" — nothing in the app currently
       checks connectivity at all (no `ConnectivityManager` usage anywhere), so a
       Firestore failure while offline reads as a generic error.

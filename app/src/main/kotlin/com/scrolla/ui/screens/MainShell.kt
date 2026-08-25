@@ -207,6 +207,8 @@ fun MainShell(
                     recordHolderName = fameState.recordHolderName,
                     recordDistanceKm = fameState.recordDistanceKm,
                     recordDate = fameState.recordDate,
+                    errorMessage = fameState.errorMessage,
+                    onRetryClick = { fameViewModel.refresh() },
                     isCurrentUserHolder = fameState.isCurrentUserHolder,
                     gapToRecordKm = fameState.gapToRecordKm,
                     onBackClick = popBackStack
@@ -496,6 +498,7 @@ private fun MainTabsScreen(
                         hallOfFameGapKm = profileState.hallOfFameGapKm,
                         isRecordHolder = profileState.isRecordHolder,
                         groupCount = profileState.groupCount,
+                        errorMessage = profileState.errorMessage,
                         primaryGroupName = profileState.primaryGroupName,
                         onSettingsClick = onSettingsClick,
                         onPersonalRecordsClick = onPersonalRecordsClick,

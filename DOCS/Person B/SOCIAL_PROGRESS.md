@@ -125,21 +125,24 @@ Per the loophole audit and `SPRINT_LOG.md` S2.8 and S3.x: empty states and error
 
 | Screen | Empty state | Empty state wired? | Error state | Error state wired? |
 |---|---|---|---|---|
-| Home | "No data yet — keep scrolling today" | ☐ | Sync error banner with last-synced time | ☐ |
-| Leaderboard | Personal stats when group size = 1 | ☐ | "Couldn't load — tap to retry" | ☐ |
+| Home | Dash + "waiting for the first scroll", never a confident 0.0 | ☑ | — (Room-backed; `ScrollRepository` returns safe defaults and never throws) | N/A |
+| Leaderboard | Personal stats when group size = 1 | ☑ | "Couldn't load — tap to retry" | ☑ with retry |
 | Leaderboard | "[left]" label for departed members | ☐ | — | — |
-| Insights | "Start scrolling to see your stats" | ☐ | — | — |
-| Group switcher | "You're not in any groups yet" | ☐ | — | — |
-| Join group | — | — | "Group not found — check the code" | ☐ |
+| Insights | "Start scrolling to see your stats" | ☑ | — (Room-backed) | N/A |
+| Group switcher | "You're not in any groups yet" | ☑ | — | ☐ |
+| Join group | — | — | "Group not found — check the code" | ☑ |
 | Personal records | "Need at least 2 days of data" | ☐ | — | — |
-| Hall of fame | "No record set yet — you could be first" | ☐ | — | — |
+| Hall of fame | "No record set yet — you could be first" | ☑ | "Couldn't load your groups — tap to retry" | ☑ with retry (2026-08-24) |
 | Recap card | "Need a full week of data" | ☐ | — | — |
 | App breakdown | "No app data yet today" | ☐ | — | — |
 | Settings / Service Health | — | — | "Tracking stopped — tap to fix" | ☐ |
 | Sign in | — | — | "Sign-in failed — try again" | ☑ (onSignInError callback wired) |
-| Profile — delete account | — | — | "Couldn't delete — try again" | ☐ |
+| Profile — groups row | — | — | "Couldn't load your groups — tap to retry" | ☑ (2026-08-24) |
+| Profile — delete account | — | — | "Couldn't delete — try again" | ☐ blocked on P0.4 |
 
-> **Rule:** A blank white screen or a crash is never an acceptable empty or error state. If you're unsure what the empty state should say, check `UI_COPY.md` before inventing copy inline.
+> **Rule:** A blank white screen or a crash is never an acceptable empty or error state.
+>
+> **Corollary added 2026-08-24, learned the hard way:** an empty state shown *because a read failed* is worse than a blank screen, not better. `HallOfFameViewModel` and `ProfileViewModel` both read Firestore through `getOrNull()`, which discards the error — so a dropped connection rendered as "no record set yet — you could be first" and "You're not in any groups yet". The second was told to users who were in two groups. Those are confident false statements, which is the failure mode this rule exists to prevent, arriving through the door the rule left open. **Never call a Firestore read with `getOrNull()` behind an empty state.** If you're unsure what the empty state should say, check `UI_COPY.md` before inventing copy inline.
 
 ---
 

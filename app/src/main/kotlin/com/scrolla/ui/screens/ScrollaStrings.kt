@@ -129,6 +129,11 @@ object ScrollaStrings {
     const val ERROR_CANT_SYNC = "Couldn't sync — will retry automatically"
     const val ERROR_LAST_UPDATED_PREFIX = "Last updated"
 
+    /** Shown when a group read fails. Deliberately not "you have no groups" —
+     *  a failed read is not an empty result, and saying so to someone who is in
+     *  two groups is worse than saying nothing. */
+    const val ERROR_GROUPS_UNAVAILABLE = "Couldn't load your groups — tap to retry"
+
     // =========================================
     // Screen 7: Insights
     // =========================================
