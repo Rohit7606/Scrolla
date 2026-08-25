@@ -170,6 +170,13 @@ object ScrollaStrings {
     const val SETTINGS_HEALTH_ACTIVE_BUTTON = "Battery settings"
     const val SETTINGS_HEALTH_UNKNOWN_BUTTON = "Open accessibility settings"
     const val SETTINGS_HEALTH_LAST_SYNC = "Last synced %s"
+
+    /** When tracking last recorded anything. This is the number that exposes a
+     *  dead accessibility service: a card claiming "active" above a "last
+     *  recorded 09:34" from this morning is visibly contradicting itself, which
+     *  is the whole point of showing it. */
+    const val SETTINGS_HEALTH_LAST_RECORDED = "Last recorded %s"
+    const val SETTINGS_HEALTH_NEVER_RECORDED = "Nothing recorded yet"
     const val SETTINGS_HEALTH_NEVER_SYNCED = "Not synced yet"
     const val SETTINGS_HEALTH_UNKNOWN_TITLE = "Tracking status unknown"
     const val SETTINGS_HEALTH_UNKNOWN_BODY = "Scrolla has not recorded anything yet, so it cannot confirm tracking is working. Scroll in any app for a moment and check back."

@@ -54,6 +54,25 @@ import com.scrolla.ui.theme.ErrorLight
 import com.scrolla.ui.components.bentoCard
 import com.scrolla.ui.components.bounceClick
 
+/**
+ * Formats a health timestamp as a short local time, or the "never" copy when the
+ * field has never been written. Shows the date too once the timestamp is older
+ * than today, so a stale figure cannot be mistaken for one from this morning.
+ */
+private fun formatHealthTime(timestamp: Long?, template: String, neverText: String): String {
+    if (timestamp == null || timestamp <= 0L) return neverText
+    val now = java.util.Calendar.getInstance()
+    val then = java.util.Calendar.getInstance().apply { timeInMillis = timestamp }
+    val sameDay = now.get(java.util.Calendar.YEAR) == then.get(java.util.Calendar.YEAR) &&
+        now.get(java.util.Calendar.DAY_OF_YEAR) == then.get(java.util.Calendar.DAY_OF_YEAR)
+    val pattern = if (sameDay) "HH:mm" else "d MMM, HH:mm"
+    return String.format(
+        template,
+        java.text.SimpleDateFormat(pattern, java.util.Locale.getDefault())
+            .format(java.util.Date(timestamp))
+    )
+}
+
 enum class UiServiceHealthState {
     ACTIVE,
     STOPPED,
@@ -223,16 +242,26 @@ fun SettingsScreen(
                     HealthCard(
                         content = healthContent,
                         onButtonClick = onFixBatteryClick,
-                        footnote = serviceHealthState?.lastFirestoreSyncTimestamp
-                            ?.takeIf { it > 0L }
-                            ?.let {
-                                String.format(
-                                    ScrollaStrings.SETTINGS_HEALTH_LAST_SYNC,
-                                    java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault())
-                                        .format(java.util.Date(it))
-                                )
-                            }
-                            ?: ScrollaStrings.SETTINGS_HEALTH_NEVER_SYNCED,
+                        // Last *recorded* comes first, ahead of last synced. Sync
+                        // freshness says Firestore is reachable; it says nothing about
+                        // whether the accessibility service is still alive. On
+                        // 2026-08-25 the service crashed at 09:34 and this card still
+                        // read "Tracking is active" nine hours later, because every
+                        // signal it consults is a latch that is only ever set true.
+                        // A visible "last recorded 09:34" is the one thing on the card
+                        // that can contradict its own headline.
+                        footnote = listOfNotNull(
+                            formatHealthTime(
+                                serviceHealthState?.lastRoomFlushTimestamp,
+                                ScrollaStrings.SETTINGS_HEALTH_LAST_RECORDED,
+                                ScrollaStrings.SETTINGS_HEALTH_NEVER_RECORDED
+                            ),
+                            formatHealthTime(
+                                serviceHealthState?.lastFirestoreSyncTimestamp,
+                                ScrollaStrings.SETTINGS_HEALTH_LAST_SYNC,
+                                ScrollaStrings.SETTINGS_HEALTH_NEVER_SYNCED
+                            )
+                        ).joinToString(" · "),
                         modifier = Modifier.padding(horizontal = spacing.medium)
                     )
                 }

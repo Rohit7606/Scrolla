@@ -81,6 +81,70 @@ record path — which cannot be tested at all, because nothing in the app writes
 
 ---
 
+### 2026-08-25 — Xiaomi: accessibility service CRASHED, and every health signal missed it
+
+**Observed:** tracking silently stopped at **09:34 IST** and recorded nothing for
+the following 9.5 hours. The user reported it as "accessibility seems to be on
+but says not working".
+
+**Device:** Xiaomi (serial 79CACEKN6TJJR84D, `com.miui.home` present). Note this
+is a *different* device from the OPPO CPH2565 in the entry above, so the friend
+group now spans two manufacturers.
+
+**Diagnosis, from `adb shell dumpsys accessibility`:**
+
+```
+Enabled services:{{com.scrolla/com.scrolla.service.ScrollAccessibilityService}}
+Binding services:{}
+Crashed services:{{com.scrolla/com.scrolla.service.ScrollAccessibilityService}}
+```
+
+The service **crashed**. Android left it in `Enabled services` — which is why the
+toggle still looked ON in system Settings — but it was not bound, and
+`settings get secure accessibility_enabled` returned **0**: the framework had
+switched accessibility off wholesale because its only enabled service had died.
+
+**The crash itself could not be recovered.** `logcat -b crash` had rotated past it
+in 9.5 hours and dropbox held nothing. This is the concrete argument for
+PREMIUM_CHECKLIST P0.3 — without crash reporting, a service crash on any device
+we do not physically hold is unrecoverable, and the app cannot tell us it happened.
+
+**Every health signal the app has reported "fine" throughout:**
+
+| Signal | Value at 19:03, 9.5h after death | Why it missed |
+|---|---|---|
+| `isAccessibilityServiceEnabled` | `true` | `getEnabledAccessibilityServiceList()` reflects the *enabled list*, which still contained the crashed service. Never consults `Settings.Secure.ACCESSIBILITY_ENABLED`, which was 0. |
+| `isServiceRunning` | `true` | Only ever set **true**, by a successful flush. Nothing anywhere sets it false. It is a latch, not a state. |
+| `lastEventTimestamp` | `0` | **Never written at all** — 743 events on record and the field has never held a value. The one signal designed to detect staleness is dead code. |
+| `degradedReason` | `null` | Only set by sync failures. |
+
+So the Settings health card computed **ACTIVE** and told the user "Tracking is
+active" nine and a half hours after tracking stopped. That is the failure this
+card exists to prevent, and it is worse than showing nothing.
+
+**Recovery:** toggling the service off and on in system Settings. It cannot be
+done over adb on MIUI — `settings put secure` is refused with a
+`SecurityException` for `WRITE_SECURE_SETTINGS` even from an adb shell, which is a
+MIUI-specific restriction worth knowing before anyone tries to script a fix.
+
+**Fixed so far (B, `ui/`):** the health card footnote now leads with **when
+tracking last recorded anything**, not when Firestore last synced. Sync freshness
+says Firestore is reachable and says nothing about whether the service is alive.
+A card reading "Tracking is active · Last recorded 09:34" at least visibly
+contradicts itself.
+
+**Still open (A, `service/` + `device/`)** — the actual fixes:
+1. `isScrollAccessibilityServiceEnabled()` must also check
+   `Settings.Secure.ACCESSIBILITY_ENABLED`. One condition, and it alone would have
+   caught this.
+2. `isServiceRunning` must be settable false — `onUnbind()`/`onDestroy()`, and set
+   true in `onServiceConnected()` rather than inferred from the first flush.
+3. `lastEventTimestamp` must actually be written on each event or flush, so
+   staleness becomes detectable at all.
+4. Root-cause the crash. Blocked on P0.3 (Crashlytics).
+
+---
+
 ## 3. OEM BATTERY BEHAVIOR — PRE-FILLED KNOWN QUIRKS
 
 This section is pre-filled with known OEM battery-killing behavior from documented Android fragmentation research. **These are not guesses** — they are well-documented patterns. Update with actual observed behavior as testing happens; add a ✅ next to findings that are confirmed on a real device, a ❌ next to ones that didn't reproduce.
