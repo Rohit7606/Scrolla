@@ -112,7 +112,7 @@ taken this.
 - [ ] **P0.3c** Confirm no scroll content, package list, or user identity beyond
       the Firebase UID reaches a crash report. See P1.2.
 
-### P0.4 — Delete account is a dead row `[B]`
+### P0.4 — Delete account is a dead row `[B]` — ◐ **built 2026-08-25, rules not deployed**
 
 `SettingsScreen.kt:300-304` renders a "Delete" row with `enabled = false`. It has
 never done anything.
@@ -122,16 +122,42 @@ requirement. For an app built on an AccessibilityService it is *the* trust
 affordance — you cannot ask someone to let you observe every scroll they make
 and then offer no exit.
 
-- [ ] **P0.4a** Implement deletion: Firebase Auth account, `/users/{uid}`, the
-      user's `dailyTotals` documents in every group they belong to, and their
-      entry in each group's `members` array.
-- [ ] **P0.4b** Firestore rules for self-deletion — `isSelfLeave()` does not exist
-      yet, and the current rules only permit `isSelfJoin()` and
-      `isRecordImprovement()`. Needs A's review per §2.
-- [ ] **P0.4c** Wipe the local Room database on delete. Otherwise "delete my
-      account" leaves every scroll event on the device.
-- [ ] **P0.4d** Confirmation dialogue with real consequences spelled out, not a
-      generic "Are you sure?".
+- [x] **P0.4a** Implement deletion. *`GroupRepository.deleteAllUserData()` +
+      `AuthRepository.deleteAccount()`. **Order is load-bearing:** every rule is
+      gated on `request.auth.uid`, so deleting the Firebase account first would
+      strand the cloud data permanently — unreachable rows nobody can see or
+      remove, in the one flow whose entire purpose is removal. Cloud first, then
+      Room, then the credential.*
+- [x] **P0.4f** Scrub the deleted user's name from any group record they hold.
+      *`SETTINGS_DELETE_BODY` has always promised "your name in group history
+      will be replaced with '[deleted]'" and nothing did it. Must run **before**
+      leaving the group: `isRecordImprovement()` requires the caller be a member,
+      so after `arrayRemove` the write is denied forever. The record value
+      survives — the rule permits an equal `recordKm` — so the group keeps its
+      history and loses only the name.*
+- [◐] **P0.4b** Firestore rules for self-deletion. *Written, **not deployed** —
+      needs A's review per §2 and a Rules Playground pass. Two changes:
+      `isSelfLeave()` (subset + exactly-one-shorter + caller absent, so a member
+      cannot remove someone else and add an impostor while keeping the size
+      arithmetic intact), and a split of the `dailyTotals` write rule. That
+      second one was a latent blocker nobody had noticed: `allow write` covers
+      deletes, but on a delete `request.resource` is null, so
+      `request.resource.data.userId == request.auth.uid` could never pass and
+      **deleting your own totals was impossible**. Account deletion was
+      unimplementable until this was split into `create, update` and `delete`.*
+- [x] **P0.4c** Wipe the local Room database on delete. *`clearAllTables()`
+      between the cloud wipe and the credential drop. This is the most sensitive
+      store in the app — every scroll, per app, per hour — and skipping it would
+      mean "delete my account" deleted the account and none of the surveillance.*
+- [x] **P0.4d** Confirmation dialogue with real consequences. *And it turned out
+      the copy already existed — `SETTINGS_DELETE_TITLE`, `_BODY`, `_CONFIRM`,
+      `_CANCEL`, `_IN_PROGRESS` and `_INPUT_HINT` ("Type DELETE to confirm") were
+      all written months ago and never rendered. The original design was stronger
+      than the plain dialog first drafted here, so it is now wired as intended:
+      type-to-confirm, an enumerated body, and a dismiss button that says "Keep my
+      account" rather than "Cancel", which is ambiguous about what is being
+      cancelled. Another instance of the written-but-never-rendered problem — see
+      P4.3b.*
 - [ ] **P0.4e** While you are there: local data export. Cheap once deletion has
       already enumerated everything, and it is the other half of the same promise.
 

@@ -126,6 +126,7 @@ object ScrollaStrings {
     const val ERROR_NO_CONNECTION = "No connection — showing last saved data"
     const val ERROR_COULDNT_LOAD = "Couldn't load — showing last known ranking"
     const val ERROR_RETRY = "Something went wrong — tap to retry"
+    const val ERROR_DISMISS = "OK"
     const val ERROR_CANT_SYNC = "Couldn't sync — will retry automatically"
     const val ERROR_LAST_UPDATED_PREFIX = "Last updated"
 
@@ -222,6 +223,11 @@ object ScrollaStrings {
     const val SETTINGS_DELETE_CANCEL = "Keep my account"
     const val SETTINGS_DELETE_IN_PROGRESS = "Deleting your account..."
     const val SETTINGS_DELETE_ERROR = "Couldn't delete your account — try again or contact support"
+    /** The only genuinely new string here. Every other delete-flow string below
+     *  was written months ago and never rendered, including the type-to-confirm
+     *  hint — the original design was stronger than a plain dialog and had
+     *  simply never been wired up. */
+    const val SETTINGS_DELETE_REAUTH = "For your security, sign in again before deleting your account"
 
     // =========================================
     // Screens 10-11: Groups
