@@ -146,7 +146,7 @@ _To run on hardware and paste raw `service_health` SQLite output via:_
 | Test | Action | Expected `service_health` row | Result / Raw Row |
 |---|---|---|---|
 | **1. Liveness & Event Stamp** | Enable service, scroll in Chrome/Reddit | `isServiceRunning = 1`, `isAccessibilityServiceEnabled = 1`, `lastEventTimestamp > 0`, `lastRoomFlushTimestamp > 0` | ⏳ Pending on-device run |
-| **2. Master Switch Off (The 2026-08-25 Outage Case)** | Turn Accessibility master switch OFF in Android Settings, reopen Scrolla | `isAccessibilityServiceEnabled = 0`, Settings health card shows INACTIVE | ⏳ Pending on-device run |
+| **2. Master Switch Off (The 2026-08-25 Outage Case)** | Turn Accessibility master switch OFF in Android Settings, reopen Scrolla | `isAccessibilityServiceEnabled = 0`, Settings health card shows INACTIVE | ☑ **Confirmed by B, 2026-08-25**, on the Xiaomi this crash happened on. Raw `service_health` row not captured — recorded as B's confirmation, not as a pasted matrix. |
 | **3. Graceful Shutdown** | Force-stop the app via Settings / UI | `isServiceRunning = 0` (written via `onUnbind`/`onDestroy`) | ⏳ Pending on-device run |
 | **4. Abrupt Kill** | `adb shell am kill com.scrolla` | `isServiceRunning = 1` | ⏳ Pending on-device run |
 
