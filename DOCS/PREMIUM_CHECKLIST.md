@@ -93,10 +93,17 @@ between the debug and release APKs today.
 - [ ] **P0.2d** A versioning rule. `versionCode` must increment per build handed
       to anyone, or you cannot tell which APK a bug report came from.
 
-### P0.3 — Nothing reports crashes `[Both]`
+### P0.3 — Nothing reports crashes `[A — taken 2026-08-25]`
 
 Firebase is already in the project. Crashlytics is not. When the app dies on
 someone else's phone you find out because they mention it, or you don't.
+
+**This stopped being hypothetical on 2026-08-25.** The accessibility service
+crashed and the crash itself was unrecoverable: `logcat -b crash` had rotated past
+it within 9.5 hours and dropbox held nothing. We know the service died only
+because `dumpsys accessibility` still listed it under `Crashed services`. On any
+device we do not physically hold, that information does not exist at all. A has
+taken this.
 
 - [ ] **P0.3a** Add Firebase Crashlytics.
 - [ ] **P0.3b** Non-fatal reports on the paths that currently swallow errors — the
@@ -279,25 +286,43 @@ an error message with no path to a human being.
       checks connectivity at all (no `ConnectivityManager` usage anywhere), so a
       Firestore failure while offline reads as a generic error.
 
-### P2.4 — `isServiceRunning` is inferred, not observed `[A]`
+### P2.4 — `isServiceRunning` is inferred, not observed `[A]` — ☑ **done 2026-08-25**
 
-`onServiceConnected()` does not set `isServiceRunning = true` — only a successful
-`flushBatch()` does. So a service enabled ten seconds ago has the flag `false`
-through no fault of its own.
+Originally filed as an accuracy nitpick. It was not: on 2026-08-25 the
+accessibility service **crashed** on a Xiaomi device and the health card read
+"Tracking is active" for 9.5 hours, because `isServiceRunning` was a latch that
+only ever got set true, `lastEventTimestamp` had never been written in the app's
+life, and `isScrollAccessibilityServiceEnabled()` never consulted the master
+switch. Three independent signals, all reporting healthy, none of them looking.
 
-The Settings health card currently guards around this by mapping a never-flushed
-row to UNKNOWN. That guard is a UI-side patch over a service-side inaccuracy.
-
-- [ ] **P2.4a** Set the flag when the service actually connects. The service knows
-      the moment it happens; inferring it from the first flush is strictly worse
-      information. A's call, A's file.
-- [ ] **P2.4b** Once done, revisit whether the UNKNOWN guard in `SettingsScreen`
-      is still needed or is now hiding real INTERRUPTED states.
+- [x] **P2.4a** Set the flag when the service actually connects. *Done by A —
+      `onServiceConnected()` writes it directly, `onUnbind()`/`onDestroy()` clear
+      it. `ServiceHealthDao` also moved to targeted `@Query` updates, which removed
+      a lost-update race the original brief had not spotted: `flushBatch()` was
+      writing the whole row back from a snapshot taken before its inserts, so a
+      concurrent shutdown write would have been resurrected.*
+- [x] **P2.4b** Revisit the UNKNOWN guard in `SettingsScreen`. *Removed 2026-08-25.
+      It existed only because the flag was unreliable, and once the flag became
+      trustworthy the guard could only hide real INTERRUPTED states. UNKNOWN is
+      still reachable for a genuinely absent health row.*
+- [x] **P2.4c** `lastEventTimestamp` is now written — a `@Volatile` in-memory stamp
+      persisted at flush, so it and `lastRoomFlushTimestamp` come from different
+      sources and diverge when events arrive but writes fail.
+- [ ] **P2.4d** **The four on-device verifications are still pending** —
+      `DEVICE_TEST_LOG.md` marks them ⏳, correctly. None of these three fixes
+      would fail a build, so a clean build is not evidence for any of them. The
+      one that matters most: turn the master switch off, reopen, and confirm the
+      card stops saying active.
+- [ ] **P2.4e** Split `degradedReason` into flush and sync columns. Both
+      subsystems share it, so a scroll flush clears a sync error within ten
+      seconds and vice versa — and the new `onAccessibilityEvent` catch now writes
+      there too, so an event error flickers rather than persisting. Pre-existing,
+      but there are three writers now. A has it queued alongside P0.3.
 
 ### P2.5 — Push what exists `[B]`
 
-- [ ] **P2.5a** `b/group-flow-fixes` has **7 unpushed commits**, including the
-      chart-rolling and accessibility-on-resume fixes. Push, PR, merge.
+- [x] **P2.5a** `b/group-flow-fixes` — pushed and merged as PR #11 (2026-08-25),
+      14 commits. A's `a/service-health-detection` merged after it as `b59fef3`.
 
 ---
 

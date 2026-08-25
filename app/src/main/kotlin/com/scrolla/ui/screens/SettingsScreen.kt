@@ -188,14 +188,20 @@ fun SettingsScreen(
 
                     val uiHealthState = when {
                         serviceHealthState == null -> UiServiceHealthState.UNKNOWN
+                        // Now checks the accessibility master switch too, not just
+                        // the enabled-services list — a crashed service stays in
+                        // that list, which is how a dead service read as healthy
+                        // for 9.5 hours on 2026-08-25. This branch is what catches
+                        // that case now.
                         !serviceHealthState.isAccessibilityServiceEnabled -> UiServiceHealthState.STOPPED
-                        // isServiceRunning is only ever set true by a successful
-                        // flush, and onServiceConnected() does not set it. So a
-                        // service enabled seconds ago has it false through no
-                        // fault of its own — reporting INTERRUPTED there accuses
-                        // the OS of killing something that has simply not had
-                        // anything to write yet.
-                        serviceHealthState.lastRoomFlushTimestamp == 0L -> UiServiceHealthState.UNKNOWN
+                        // A `lastRoomFlushTimestamp == 0L -> UNKNOWN` guard used to
+                        // sit here, because isServiceRunning was only ever set true
+                        // by a successful flush — so a service enabled seconds ago
+                        // had it false through no fault of its own, and INTERRUPTED
+                        // accused the OS of killing something that had simply not
+                        // had anything to write yet. onServiceConnected() now sets
+                        // the flag directly, so the flag means what it says and the
+                        // guard would only hide real INTERRUPTED states.
                         !serviceHealthState.isServiceRunning -> UiServiceHealthState.INTERRUPTED
                         serviceHealthState.degradedReason != null -> UiServiceHealthState.DEGRADED
                         else -> UiServiceHealthState.ACTIVE
