@@ -216,6 +216,8 @@ object ScrollaStrings {
     const val SETTINGS_SIGN_OUT_TITLE = "Sign out of Scrolla?"
     const val SETTINGS_SIGN_OUT_BODY = "You can sign back in anytime with your Google account"
     const val SETTINGS_DELETE_ACCOUNT = "Delete account"
+    const val SETTINGS_EXPORT_LABEL = "Export my data"
+    const val SETTINGS_EXPORT_SUBJECT = "My Scrolla data"
     const val SETTINGS_DELETE_TITLE = "Delete your Scrolla account?"
     const val SETTINGS_DELETE_BODY = "This will permanently delete:\n• Your scroll history\n• Your personal records\n• Your group memberships\n\nYour name in group history will be replaced with '[deleted]'.\nThis cannot be undone."
     const val SETTINGS_DELETE_INPUT_HINT = "Type DELETE to confirm"
