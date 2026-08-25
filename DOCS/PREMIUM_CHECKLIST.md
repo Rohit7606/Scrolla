@@ -135,8 +135,8 @@ and then offer no exit.
       so after `arrayRemove` the write is denied forever. The record value
       survives — the rule permits an equal `recordKm` — so the group keeps its
       history and loses only the name.*
-- [◐] **P0.4b** Firestore rules for self-deletion. *Written, **not deployed** —
-      needs A's review per §2 and a Rules Playground pass. Two changes:
+- [◐] **P0.4b** Firestore rules for self-deletion. ***Reviewed and approved by A 2026-08-25 (REVIEW_LOG #5). Still needs publishing to Firebase — reviewed is not deployed, and the delete button fails at `isSelfLeave` on a real device until it is.***
+      Two changes:
       `isSelfLeave()` (subset + exactly-one-shorter + caller absent, so a member
       cannot remove someone else and add an impostor while keeping the size
       arithmetic intact), and a split of the `dailyTotals` write rule. That
@@ -158,8 +158,16 @@ and then offer no exit.
       account" rather than "Cancel", which is ambiguous about what is being
       cancelled. Another instance of the written-but-never-rendered problem — see
       P4.3b.*
-- [ ] **P0.4e** While you are there: local data export. Cheap once deletion has
-      already enumerated everything, and it is the other half of the same promise.
+- [x] **P0.4e** Local data export. *`DataExport` builds a CSV — per-day history
+      oldest-first, plus today's per-app breakdown — shared through the same
+      `ACTION_SEND` chooser the group code and weekly recap already use. Placed
+      directly above Delete, because the moment someone is looking for the way
+      out is the moment they might want to take their data with them.*
+      *CSV over JSON: the likeliest thing anyone does with this is open it in a
+      spreadsheet. App labels come from other apps' manifests and can contain
+      commas and quotes, so they are quoted and escaped — an unquoted label
+      silently shifts every later column, which a user would only notice long
+      after trusting the file. 10 tests.*
 
 ### P0.5 — The Play-policy question is unresolved and load-bearing `[Both]`
 

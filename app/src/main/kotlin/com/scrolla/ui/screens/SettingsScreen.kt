@@ -112,6 +112,7 @@ fun SettingsScreen(
     onAddPhoneClick: () -> Unit = {},
     onSignOutClick: () -> Unit = {},
     onDeleteAccountClick: () -> Unit = {},
+    onExportDataClick: () -> Unit = {},
     /** True while deletion is in flight — the row must not be tappable twice. */
     isDeleting: Boolean = false,
     /** Non-null when deletion failed. Shown instead of closing silently, because
@@ -403,6 +404,19 @@ fun SettingsScreen(
                             modifier = Modifier.padding(horizontal = 16.dp)
                         )
                         
+                        SettingsItem(
+                            // Sits directly above Delete on purpose: the moment
+                            // someone is looking for the way out is the moment
+                            // they might want to take their data with them.
+                            label = ScrollaStrings.SETTINGS_EXPORT_LABEL,
+                            onClick = onExportDataClick
+                        )
+
+                        androidx.compose.material3.HorizontalDivider(
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
+                            modifier = Modifier.padding(horizontal = 16.dp)
+                        )
+
                         SettingsItem(
                             label = if (isDeleting) {
                                 ScrollaStrings.SETTINGS_DELETE_IN_PROGRESS

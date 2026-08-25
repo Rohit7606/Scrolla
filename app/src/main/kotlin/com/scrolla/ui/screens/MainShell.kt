@@ -158,6 +158,16 @@ fun MainShell(
                         settingsViewModel.signOut(context)
                         onSignedOut()
                     },
+                    onExportDataClick = {
+                        settingsViewModel.exportData { text ->
+                            val send = Intent(Intent.ACTION_SEND).apply {
+                                type = "text/csv"
+                                putExtra(Intent.EXTRA_SUBJECT, ScrollaStrings.SETTINGS_EXPORT_SUBJECT)
+                                putExtra(Intent.EXTRA_TEXT, text)
+                            }
+                            context.startActivity(Intent.createChooser(send, null))
+                        }
+                    },
                     isDeleting = settingsState.isDeleting,
                     deleteError = settingsState.deleteError,
                     onDismissDeleteError = { settingsViewModel.dismissDeleteError() },

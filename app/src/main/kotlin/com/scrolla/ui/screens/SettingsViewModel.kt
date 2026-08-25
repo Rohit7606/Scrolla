@@ -125,11 +125,34 @@ class SettingsViewModel(
         }
     }
 
+    /**
+     * Builds the export off the main thread and hands the text back.
+     *
+     * The caller shares it; this does not touch Intents, so it stays testable
+     * and the ViewModel stays free of Android UI plumbing.
+     */
+    fun exportData(onReady: (String) -> Unit) {
+        viewModelScope.launch {
+            val history = scrollRepository.getRecentDailyTotals(EXPORT_DAYS)
+            val topApps = scrollRepository.getTodayTopApps()
+            val text = DataExport.build(
+                displayName = _uiState.value.displayName,
+                generatedOn = java.time.LocalDate.now().toString(),
+                dailyTotals = history,
+                todayTopApps = topApps,
+                appLabel = { ScrollaGraph.appLabel(it) }
+            )
+            onReady(text)
+        }
+    }
+
     fun dismissDeleteError() {
         _uiState.value = _uiState.value.copy(deleteError = null)
     }
 
     private companion object {
         const val TAG = "SettingsViewModel"
+        /** A year is well past what Room retains, so this is "everything". */
+        const val EXPORT_DAYS = 365
     }
 }
