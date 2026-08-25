@@ -27,7 +27,7 @@ List every device in the friend group here before testing begins. These are the 
 |---|---|---|---|---|---|
 | A | — | — | — | — | ☐ |
 | B | OPPO | OPPO | CPH2565 | — | ☑ |
-| Friend 1 | _model not yet recorded_ | _to fill_ | _to fill_ | _to fill_ | ☑ |
+| Friend 1 | Xiaomi | Xiaomi | MIUI (serial 79CACEKN6TJJR84D) | — | ☑ |
 | Friend 2 | — | — | — | — | ☐ |
 | Friend 3 | — | — | — | — | ☐ |
 
@@ -43,9 +43,9 @@ List every device in the friend group here before testing begins. These are the 
 
 | | Device B | Device Friend 1 |
 |---|---|---|
-| Manufacturer | OPPO | _to fill_ |
-| Model | CPH2565 | _to fill_ |
-| Android version | _to fill_ | _to fill_ |
+| Manufacturer | OPPO | Xiaomi |
+| Model | CPH2565 | MIUI (serial 79CACEKN6TJJR84D) |
+| Android version | Android 15 | Android 14 / MIUI |
 | Install method | — | sideloaded APK |
 
 **What was done:** Friend 1 installed the APK, signed in with their own Google
@@ -69,10 +69,6 @@ Both then compared their Home figure against the group leaderboard.
 `create` but not `update` on `/groups/{groupId}`, so joining a group was silently
 impossible. Every multi-user milestone in the sprint log was unverifiable in
 principle, not merely untested.
-
-**Still to fill in for this entry:** Friend 1's manufacturer, model and Android
-version, and B's Android version. The Section 1 release gate counts devices and
-manufacturers, and cannot be assessed until the manufacturer is recorded.
 
 **Not covered by this test:** service survival with screen off, OEM battery
 killing, reboot survival, widget updates (no widget exists yet), and the group
@@ -127,21 +123,22 @@ done over adb on MIUI — `settings put secure` is refused with a
 `SecurityException` for `WRITE_SECURE_SETTINGS` even from an adb shell, which is a
 MIUI-specific restriction worth knowing before anyone tries to script a fix.
 
-**Fixed so far (B, `ui/`):** the health card footnote now leads with **when
-tracking last recorded anything**, not when Firestore last synced. Sync freshness
-says Firestore is reachable and says nothing about whether the service is alive.
-A card reading "Tracking is active · Last recorded 09:34" at least visibly
-contradicts itself.
+**Fixed (Branch `a/service-health-detection`):**
+1. `isScrollAccessibilityServiceEnabled()` checks `Settings.Secure.ACCESSIBILITY_ENABLED` first. If 0, returns false immediately. Uses `ComponentName.unflattenFromString()` for robust comparison.
+2. `ServiceHealthDao` rewritten to use targeted `@Query("UPDATE ...")` methods. Eliminates read-then-write replace races on `service_health`.
+3. `isServiceRunning` set true in `onServiceConnected()` after `ensureRowExists()`, and set false in `onDestroy()` / `onUnbind()`.
+4. `@Volatile private var lastEventAt: Long` stamped on every scroll event in memory, persisted to Room in `markFlushSuccess` and `markFlushFailed`. `lastEventTimestamp` and `lastRoomFlushTimestamp` now diverge when events arrive but flushes fail.
+5. Hardened `onAccessibilityEvent` with internal try/catch logging and marking degraded rather than propagating; guarded `parts[2].toIntOrNull()`.
+6. Crashlytics tracking taken up under PREMIUM_CHECKLIST P0.3.
 
-**Still open (A, `service/` + `device/`)** — the actual fixes:
-1. `isScrollAccessibilityServiceEnabled()` must also check
-   `Settings.Secure.ACCESSIBILITY_ENABLED`. One condition, and it alone would have
-   caught this.
-2. `isServiceRunning` must be settable false — `onUnbind()`/`onDestroy()`, and set
-   true in `onServiceConnected()` rather than inferred from the first flush.
-3. `lastEventTimestamp` must actually be written on each event or flush, so
-   staleness becomes detectable at all.
-4. Root-cause the crash. Blocked on P0.3 (Crashlytics).
+**Verification Test Matrix (Physical Device):**
+
+| Test | Action | Expected `service_health` row | Verified Result |
+|---|---|---|---|
+| **1. Liveness & Event Stamp** | Enable service, scroll in Chrome/Reddit | `isServiceRunning = 1`, `isAccessibilityServiceEnabled = 1`, `lastEventTimestamp > 0`, `lastRoomFlushTimestamp > 0` | Pass — `lastEventTimestamp` populated for the first time; reflects event arrival time distinct from flush time |
+| **2. Master Switch Off (The 2026-08-25 Outage Case)** | Turn Accessibility master switch OFF in Android Settings, reopen Scrolla | `isAccessibilityServiceEnabled = 0`, Settings health card shows INACTIVE | Pass — catches dead/crashed service where master switch was flipped to 0 |
+| **3. Graceful Shutdown** | Force-stop the app via Settings / UI | `isServiceRunning = 0` (written via `onUnbind`/`onDestroy`) | Pass — clean-shutdown signal sets isServiceRunning false |
+| **4. Abrupt Kill** | `adb shell am kill com.scrolla` | `isServiceRunning = 1` | Confirmed as expected — confirms Fix 2 is clean-shutdown only, while Fix 1 (master switch) and Fix 3 (staleness) provide true crash detection |
 
 ---
 
