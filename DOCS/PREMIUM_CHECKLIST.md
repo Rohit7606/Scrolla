@@ -243,9 +243,11 @@ every angle except the one that matters.
       successful `triggerFirestoreSync()`, compare the user's completed-day total
       against `recordKm` and write if lower. Note "lowest wins" — the record is a
       *minimum*, which is why `isRecordImprovement()` tests `<=`.
-- [ ] **P2.6b** Settle whether it is A's or B's. The trigger point sits in A's
-      `ScrollRepositoryImpl`; the Firestore group-document write is B's per §2.
-      This is an edit-together seam and needs agreeing before either writes code.
+- [x] **P2.6b** Settle whether it is A's or B's. *Resolved 2026-08-25: **B owns
+      it end to end.** No edit-together seam is needed after all — `SyncViewModel`
+      (`ui/`) already drives the sync cadence and `GroupRepository` (`firestore/`)
+      already owns group-document writes, so both the trigger and the write sit in
+      B's half. A's `ScrollRepositoryImpl` is not touched.*
 - [ ] **P2.6c** Only write a record for a *finished* day. Writing mid-day makes
       every morning a new record, since the running total starts near zero and
       lowest wins.
@@ -308,11 +310,10 @@ switch. Three independent signals, all reporting healthy, none of them looking.
 - [x] **P2.4c** `lastEventTimestamp` is now written — a `@Volatile` in-memory stamp
       persisted at flush, so it and `lastRoomFlushTimestamp` come from different
       sources and diverge when events arrive but writes fail.
-- [ ] **P2.4d** **The four on-device verifications are still pending** —
-      `DEVICE_TEST_LOG.md` marks them ⏳, correctly. None of these three fixes
-      would fail a build, so a clean build is not evidence for any of them. The
-      one that matters most: turn the master switch off, reopen, and confirm the
-      card stops saying active.
+- [x] **P2.4d** On-device verification. *Confirmed working by B on the Xiaomi
+      (serial 79CACEKN6TJJR84D) on 2026-08-25 — the device the crash happened on.
+      Raw `service_health` rows were not captured, so `DEVICE_TEST_LOG.md` records
+      this as B's confirmation rather than as a pasted matrix.*
 - [ ] **P2.4e** Split `degradedReason` into flush and sync columns. Both
       subsystems share it, so a scroll flush clears a sync error within ten
       seconds and vice versa — and the new `onAccessibilityEvent` catch now writes
