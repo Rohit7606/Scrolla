@@ -406,7 +406,18 @@ private fun MainTabsScreen(
                     val homeViewModel: HomeViewModel = viewModel()
                     val homeState by homeViewModel.uiState.collectAsState()
 
+                    // The standing card reads the Group tab's own ViewModel rather
+                    // than fetching a second copy. viewModel() here resolves to the
+                    // activity's store, so this is the same instance the Leaderboard
+                    // uses — one staleness window, one set of Firestore reads, and no
+                    // way for the two screens to disagree about the same rank.
+                    val leaderboardViewModel: LeaderboardViewModel = viewModel()
+                    val boardState by leaderboardViewModel.uiState.collectAsState()
+                    val standing = boardState.selfStanding()
+
                     RefreshOnResume { homeViewModel.refresh() }
+                    LaunchedEffect(Unit) { leaderboardViewModel.refreshIfStale() }
+                    RefreshOnResume { leaderboardViewModel.refreshIfStale() }
 
                     HomeScreen(
                         scrollDistanceKm = homeState.todayKm,
@@ -414,12 +425,12 @@ private fun MainTabsScreen(
                         landmarkText = homeState.landmarkText,
                         hasSensorData = homeState.hasSensorData,
                         isLoading = homeState.isLoading,
-                        // Rank is unblocked as of 2026-08-24: A's sync is proven to write
-                        // totals for multiple members. Still null because HomeUiState carries
-                        // no rank field yet — wiring it is SPRINT_LOG S2.1's last clause.
-                        rankPosition = null,
-                        groupSize = null,
-                        groupName = null,
+                        // Null until a rank is genuinely true — see selfStanding().
+                        rankPosition = standing?.rankPosition,
+                        groupSize = standing?.groupSize,
+                        // Named even without a rank, so the card reads "— / College
+                        // Friends" rather than disowning a group the user is in.
+                        groupName = standing?.groupName ?: boardState.activeGroup?.groupName,
                         insightLabel = ScrollaStrings.HOME_INSIGHT_PEAK_HOUR_LABEL,
                         insightBody = homeState.peakHour?.let { hour ->
                             "Most of it happens between ${ScrollaFormatters.formatHourRange(hour)}."

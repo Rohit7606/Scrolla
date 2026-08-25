@@ -22,9 +22,11 @@ setup are edit-together. Tagged per item.
 These are not polish. Each one is a thing that is either missing entirely or
 silently disabled, and none of them show up in a successful build.
 
-### P0.1 — Tests exist at all `[Both]`
+### P0.1 — Tests exist at all `[Both]` — ◐ **started 2026-08-24**
 
-There is currently **no `app/src/test/` and no `app/src/androidTest/` directory**.
+**First test landed 2026-08-24:** `GroupStandingTest` — 10 tests, passing in both the debug and release variants. It covers `selfStanding()`, the pure function behind Home's group rank, and was written alongside that feature rather than after it. `app/src/test/kotlin/` now exists, so the next test costs nothing to add.
+
+The original finding, for the record: there was **no `app/src/test/` and no `app/src/androidTest/` directory**.
 Not a thin suite — zero files. Meanwhile `app/build.gradle.kts` already declares
 `testInstrumentationRunner`, JUnit, Espresso, and the Compose test artifacts.
 Every hook is wired and nothing hangs on them.
@@ -35,7 +37,7 @@ day, a null health row mapping to ACTIVE, a landmark shown for 10 cm of
 scrolling. All four are pure-function logic bugs — the exact class of bug a unit
 test catches instantly and a device test catches slowly or never.
 
-- [ ] **P0.1a** Create `app/src/test/kotlin/com/scrolla/`.
+- [x] **P0.1a** Create `app/src/test/kotlin/com/scrolla/`. *Done 2026-08-24.*
 - [ ] **P0.1b** `DistanceFormatterTest` — 88 lines of pure functions, the cheapest
       high-value test in the repo. Cover: the metre/km crossover at 999.5 m in
       both directions, `formatDistance` unit agreement (the delta-chip bug),
@@ -59,6 +61,10 @@ test catches instantly and a device test catches slowly or never.
       survives contact with tests. `ScrollaGraph` is reachable from a unit test
       only if it has been `init`'d, which it hasn't in a JVM test. Either pass
       fakes explicitly at every test site, or move to a test-visible seam.
+      *Side-stepped for `GroupStanding` (2026-08-24) by making the logic a pure
+      function over UI state rather than a ViewModel method — worth copying
+      wherever it fits, but it does not answer the question for the ViewModels
+      themselves, and P0.1c/P0.1d still run straight into it.*
 
 ### P0.2 — The release build is undefended `[Both]`
 
