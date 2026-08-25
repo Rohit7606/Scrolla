@@ -216,7 +216,7 @@ every step. From 2026-08-16 to 2026-08-23 that flow was silently impossible.
       Section 2 table. That log's release gate wants 3 devices and 2
       manufacturers; this is the first entry.
 
-### P2.6 — Nothing writes the group record `[B]` — *found 2026-08-24*
+### P2.6 — Nothing writes the group record `[B]` — ◐ *found 2026-08-24, written 2026-08-25*
 
 **No code anywhere in `app/src/main` writes `recordKm`, `recordHolder` or
 `recordDate`.** Every single occurrence is a read (`GroupRepository:217`), a
@@ -239,19 +239,43 @@ cause was never logged. It stayed hidden because the read path, the previews and
 the security rules for the field all exist — the feature looks complete from
 every angle except the one that matters.
 
-- [ ] **P2.6a** Decide where the record is written. Most natural: after a
-      successful `triggerFirestoreSync()`, compare the user's completed-day total
-      against `recordKm` and write if lower. Note "lowest wins" — the record is a
-      *minimum*, which is why `isRecordImprovement()` tests `<=`.
+- [x] **P2.6a** Decide where the record is written. *Done 2026-08-25 —
+      `SyncViewModel.updateGroupRecords()`, after the totals sync so a day that
+      has just become eligible is already in Firestore when its record lands.
+      `GroupRepository.updateGroupRecordIfBetter()` does the write, strictly
+      lower rather than `<=`: an equal value is not an improvement, and
+      rewriting the doc would take the record from whoever set it first.*
 - [x] **P2.6b** Settle whether it is A's or B's. *Resolved 2026-08-25: **B owns
       it end to end.** No edit-together seam is needed after all — `SyncViewModel`
       (`ui/`) already drives the sync cadence and `GroupRepository` (`firestore/`)
       already owns group-document writes, so both the trigger and the write sit in
       B's half. A's `ScrollRepositoryImpl` is not touched.*
-- [ ] **P2.6c** Only write a record for a *finished* day. Writing mid-day makes
-      every morning a new record, since the running total starts near zero and
-      lowest wins.
-- [ ] **P2.6d** Then P2.1d becomes testable.
+- [x] **P2.6c** Only write a record for a *finished* day. *Done — and it turned
+      out to be the smaller half of the problem. The record is a **minimum**, so
+      **every** failure mode of the tracker produces a winning score, not just a
+      partial day. Concretely: had this write existed on 2026-08-25, the crashed
+      day would have set a group record of **5.5 m**, and `isRecordImprovement()`
+      only permits `recordKm <= resource.data.recordKm` — so nobody could ever
+      have beaten it and nobody could ever have raised it. A bad record is
+      permanent short of editing Firestore by hand. `RecordEligibility` therefore
+      fails closed on every rule: today, future days, zero-distance days,
+      never-written timestamps, corrupt rows, and days whose last recorded scroll
+      was before 18:00 local.*
+- [ ] **P2.6d** Then P2.1d becomes testable — confirm on device that a record
+      appears in Hall of Fame, and that the improvement-only rule behaves with two
+      writers. Not yet run.
+- [ ] **P2.6e** **The eligibility rule is a proxy, and worth improving.**
+      "Tracking broke" and "I genuinely barely touched my phone" are the same
+      shape in daily-totals data — both are just a small number — so no rule can
+      separate them from what B can currently reach. The chosen gate is
+      `DailyTotal.lastUpdated`, which is effectively "time of last scroll".
+      A slightly better proxy, *distinct hour buckets in the day*, is not
+      reachable from B's half: `ScrollRepository` exposes no per-day hour buckets
+      (`getPeakHourForDay` returns only the top one). The real answer is per-day
+      tracking health, which does not exist — `service_health` is a single
+      current-state row with no history. Both would need `room/` work from A.
+      Swapping `RecordEligibility.isPlausiblyComplete()` is the only change
+      needed if either lands.
 
 ### P2.2 — Screens never run on a device `[B]`
 

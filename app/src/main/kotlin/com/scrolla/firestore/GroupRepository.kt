@@ -232,6 +232,53 @@ class GroupRepository(
     }
 
     /**
+     * Writes a new group record if [candidateKm] beats the stored one.
+     *
+     * Lowest wins, so "beats" means strictly lower. Deliberately strict rather
+     * than `<=`: an equal value is not an improvement, and rewriting the
+     * document to change nothing but the holder's name would take the record
+     * away from whoever set it first.
+     *
+     * The caller must have already established that [day] is eligible — see
+     * [RecordEligibility]. This function does not re-check, because it cannot:
+     * it has a number and a date, not the local history behind them.
+     *
+     * Returns true only when a write actually happened.
+     *
+     * `firestore.rules`' `isRecordImprovement()` permits this write only for a
+     * member of the group, only on these three keys, and only downward. A
+     * failure here is normal and not worth surfacing — someone else may have
+     * improved the record between the read and the write.
+     */
+    suspend fun updateGroupRecordIfBetter(
+        groupId: String,
+        displayName: String,
+        day: String,
+        candidateKm: Float
+    ): Result<Boolean> {
+        return try {
+            val existing = getGroupRecord(groupId).getOrElse { return Result.failure(it) }
+            if (existing != null && candidateKm >= existing.recordKm) {
+                return Result.success(false)
+            }
+            firestore.collection("groups").document(groupId)
+                .update(
+                    mapOf(
+                        "recordKm" to candidateKm,
+                        "recordHolder" to displayName,
+                        "recordDate" to day
+                    )
+                )
+                .await()
+            Log.d(TAG, "Group record for $groupId set to $candidateKm km ($day)")
+            Result.success(true)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to update record for group: $groupId", e)
+            Result.failure(e)
+        }
+    }
+
+    /**
      * Moves the primary flag to [groupId]. The primary group is the one the
      * widget shows, so exactly one membership may carry it.
      */
