@@ -234,46 +234,38 @@ class ScrollRepositoryImpl(
                 )
             }
 
-            // S1.A6 / Amendment 1: On success, update lastFirestoreSyncTimestamp and clear degradedReason.
-            // Only update an existing row — do not author a new row from sync if tracking hasn't initialized yet
-            // (the sensor flush path in ScrollAccessibilityService owns row creation).
-            val current = serviceHealthDao.getOnce()
-            if (current != null) {
-                val now = System.currentTimeMillis()
-                val updated = current.copy(
-                    lastFirestoreSyncTimestamp = now,
-                    degradedReason = null
-                )
-                serviceHealthDao.upsert(updated)
-            }
+            // Fix 2c: Targeted update — touches only lastFirestoreSyncTimestamp and
+            // degradedReason. Cannot clobber isServiceRunning, lastEventTimestamp,
+            // or any other field written by the service lifecycle or flush path.
+            // If the health row doesn't exist yet (no flush has ever run), this
+            // UPDATE affects 0 rows, which is the correct behavior — sync should
+            // not author the row.
+            serviceHealthDao.markSyncSuccess(System.currentTimeMillis())
         } catch (e: TimeoutCancellationException) {
             Log.e(tag, "triggerFirestoreSync() timed out after 15s for user=$userId, date=$date", e)
-            markDegraded("triggerFirestoreSync timed out")
+            try { serviceHealthDao.markSyncFailed("triggerFirestoreSync timed out") } catch (_: Exception) {}
         } catch (e: CancellationException) {
             // Rethrow standard coroutine cancellations so cooperative cancellation isn't swallowed
             throw e
         } catch (e: Exception) {
             Log.e(tag, "triggerFirestoreSync() failed for user=$userId, date=$date", e)
-            markDegraded("triggerFirestoreSync: ${e.message}")
+            try { serviceHealthDao.markSyncFailed("triggerFirestoreSync: ${e.message}") } catch (_: Exception) {}
         }
     }
 
     /**
-     * Marks ServiceHealthState.degradedReason on a real failure (per
-     * DATA_CONTRACT.md §4 and AGENTS.md §4.8), copying the existing row so it
-     * never clobbers the other health fields (the S1.A6 gotcha). Fully guarded:
-     * a failure here is swallowed so marking degraded can never surface to the
-     * caller. If no health row exists yet, skip to avoid authoring an uninitialized row.
+     * Marks ServiceHealthState.degradedReason on a repository failure (per
+     * DATA_CONTRACT.md §4 and AGENTS.md §4.8) via targeted update.
+     * Fully guarded: a failure here is swallowed so marking degraded can never
+     * surface to the caller.
      */
     private suspend fun markDegraded(reason: String) {
         try {
-            val current = serviceHealthDao.getOnce()
-            if (current != null) {
-                val updated = current.copy(degradedReason = reason)
-                serviceHealthDao.upsert(updated)
-            }
+            serviceHealthDao.markSyncFailed(reason)
         } catch (_: Exception) {
             // Swallow — the original failure is already logged at the call site.
         }
     }
 }
+
+

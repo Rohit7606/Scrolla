@@ -35,50 +35,6 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         refreshAccessibilityStatus()
-    }
-
-    /**
-     * S1.A8: re-check accessibility-service enablement on every foreground return.
-     *
-     * This used to sit in onCreate() and its comment claimed "every foreground
-     * start", but onCreate runs once per activity creation. Enabling or disabling
-     * the service in Android Settings and coming back left the persisted state
-     * stale, so the health card kept reporting whatever was true at launch — which
-     * is exactly the moment the user is looking at it to confirm their change
-     * took effect.
-     */
-    override fun onResume() {
-        super.onResume()
-        refreshAccessibilityStatus()
-    }
-
-    private fun refreshAccessibilityStatus() {
-        // Persist only isAccessibilityServiceEnabled, preserving all other fields.
-        lifecycleScope.launch {
-            try {
-                val enabled = isScrollAccessibilityServiceEnabled(this@MainActivity)
-                val db = ScrollaDatabase.getDatabase(applicationContext)
-                val current = db.serviceHealthDao().getOnce()
-                val updated = if (current != null) {
-                    current.copy(isAccessibilityServiceEnabled = enabled)
-                } else {
-                    ServiceHealthState(
-                        id = 1,
-                        isServiceRunning = false,
-                        isAccessibilityServiceEnabled = enabled,
-                        lastEventTimestamp = 0L,
-                        lastRoomFlushTimestamp = 0L,
-                        lastFirestoreSyncTimestamp = 0L,
-                        degradedReason = null
-                    )
-                }
-                db.serviceHealthDao().upsert(updated)
-            } catch (e: Exception) {
-                // Fail loud, never crash. A future Service Health screen reads the
-                // persisted state; a crash here must not block the UI from launching.
-                e.printStackTrace()
-            }
-        }
 
         setContent {
             ScrollaUILabTheme {
@@ -145,6 +101,48 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 }
+            }
+        }
+    }
+
+    /**
+     * S1.A8: re-check accessibility-service enablement on every foreground return.
+     *
+     * This used to sit in onCreate() and its comment claimed "every foreground
+     * start", but onCreate runs once per activity creation. Enabling or disabling
+     * the service in Android Settings and coming back left the persisted state
+     * stale, so the health card kept reporting whatever was true at launch — which
+     * is exactly the moment the user is looking at it to confirm their change
+     * took effect.
+     */
+    override fun onResume() {
+        super.onResume()
+        refreshAccessibilityStatus()
+    }
+
+    private fun refreshAccessibilityStatus() {
+        // Targeted update — ensure the row exists (IGNORE) then update only
+        // isAccessibilityServiceEnabled, with no read-then-write snapshot race.
+        lifecycleScope.launch {
+            try {
+                val enabled = isScrollAccessibilityServiceEnabled(this@MainActivity)
+                val db = ScrollaDatabase.getDatabase(applicationContext)
+                db.serviceHealthDao().ensureRowExists(
+                    ServiceHealthState(
+                        id = 1,
+                        isServiceRunning = false,
+                        isAccessibilityServiceEnabled = enabled,
+                        lastEventTimestamp = 0L,
+                        lastRoomFlushTimestamp = 0L,
+                        lastFirestoreSyncTimestamp = 0L,
+                        degradedReason = null
+                    )
+                )
+                db.serviceHealthDao().updateAccessibilityEnabled(enabled)
+            } catch (e: Exception) {
+                // Fail loud, never crash. A future Service Health screen reads the
+                // persisted state; a crash here must not block the UI from launching.
+                e.printStackTrace()
             }
         }
     }

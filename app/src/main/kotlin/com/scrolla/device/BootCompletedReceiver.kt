@@ -33,10 +33,7 @@ class BootCompletedReceiver : BroadcastReceiver() {
                 Log.i(TAG, "BOOT_COMPLETED: ScrollAccessibilityService enabled = $enabled")
 
                 val db = ScrollaDatabase.getDatabase(context.applicationContext)
-                val current = db.serviceHealthDao().getOnce()
-                val updated = if (current != null) {
-                    current.copy(isAccessibilityServiceEnabled = enabled)
-                } else {
+                db.serviceHealthDao().ensureRowExists(
                     ServiceHealthState(
                         id = 1,
                         isServiceRunning = false,
@@ -46,8 +43,8 @@ class BootCompletedReceiver : BroadcastReceiver() {
                         lastFirestoreSyncTimestamp = 0L,
                         degradedReason = null
                     )
-                }
-                db.serviceHealthDao().upsert(updated)
+                )
+                db.serviceHealthDao().updateAccessibilityEnabled(enabled)
             } catch (e: Exception) {
                 // Fail loud, never crash. Leave state untouched so a later real
                 // check (MainActivity.onCreate) can correct it.

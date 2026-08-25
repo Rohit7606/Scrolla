@@ -4,6 +4,7 @@ import android.accessibilityservice.AccessibilityService
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.Build
 import android.util.Log
@@ -33,18 +34,49 @@ class ScrollAccessibilityService : AccessibilityService() {
     private var lastFlushTimestamp = 0L
     private val serviceScope = CoroutineScope(Dispatchers.IO + Job())
 
+    // Fix 3: In-memory timestamp of the most recent scroll event. Stamped on
+    // every call to onAccessibilityEvent(), persisted during flush. This is the
+    // primary staleness signal — "last event was N hours ago" is the cheapest
+    // liveness check and the one that would have caught the 2026-08-25 outage.
+    @Volatile
+    private var lastEventAt: Long = 0L
+
     override fun onServiceConnected() {
         super.onServiceConnected()
         Log.i(TAG, "ScrollAccessibilityService connected")
+
         // S1.A5: StartForeground as per AGENTS.md Section 4.1
         // 3-arg overload (API 29+) takes an integer type; matches manifest
-        // android:foregroundServiceType="dataSync".
+        // android:foregroundServiceType="specialUse".
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             startForeground(
                 ScrollaConstants.FOREGROUND_NOTIFICATION_ID,
                 buildNotification(),
                 ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
             )
+        }
+
+        // Fix 2: Mark isServiceRunning = true at the point the service actually
+        // knows it has connected, not at first flush. ensureRowExists is a no-op
+        // if the row already exists (IGNORE strategy).
+        serviceScope.launch {
+            try {
+                val db = ScrollaDatabase.getDatabase(applicationContext)
+                db.serviceHealthDao().ensureRowExists(
+                    ServiceHealthState(
+                        id = 1,
+                        isServiceRunning = false,
+                        isAccessibilityServiceEnabled = true,
+                        lastEventTimestamp = 0L,
+                        lastRoomFlushTimestamp = 0L,
+                        lastFirestoreSyncTimestamp = 0L,
+                        degradedReason = null
+                    )
+                )
+                db.serviceHealthDao().updateServiceRunning(true)
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to mark service running on connect", e)
+            }
         }
     }
 
@@ -72,6 +104,11 @@ class ScrollAccessibilityService : AccessibilityService() {
         // S0.4: Per-view delta tracking with HashMap. No global lastScrollY.
         if (event == null) return
         if (event.eventType != AccessibilityEvent.TYPE_VIEW_SCROLLED) return
+
+        // Fix 3: Stamp every event in memory. Persisted to Room during flush
+        // so lastEventTimestamp and lastRoomFlushTimestamp come from different
+        // sources and diverge when events arrive but flushes fail.
+        lastEventAt = System.currentTimeMillis()
 
         val pkg = event.packageName?.toString() ?: "unknown"
         val scrollY = event.scrollY
@@ -144,16 +181,9 @@ class ScrollAccessibilityService : AccessibilityService() {
 
     private fun flushBatch(snapshot: HashMap<String, Float>) {
         serviceScope.launch {
-            // S1.A6: Fetch state once before try/catch for both branches
             val db = ScrollaDatabase.getDatabase(applicationContext)
-            val currentState = db.serviceHealthDao().getOnce() ?: ServiceHealthState(
-                id = 1,
-                isServiceRunning = true,
-                lastEventTimestamp = 0L,
-                lastRoomFlushTimestamp = 0L,
-                lastFirestoreSyncTimestamp = 0L,
-                degradedReason = null
-            )
+            // Capture the in-memory event timestamp before any DB work.
+            val eventTs = lastEventAt
             try {
                 val timestamp = System.currentTimeMillis()
                 for ((key, scrollCm) in snapshot) {
@@ -199,21 +229,24 @@ class ScrollAccessibilityService : AccessibilityService() {
                         )
                     )
                 }
-                // S1.A6: Mark service as healthy on successful flush
-                val updatedState = currentState.copy(
-                    isServiceRunning = true,
-                    lastRoomFlushTimestamp = timestamp,
-                    degradedReason = null
-                )
-                db.serviceHealthDao().upsert(updatedState)
+                // Fix 2: Targeted update — touches only lastRoomFlushTimestamp,
+                // lastEventTimestamp, and degradedReason. Cannot clobber
+                // isServiceRunning or any other field written by lifecycle callbacks.
+                db.serviceHealthDao().markFlushSuccess(flushTs = timestamp, eventTs = eventTs)
                 Log.d("BatchFlush", "Successfully flushed batch at $timestamp")
             } catch (e: Exception) {
-                // S1.A6: Mark degraded on failure (fail loud internally, invisible to user)
+                // S1.A6: Mark degraded on failure (fail loud internally, invisible to user).
+                // Fix 2: Targeted update — still stamps lastEventTimestamp so staleness
+                // detection knows events were arriving even though writes failed.
                 Log.e("BatchFlush", "Batch flush failed", e)
-                val updatedState = currentState.copy(
-                    degradedReason = "${e::class.simpleName}: ${e.message?.take(100)}"
-                )
-                db.serviceHealthDao().upsert(updatedState)
+                try {
+                    db.serviceHealthDao().markFlushFailed(
+                        reason = "${e::class.simpleName}: ${e.message?.take(100)}",
+                        eventTs = eventTs
+                    )
+                } catch (_: Exception) {
+                    // If the DB itself is broken, we can't mark degraded either.
+                }
             }
         }
     }
@@ -232,9 +265,36 @@ class ScrollAccessibilityService : AccessibilityService() {
         triggerFlushIfNeeded()
     }
 
-    override fun onDestroy() {
-        // Best-effort flush; may not complete before process death
+    override fun onUnbind(intent: Intent?): Boolean {
+        // Fix 2: Clean-shutdown signal. Android unbinds before destroy, and on
+        // a crash the destroy callback may never fire. This is belt-and-suspenders
+        // for clean shutdown — NOT a crash detector (Fix 1 and Fix 3 are).
         triggerFlushIfNeeded()
+        serviceScope.launch {
+            try {
+                val db = ScrollaDatabase.getDatabase(applicationContext)
+                db.serviceHealthDao().updateServiceRunning(false)
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to mark service stopped on unbind", e)
+            }
+        }
+        return super.onUnbind(intent)
+    }
+
+    override fun onDestroy() {
+        // Best-effort flush first, then mark stopped.
+        triggerFlushIfNeeded()
+        // Fix 2: Write isServiceRunning = false AFTER the final flush, so the
+        // flush's markFlushSuccess cannot overwrite it (targeted updates touch
+        // different columns, so this is safe even with the race).
+        serviceScope.launch {
+            try {
+                val db = ScrollaDatabase.getDatabase(applicationContext)
+                db.serviceHealthDao().updateServiceRunning(false)
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to mark service stopped on destroy", e)
+            }
+        }
         super.onDestroy()
     }
 
