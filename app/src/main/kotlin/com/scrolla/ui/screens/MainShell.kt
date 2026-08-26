@@ -185,11 +185,17 @@ fun MainShell(
                         onSignedOut()
                     },
                     onExportDataClick = {
-                        settingsViewModel.exportData { text ->
+                        settingsViewModel.exportData(context) { uri ->
+                            // EXTRA_STREAM, not EXTRA_TEXT: the latter puts the
+                            // whole CSV in the message body, so chat apps paste
+                            // it as a very long message instead of attaching a
+                            // file. FLAG_GRANT_READ_URI_PERMISSION is what lets
+                            // the chosen app actually open the content:// URI.
                             val send = Intent(Intent.ACTION_SEND).apply {
                                 type = "text/csv"
                                 putExtra(Intent.EXTRA_SUBJECT, ScrollaStrings.SETTINGS_EXPORT_SUBJECT)
-                                putExtra(Intent.EXTRA_TEXT, text)
+                                putExtra(Intent.EXTRA_STREAM, uri)
+                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                             }
                             context.startActivity(Intent.createChooser(send, null))
                         }

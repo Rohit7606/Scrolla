@@ -46,9 +46,23 @@ object DistanceFormatter {
      */
     private fun usesMetres(km: Float): Boolean = (km * 1000f) < 999.5f
 
-    /** The figure alone, in whichever unit suits it: "176" or "1.2". */
+    /**
+     * Sub-metre distances rendered as "0 m", which is a confident zero for a
+     * value that is not zero. Found 2026-08-26 in a real data export: Telegram
+     * at 0.4 m and the system launcher at 0.3 m both displayed "0 m" on App
+     * Breakdown, indistinguishable from an app that had never been scrolled at
+     * all.
+     *
+     * 0.5 is the threshold because `%.0f` rounds half-up, so that is exactly
+     * the point below which the old format produced a zero.
+     */
+    private const val SUB_METRE_THRESHOLD_M = 0.5f
+
+    /** The figure alone, in whichever unit suits it: "176", "1.2" or "<1". */
     fun formatDisplayValue(km: Float): String = if (usesMetres(km)) {
-        String.format(Locale.US, "%.0f", km * 1000f)
+        val metres = km * 1000f
+        if (metres > 0f && metres < SUB_METRE_THRESHOLD_M) "<1"
+        else String.format(Locale.US, "%.0f", metres)
     } else {
         String.format(Locale.US, "%.1f", km)
     }
@@ -63,7 +77,11 @@ object DistanceFormatter {
     /** Spelled out for screen readers: "176 metres", "1.2 kilometres". */
     fun formatDistanceSpoken(km: Float): String {
         val unit = if (usesMetres(km)) "metres" else "kilometres"
-        return "${formatDisplayValue(km)} $unit"
+        // TalkBack would otherwise read "<1 metres", which is neither a word
+        // nor grammatical. The spoken form spells the comparison out.
+        val value = formatDisplayValue(km)
+        if (value == "<1") return "less than one metre"
+        return "$value $unit"
     }
 
     /** Finds the nearest landmark match for a given km value.
