@@ -382,6 +382,7 @@ fun MainShell(
                 WeeklyRecapScreen(
                     weeklyDistanceKm = recapState.weeklyDistanceKm,
                     landmarkText = recapState.landmarkText,
+                    hasData = recapState.hasData,
                     onSkipClick = popBackStack,
                     onShareClick = {
                         // S3.5's Bitmap card is not built yet; sharing the figure
@@ -496,10 +497,13 @@ private fun MainTabsScreen(
                         // Named even without a rank, so the card reads "— / College
                         // Friends" rather than disowning a group the user is in.
                         groupName = standing?.groupName ?: boardState.activeGroup?.groupName,
-                        insightLabel = ScrollaStrings.HOME_INSIGHT_PEAK_HOUR_LABEL,
-                        insightBody = homeState.peakHour?.let { hour ->
-                            "Most of it happens between ${ScrollaFormatters.formatHourRange(hour)}."
-                        },
+                        // Was hardcoded to the peak-hour type, so the "rotating"
+                        // card showed one insight and rendered nothing at all
+                        // when peakHour was null.
+                        insightLabel = homeState.insight?.label
+                            ?: ScrollaStrings.HOME_INSIGHT_PLACEHOLDER_LABEL,
+                        insightBody = homeState.insight?.body
+                            ?: ScrollaStrings.HOME_INSIGHT_PLACEHOLDER_BODY,
                         onSettingsClick = onSettingsClick,
                         onRankChipClick = { onTabSelected(1) } // Switch to leaderboard
                     )

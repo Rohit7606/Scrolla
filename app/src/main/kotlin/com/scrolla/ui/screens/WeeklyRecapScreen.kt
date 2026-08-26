@@ -45,8 +45,12 @@ import com.scrolla.ui.theme.spacing
 @Composable
 fun WeeklyRecapScreen(
     modifier: Modifier = Modifier,
-    weeklyDistanceKm: Float = 7.8f,
+    weeklyDistanceKm: Float = 0f,
     landmarkText: String? = null,
+    /** False when no day this week has been recorded. The ViewModel has always
+     *  computed this and the screen never accepted it, so a week with nothing in
+     *  it rendered a confident hero figure of 0 m and offered it for sharing. */
+    hasData: Boolean = false,
     onShareClick: () -> Unit = {},
     onSkipClick: () -> Unit = {}
 ) {
@@ -116,7 +120,11 @@ fun WeeklyRecapScreen(
                         androidx.compose.animation.slideInVertically(androidx.compose.animation.core.tween(500), initialOffsetY = { 20 })
             ) {
                 Text(
-                    text = ScrollaStrings.RECAP_HEADLINE.uppercase(),
+                    text = if (hasData) {
+                        ScrollaStrings.RECAP_HEADLINE.uppercase()
+                    } else {
+                        ScrollaStrings.RECAP_EMPTY_HEADLINE.uppercase()
+                    },
                     style = MaterialTheme.typography.labelMedium.copy(
                         letterSpacing = 0.1.em,
                         fontWeight = FontWeight.Bold
@@ -135,7 +143,13 @@ fun WeeklyRecapScreen(
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
-                        text = DistanceFormatter.formatDisplayValue(weeklyDistanceKm),
+                        // A dash, not a zero. A week with nothing recorded has
+                        // not been measured; saying "0 m" claims it has.
+                        text = if (hasData) {
+                            DistanceFormatter.formatDisplayValue(weeklyDistanceKm)
+                        } else {
+                            "—"
+                        },
                         style = MaterialTheme.typography.displayLarge.copy(
                             fontSize = 140.sp,
                             lineHeight = 140.sp,

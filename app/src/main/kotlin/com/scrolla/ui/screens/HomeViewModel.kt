@@ -25,7 +25,10 @@ data class HomeUiState(
     val todayKm: Float = 0f,
     val yesterdayKm: Float? = null,
     val landmarkText: String? = null,
-    val peakHour: Int? = null
+    val peakHour: Int? = null,
+    /** The rotating insight, already chosen. Never null: when nothing qualifies
+     *  it carries the placeholder copy rather than leaving the card blank. */
+    val insight: HomeInsight? = null
 )
 
 class HomeViewModel(
@@ -59,6 +62,7 @@ class HomeViewModel(
             } else {
                 null
             }
+            val personalBestKm = scrollRepository.getPersonalBestKm()
 
             _uiState.value = HomeUiState(
                 isLoading = false,
@@ -66,7 +70,15 @@ class HomeViewModel(
                 todayKm = todayKm,
                 yesterdayKm = yesterdayKm,
                 landmarkText = landmarkFor(todayKm),
-                peakHour = peakHour
+                peakHour = peakHour,
+                insight = HomeInsights.select(
+                    todayKm = todayKm,
+                    hasSensorData = todayKm > 0f || history.isNotEmpty(),
+                    peakHour = peakHour,
+                    personalBestKm = personalBestKm,
+                    yesterdayKm = yesterdayKm,
+                    dayOfYear = LocalDate.now().dayOfYear
+                )
             )
         }
     }

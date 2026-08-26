@@ -502,11 +502,37 @@ what "premium" physically means on Android and it is roughly one line per site.
       cache exists to stop **incidental** reads costing quota, not to overrule
       someone who has explicitly asked. `isRefreshing` is set only by the gesture,
       so the spinner belongs to the pull and not to the tab-open read.*
-- [ ] **P3.2c** Audit the empty states. Only a handful of `isEmpty()` branches
-      exist across all screens. Every list needs one, and it should say what to do
-      next, not just that there is nothing.
+- [◐] **P3.2c** Audit the empty states. *Counted per screen 2026-08-26: Home 5,
+      Leaderboard 4, Personal Records 4, Profile 3, Hall of Fame 3, App Breakdown
+      3, Insights 2 — and **Weekly Recap 0**. Fixed: `WeeklyRecapViewModel` had
+      always computed `hasData` and `WeeklyRecapScreen` did not accept the
+      parameter, so a week with nothing recorded rendered a confident hero figure
+      of "0 m" and offered it for sharing. It now shows a dash and different copy.
+      Same shape as the join code that was generated and then discarded by
+      `MainShell` — worth grepping for other state a ViewModel computes and no
+      screen takes.*
+- [ ] **P3.2g** The remaining screens' empty states still say only that there is
+      nothing, not what to do next.
 - [ ] **P3.2d** Loading states: prefer skeletons over spinners on screens that
       have a known shape.
+
+### P3.2f — The rotating insight card did not rotate `[B]` — ☑ *fixed 2026-08-26*
+
+S2.1 asked for "a rotating insight card wired to ≥ 1 real insight type". One type
+was built, so the clause passed while the card never rotated — and three of the
+four labels written for it (`HOME_INSIGHT_PERSONAL_BEST_LABEL`,
+`HOME_INSIGHT_QUICK_WIN_LABEL`, `HOME_INSIGHT_PLACEHOLDER_*`) had never been
+rendered. `MainShell` hardcoded the peak-hour type, so when `peakHour` was null
+the card rendered nothing at all, despite placeholder copy existing for exactly
+that case.
+
+- [x] **P3.2f-a** `HomeInsights.select()` — a pure, clock-free function over
+      three real insight types plus the placeholder. 8 tests.
+- [x] **P3.2f-b** Never invent: a personal-best insight only when today is
+      genuinely under the best day, a quick win only when today is below
+      yesterday, and no comparison at all when there is no row for yesterday.
+- [x] **P3.2f-c** Rotate deterministically on day-of-year, so the card is stable
+      for a whole day. One that changes on every recomposition reads as a bug.
 
 ### P3.3 — Accessibility, actual `[B]`
 
