@@ -22,7 +22,7 @@ setup are edit-together. Tagged per item.
 These are not polish. Each one is a thing that is either missing entirely or
 silently disabled, and none of them show up in a successful build.
 
-### P0.1 — Tests exist at all `[Both]` — ◐ **started 2026-08-24**
+### P0.1 — Tests exist at all `[Both]` — ◐ **46 tests as of 2026-08-26**
 
 **First test landed 2026-08-24:** `GroupStandingTest` — 10 tests, passing in both the debug and release variants. It covers `selfStanding()`, the pure function behind Home's group rank, and was written alongside that feature rather than after it. `app/src/test/kotlin/` now exists, so the next test costs nothing to add.
 
@@ -38,12 +38,14 @@ scrolling. All four are pure-function logic bugs — the exact class of bug a un
 test catches instantly and a device test catches slowly or never.
 
 - [x] **P0.1a** Create `app/src/test/kotlin/com/scrolla/`. *Done 2026-08-24.*
-- [ ] **P0.1b** `DistanceFormatterTest` — 88 lines of pure functions, the cheapest
-      high-value test in the repo. Cover: the metre/km crossover at 999.5 m in
-      both directions, `formatDistance` unit agreement (the delta-chip bug),
-      `nearestLandmark` returning the nearest entry however absurd (this is
-      contract, and the ratio gate that hides it lives in `HomeViewModel` — test
-      both halves so nobody "fixes" the contract later).
+- [x] **P0.1b** `DistanceFormatterTest`. *Done 2026-08-26 — 14 tests. Flagged on
+      day one as the cheapest high-value test in the repo and written last, which
+      is its own small lesson. Covers the 999.5 m crossover from both sides,
+      `formatDistance` unit agreement (the delta-chip bug), the sub-metre case
+      below, and `nearestLandmark` returning the nearest entry however absurd —
+      asserted as **contract**, so that if the ratio gate ever migrates out of
+      `HomeViewModel` into the formatter, both tests fail rather than one
+      silently passing.*
 - [ ] **P0.1c** `InsightsViewModelTest.buildWeek` — the rolling 7-day window,
       with a fixed clock. Assert today is last, no day is `isFuture`, and
       yesterday is labelled "Yesterday". This is the bug we just fixed; it should
@@ -176,6 +178,12 @@ and then offer no exit.
       commas and quotes, so they are quoted and escaped — an unquoted label
       silently shifts every later column, which a user would only notice long
       after trusting the file. 10 tests.*
+      *Corrected 2026-08-26 after a real run: the first version shared the CSV
+      through `EXTRA_TEXT`, so chat apps pasted the whole thing into a message
+      body rather than attaching anything. It is now written to
+      `cacheDir/exports` and shared as a `content://` URI through a FileProvider
+      scoped to that one directory — not the whole cache, which also holds
+      Firestore's local persistence.*
 
 ### P0.5 — The Play-policy question is unresolved and load-bearing `[Both]`
 
@@ -503,6 +511,22 @@ number", and because their own first real day will contradict it.
       already at the top of a real heavy day and the losing rows are fiction.
 - [ ] **P4.1d** `OnboardingScreen.kt:809` hardcodes "About 2,800 times further
       than you guessed" — derived from the same wrong number.
+
+### P4.4 — Sub-metre distances rendered as "0 m" `[model/ — needs A sign-off]` — ☑ *fixed 2026-08-26*
+
+Found in a real data export, not by reading code: Telegram at 0.4 m and the
+system launcher at 0.3 m both displayed **"0 m"** on App Breakdown, which is
+indistinguishable from an app that had never been scrolled at all.
+`formatDisplayValue` used `%.0f`, so everything under half a metre became a
+confident zero — in the app whose entire discipline is never showing a
+plausible fake number.
+
+- [x] **P4.4a** Render sub-metre values as `<1` rather than `0`.
+- [x] **P4.4b** Keep the spoken form grammatical — TalkBack would otherwise read
+      the literal "<1 metres". It now says "less than one metre".
+- [ ] **P4.4c** **A's sign-off required.** `model/DistanceFormatter.kt` is
+      edit-together per §2 and A reviewed its last change (REVIEW_LOG #3). Flag
+      it in the next round.
 
 ### P4.2 — Fake numbers still in the source `[B]`
 

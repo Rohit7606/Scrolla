@@ -11,6 +11,7 @@ import com.scrolla.room.ScrollRepository
 import com.scrolla.room.ScrollaDatabase
 import com.scrolla.room.ServiceHealthState
 import com.scrolla.ui.ScrollaGraph
+import com.scrolla.ui.ScrollaMessages
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -147,18 +148,27 @@ class SettingsViewModel(
      * The caller shares it; this does not touch Intents, so it stays testable
      * and the ViewModel stays free of Android UI plumbing.
      */
-    fun exportData(onReady: (String) -> Unit) {
+    fun exportData(context: Context, onReady: (android.net.Uri) -> Unit) {
         viewModelScope.launch {
+            val today = java.time.LocalDate.now()
             val history = scrollRepository.getRecentDailyTotals(EXPORT_DAYS)
             val topApps = scrollRepository.getTodayTopApps()
             val text = DataExport.build(
                 displayName = _uiState.value.displayName,
-                generatedOn = java.time.LocalDate.now().toString(),
+                generatedOn = today.toString(),
                 dailyTotals = history,
                 todayTopApps = topApps,
                 appLabel = { ScrollaGraph.appLabel(it) }
             )
-            onReady(text)
+
+            val uri = runCatching {
+                DataExport.writeToCache(context, text, today.toString())
+            }.getOrElse { error ->
+                Log.e(TAG, "Failed to write export file", error)
+                ScrollaMessages.show(ScrollaStrings.ERROR_EXPORT_FAILED)
+                return@launch
+            }
+            onReady(uri)
         }
     }
 

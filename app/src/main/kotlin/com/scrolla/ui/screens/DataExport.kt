@@ -1,8 +1,12 @@
 package com.scrolla.ui.screens
 
+import android.content.Context
+import android.net.Uri
+import androidx.core.content.FileProvider
 import com.scrolla.model.DistanceFormatter
 import com.scrolla.room.AppPackageCm
 import com.scrolla.room.DailyTotal
+import java.io.File
 
 /**
  * Builds the user's data export.
@@ -63,6 +67,28 @@ object DataExport {
                 append(csv(DistanceFormatter.formatDistance(km))).append('\n')
             }
         }
+    }
+
+    /**
+     * Writes [content] into `cacheDir/exports` and returns a shareable
+     * `content://` URI.
+     *
+     * Cache rather than files: the export is a hand-off, not storage, and the
+     * system may reclaim it whenever it likes. The directory is wiped first so
+     * yesterday's export cannot be attached by a stale chooser entry, and so a
+     * user who exported once does not leave their whole scroll history sitting
+     * in the cache indefinitely.
+     */
+    fun writeToCache(context: Context, content: String, dateStamp: String): Uri {
+        val dir = File(context.cacheDir, "exports")
+        if (dir.exists()) dir.listFiles()?.forEach { it.delete() } else dir.mkdirs()
+        val file = File(dir, "scrolla-export-$dateStamp.csv")
+        file.writeText(content)
+        return FileProvider.getUriForFile(
+            context,
+            "${context.packageName}.fileprovider",
+            file
+        )
     }
 
     private fun metres(km: Float): String = String.format(java.util.Locale.US, "%.1f", km * 1000f)
