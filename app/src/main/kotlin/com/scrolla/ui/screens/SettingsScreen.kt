@@ -52,6 +52,7 @@ import com.scrolla.ui.theme.WarningDark
 import com.scrolla.ui.theme.WarningLight
 import com.scrolla.ui.theme.ErrorDark
 import com.scrolla.ui.theme.ErrorLight
+import com.scrolla.ui.components.ScrollaHaptics
 import com.scrolla.ui.components.bentoCard
 import com.scrolla.ui.components.bounceClick
 
@@ -127,6 +128,10 @@ fun SettingsScreen(
     var showSignOutConfirm by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
     var showDeleteConfirm by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
     var deleteConfirmText by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf("") }
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    var hapticsOn by androidx.compose.runtime.remember {
+        androidx.compose.runtime.mutableStateOf(ScrollaHaptics.isEnabled(ctx))
+    }
     androidx.compose.runtime.LaunchedEffect(Unit) {
         isVisible = true
     }
@@ -404,6 +409,32 @@ fun SettingsScreen(
                             modifier = Modifier.padding(horizontal = 16.dp)
                         )
                         
+                        SettingsItem(
+                            label = ScrollaStrings.SETTINGS_HAPTICS_LABEL,
+                            value = if (hapticsOn) {
+                                ScrollaStrings.SETTINGS_HAPTICS_ON
+                            } else {
+                                ScrollaStrings.SETTINGS_HAPTICS_OFF
+                            },
+                            // Scrolla drives the vibrator directly rather than
+                            // going through touch feedback, so the system's
+                            // touch-feedback switch does not turn these off.
+                            // Bypassing that setting without offering an
+                            // alternative would be worse than respecting it,
+                            // so this is the alternative.
+                            onClick = {
+                                val next = !hapticsOn
+                                ScrollaHaptics.setEnabled(ctx, next)
+                                hapticsOn = next
+                                if (next) ScrollaHaptics.confirm(ctx)
+                            }
+                        )
+
+                        androidx.compose.material3.HorizontalDivider(
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
+                            modifier = Modifier.padding(horizontal = 16.dp)
+                        )
+
                         SettingsItem(
                             // Sits directly above Delete on purpose: the moment
                             // someone is looking for the way out is the moment

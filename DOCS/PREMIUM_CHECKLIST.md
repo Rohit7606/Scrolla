@@ -470,7 +470,7 @@ what "premium" physically means on Android and it is roughly one line per site.
       got it in three edits. Two weights only: a light tick for taps, a heavier
       one for confirmations, because a strong buzz on every tap reads as a broken
       phone rather than a premium one.*
-      *Two corrections after the first device test, when nothing could be felt.
+      *Three corrections after device testing, and the last one mattered most.
       **The device had touch feedback off** (`settings get system
       haptic_feedback_enabled` returned `0`), and `performHapticFeedback()`
       silently does nothing in that case — correctly, since an app that buzzes
@@ -480,7 +480,17 @@ what "premium" physically means on Android and it is roughly one line per site.
       `TEXT_HANDLE_MOVE` — meant for dragging a text selection handle, and
       treated as a no-op or rendered imperceptibly by several OEMs. Now uses
       platform constants directly through `LocalView`: `CLOCK_TICK` for taps and
-      `CONFIRM` (API 30+, falling back to `LONG_PRESS`) for confirmations.*
+      `CONFIRM` for confirmations. **Then the premise turned out to be wrong.**
+      `haptic_feedback_enabled` gates *touch feedback* — keyboard taps, system UI
+      — not app-initiated vibration, which is a separate channel. Apps that feel
+      good on Android use the vibrator directly, which is why Kuvera's haptics
+      work with that switch off. Scrolla now does the same: `VibrationEffect
+      .createPredefined(EFFECT_TICK / EFFECT_CLICK)` through `VibratorManager`,
+      with the `VIBRATE` permission (normal, no runtime prompt).*
+      *Bypassing a system setting while offering no alternative would be worse
+      than respecting it, so Settings now has a **Haptic feedback** toggle, on by
+      default. The system's vibration-intensity setting and Do Not Disturb still
+      apply, so the OS keeps the final say on strength.*
 - [ ] **P3.2e** Haptics on a record being broken. *Split out of P3.2a because it
       is genuinely harder: nothing currently knows a record was **just** broken.
       `updateGroupRecordIfBetter()` returns true, but it runs inside a background
