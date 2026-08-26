@@ -213,6 +213,8 @@ object ScrollaStrings {
     const val SETTINGS_ACCOUNT_SECTION = "Account"
     const val SETTINGS_NOT_YET_AVAILABLE = "Not yet available"
     const val RECAP_SHARE_TEMPLATE = "I scrolled %s this week. Measured by Scrolla."
+    const val RECAP_EMPTY_HEADLINE = "nothing recorded yet"
+    const val RECAP_EMPTY_BODY = "Your first full week will show up here."
     const val SETTINGS_DISPLAY_NAME_LABEL = "Display name"
     const val SETTINGS_DISPLAY_NAME_PLACEHOLDER = "Your name"
     const val SETTINGS_DISPLAY_NAME_SUBTEXT = "Shown to friends on the leaderboard"
