@@ -286,6 +286,12 @@ fun MainShell(
                     onSetWidgetGroupClick = { group ->
                         leaderboardViewModel.setPrimaryGroup(group.id)
                     },
+                    onRenameClick = { group, newName ->
+                        leaderboardViewModel.renameGroup(group.id, newName)
+                    },
+                    onLeaveClick = { group ->
+                        leaderboardViewModel.leaveGroup(group.id)
+                    },
                     onShareClick = { group ->
                         // The group's document id is its join code, so no lookup
                         // is needed to invite someone later.
