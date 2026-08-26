@@ -16,9 +16,14 @@
         filtered by default, so getApplicationInfo() throws for every third-party
         app and the list degrades to raw package ids.
 
-        This is a Play-restricted permission. Scrolla is sideloaded (SPRINT_LOG
-        S3.15), so it is fine today — but if this app is ever listed, replace it
-        with a <queries> element and accept a shorter app list.
+        This is a Play-restricted permission. That is settled rather than
+        pending: PREMIUM_CHECKLIST P0.5a records the decision (2026-08-26) that
+        Scrolla stays a sideloaded APK and is not going on the Play Store, so
+        this permission is fine and stays. The reason is not convenience — Play
+        restricts AccessibilityService to accessibility purposes, and scroll
+        distance is not one, and no other API provides it. If that decision is
+        ever revisited, swap this for a <queries> element and accept a shorter
+        app list.
     -->
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
 
