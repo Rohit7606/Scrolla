@@ -60,6 +60,7 @@ import androidx.compose.ui.unit.sp
 import com.scrolla.model.DistanceFormatter
 import com.scrolla.ui.ScrollaMessages
 import com.scrolla.ui.components.RefreshOnResume
+import com.scrolla.ui.components.rememberTapHaptic
 import com.scrolla.ui.theme.ScrollaType
 import com.scrolla.ui.theme.scrollaColors
 
@@ -521,6 +522,8 @@ private fun MainTabsScreen(
                         memberCount = boardState.activeGroup?.memberCount,
                         errorMessage = boardState.errorMessage,
                         onRetryClick = { leaderboardViewModel.refresh() },
+                        isRefreshing = boardState.isRefreshing,
+                        onRefresh = { leaderboardViewModel.refreshFromPull() },
                         onSwitchGroupClick = onManageGroupsClick,
                         emptyBoardMessage = if (boardState.activeGroup == null) {
                             ScrollaStrings.LEADERBOARD_EMPTY_NO_GROUP
@@ -579,6 +582,7 @@ private fun ScrollaNavigationBar(
     onTabSelected: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val tap = rememberTapHaptic()
     val hairline = MaterialTheme.scrollaColors.cardBorder
 
     // The accent marks where you are — that is one of its four uses in
@@ -601,7 +605,7 @@ private fun ScrollaNavigationBar(
             val selected = selectedTab == index
             NavigationBarItem(
                 selected = selected,
-                onClick = { onTabSelected(index) },
+                onClick = { tap(); onTabSelected(index) },
                 icon = {
                     Icon(
                         imageVector = if (selected) dest.selectedIcon else dest.unselectedIcon,

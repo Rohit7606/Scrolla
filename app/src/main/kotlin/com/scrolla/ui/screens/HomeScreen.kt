@@ -61,7 +61,11 @@ import java.util.Locale
 fun HomeScreen(
     modifier: Modifier = Modifier,
     scrollDistanceKm: Float = 2.3f,
-    yesterdayKm: Float? = 2.8f,
+    // Preview defaults are null, not plausible numbers. A default of 2.8f is one
+    // careless call site away from being rendered to a user as their own figure,
+    // in the app whose stated rule is never to show a plausible fake number —
+    // and MainShell forgetting an argument would look like working software.
+    yesterdayKm: Float? = null,
     landmarkText: String? = "about the height of three Burj Khalifas",
     /** False until the sensor has recorded anything — the figure shows a dash, not 0.0. */
     hasSensorData: Boolean = true,
@@ -70,7 +74,7 @@ fun HomeScreen(
      *  told returning users their history was gone, once per launch. */
     isLoading: Boolean = false,
     /** Null until the group leaderboard has data; the standing card degrades instead of inventing a rank. */
-    rankPosition: Int? = 2,
+    rankPosition: Int? = null,
     groupSize: Int? = 5,
     groupName: String? = "College Friends",
     insightLabel: String = "peak scroll time",

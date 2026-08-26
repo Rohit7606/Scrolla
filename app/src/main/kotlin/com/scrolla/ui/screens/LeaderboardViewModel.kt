@@ -24,7 +24,10 @@ data class LeaderboardUiState(
     val entries: List<LeaderboardEntry> = emptyList(),
     val groupStats: GroupStats? = null,
     val groupBestDay: String? = null,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    /** True only for a user-initiated pull, so the spinner is the gesture's and
+     *  not the tab-open read's. */
+    val isRefreshing: Boolean = false
 )
 
 /**
@@ -48,6 +51,16 @@ class LeaderboardViewModel(
     private var lastLoadedGroupId: String? = null
 
     init {
+        refresh()
+    }
+
+    /**
+     * A deliberate pull-to-refresh. Ignores the staleness window on purpose:
+     * the cache exists to stop *incidental* reads costing quota, not to overrule
+     * someone who has explicitly asked.
+     */
+    fun refreshFromPull() {
+        _uiState.value = _uiState.value.copy(isRefreshing = true)
         refresh()
     }
 
@@ -138,7 +151,9 @@ class LeaderboardViewModel(
             _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
 
             val groups = groupRepository.getUserGroups(userId).getOrElse { error ->
-                _uiState.value = _uiState.value.copy(isLoading = false, errorMessage = error.message)
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false, isRefreshing = false, errorMessage = error.message
+                )
                 return@launch
             }
 
@@ -157,6 +172,7 @@ class LeaderboardViewModel(
             val totals = groupRepository.getGroupLeaderboard(active.groupId, today).getOrElse { error ->
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
+                    isRefreshing = false,
                     groups = groups,
                     activeGroup = active,
                     errorMessage = error.message
@@ -185,6 +201,7 @@ class LeaderboardViewModel(
 
             lastLoadedAt = System.currentTimeMillis()
             lastLoadedGroupId = active.groupId
+            _uiState.value = _uiState.value.copy(isRefreshing = false)
         }
     }
 
