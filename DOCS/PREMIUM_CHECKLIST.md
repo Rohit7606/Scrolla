@@ -217,9 +217,9 @@ detail to discover during review.
       `# Google Services` header with **nothing under it**. For a Firebase Android
       app this file is not really a secret, but the empty section means the
       decision was never actually made. Make it deliberately.
-- [ ] **P1.1b** `.gitignore` contains a block of mangled UTF-16 lines around the
-      `scrolla_database` entries — a space between every character, so those
-      patterns match nothing. Rewrite the file as UTF-8.
+- [x] **P1.1b** `.gitignore` rewritten as clean UTF-8. *The mangled lines matched
+      nothing. Verified afterwards that `*.hprof` and `*.logcat` still ignore the
+      heap dumps and logcat sitting in the repo root.*
 
 ### P1.2 — What leaves the device `[B]`
 
@@ -464,13 +464,23 @@ wrong place. This is a mechanical move, not a rewrite.
 **Zero `performHapticFeedback` calls in the entire app.** This is a large part of
 what "premium" physically means on Android and it is roughly one line per site.
 
-- [ ] **P3.2a** Haptics on primary buttons, tab switches, and — most of all — a
-      personal record being broken. That last one is the app's emotional payload
-      and it currently lands silently.
-- [ ] **P3.2b** No pull-to-refresh anywhere. The Leaderboard deliberately caches
-      behind a staleness window to protect the Firestore quota — correct — and
-      gives the user no way to say "no, check now". Add `PullToRefreshBox`,
-      bypassing the staleness check on an explicit gesture.
+- [x] **P3.2a** Haptics on primary buttons and tab switches. *Done 2026-08-26.
+      Wired into `ScrollaPrimaryButton` and `Modifier.bounceClick` — the two
+      shared touch surfaces — rather than at forty call sites, so the whole app
+      got it in three edits. Two weights only: a light tick for taps, a heavier
+      one for confirmations, because a strong buzz on every tap reads as a broken
+      phone rather than a premium one.*
+- [ ] **P3.2e** Haptics on a record being broken. *Split out of P3.2a because it
+      is genuinely harder: nothing currently knows a record was **just** broken.
+      `updateGroupRecordIfBetter()` returns true, but it runs inside a background
+      sync, so the moment it fires is not a moment the user is looking at
+      anything. Needs a "new since you last looked" signal first. This is the
+      app's emotional payload and it still lands silently.*
+- [x] **P3.2b** Pull-to-refresh on the Leaderboard. *Done 2026-08-26.
+      `refreshFromPull()` bypasses `LEADERBOARD_CACHE_STALE_MS` deliberately: the
+      cache exists to stop **incidental** reads costing quota, not to overrule
+      someone who has explicitly asked. `isRefreshing` is set only by the gesture,
+      so the spinner belongs to the pull and not to the tab-open read.*
 - [ ] **P3.2c** Audit the empty states. Only a handful of `isEmpty()` branches
       exist across all screens. Every list needs one, and it should say what to do
       next, not just that there is nothing.
@@ -555,18 +565,29 @@ plausible fake number.
 
 ### P4.2 — Fake numbers still in the source `[B]`
 
-- [ ] **P4.2a** `HomeScreen.kt:64` and `LeaderboardScreen.kt:61` carry `2.8f` as
-      **default parameter values**. Preview scaffolding today, and one careless
-      call site away from being rendered to a user. Remove the defaults or make
-      them obviously absurd.
+- [x] **P4.2a** Fake preview defaults removed. *Done 2026-08-26 and it was worse
+      than the two sites originally logged. `HomeScreen` also defaulted
+      `rankPosition = 2`, `HallOfFameScreen` defaulted to a record held by
+      "Lewis" on "July 12" with `hasRecord = true`, and `ProfileScreen` carried a
+      full fake profile — name, best day, seven-day average, group count, group
+      name. All now null or zero. A default that renders plausibly is one
+      forgotten argument away from being shown to a user as their own data, and
+      it would look like working software.*
 
 ### P4.3 — Dead weight `[Both]`
 
-- [ ] **P4.3a** `libs.firebase.ai` is declared in `build.gradle.kts` with **zero
-      usages** in the source. Remove it.
-- [ ] **P4.3b** Re-run the written-but-never-rendered string audit after P3.1.
-      It found 58 last time and pointed straight at several real bugs; it is the
-      highest-yield cheap audit we have.
+- [x] **P4.3a** `libs.firebase.ai` removed. *Zero usages; it was shipping in
+      every APK.*
+- [◐] **P4.3b** The written-but-never-rendered string audit. *Re-run 2026-08-26:
+      **43 unused of 214**, down from 58. It has now paid off three times — it
+      found the delete-flow copy (including the type-to-confirm hint we adopted),
+      and the "[deleted]" record promise. Two more it surfaces now:
+      `ERROR_NO_CONNECTION` is unused, which is exactly P2.3d; and the join
+      errors exist as two parallel sets (`GROUP_JOIN_ERROR_*` and
+      `JOIN_GROUP_ERROR_*`), one used and one not. Several others name features
+      that do not exist — `LEADERBOARD_MOST_CONSISTENT`,
+      `SETTINGS_WIDGET_GROUP_*`, `HOME_INSIGHT_PERSONAL_BEST_LABEL` — so the
+      rotating insight card advertised in S2.1 has one of its four types built.*
 
 ---
 

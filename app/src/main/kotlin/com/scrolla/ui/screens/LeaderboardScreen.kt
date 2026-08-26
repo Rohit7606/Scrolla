@@ -26,6 +26,7 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.outlined.TrendingDown
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -58,7 +59,7 @@ data class LeaderboardEntry(
 
 data class GroupStats(
     val todayKm: Float = 2.3f,
-    val yesterdayKm: Float = 2.8f,
+    val yesterdayKm: Float = 0f,
     val weekAvgKm: Float = 3.1f
 )
 
@@ -94,6 +95,11 @@ fun LeaderboardScreen(
     /** Retries a failed load. Without this an error was terminal until the user
      *  left the tab and came back. */
     onRetryClick: () -> Unit = {},
+    /** Explicit refresh. The board caches behind LEADERBOARD_CACHE_STALE_MS to
+     *  protect the Firestore quota — correct, and it left the user no way to say
+     *  "no, check now". This gesture bypasses the staleness window. */
+    isRefreshing: Boolean = false,
+    onRefresh: () -> Unit = {},
     onHallOfFameClick: () -> Unit = {}
 ) {
     val spacing = MaterialTheme.spacing
@@ -104,10 +110,16 @@ fun LeaderboardScreen(
         SimpleDateFormat("EEE d MMM", Locale.getDefault()).format(Date()).uppercase()
     }
 
-    Column(
+    PullToRefreshBox(
+        isRefreshing = isRefreshing,
+        onRefresh = onRefresh,
         modifier = modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
+    ) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
             .windowInsetsPadding(WindowInsets.statusBars)
             .verticalScroll(scrollState)
     ) {
@@ -311,6 +323,7 @@ fun LeaderboardScreen(
         }
 
         Spacer(modifier = Modifier.height(spacing.extraExtraLarge))
+    }
     }
 }
 

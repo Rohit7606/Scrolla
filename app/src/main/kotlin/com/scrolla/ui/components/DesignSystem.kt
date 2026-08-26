@@ -73,12 +73,15 @@ fun Modifier.bounceClick(
             animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessHigh),
             label = "pressScale"
         )
+        // Every tappable card goes through bounceClick, so the tick lives here
+        // rather than at each call site.
+        val tap = rememberTapHaptic()
         this
             .graphicsLayer { scaleX = scale; scaleY = scale }
             .clickable(
                 interactionSource = interactionSource,
                 indication = LocalIndication.current,
-                onClick = onClick
+                onClick = { tap(); onClick() }
             )
     } else {
         // Decorative use on a parent that owns the click. `awaitEachGesture`
