@@ -4,6 +4,12 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
+    <!-- Drives the app's own haptics. A normal permission, so no runtime
+         prompt. Needed because Scrolla uses the vibrator channel rather than
+         View.performHapticFeedback(), which is gated on the system's
+         touch-feedback setting - see ui/components/Haptics.kt. -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+
     <!--
         Needed to turn the package ids the accessibility service records into app
         names on the Insights breakdown. Since Android 11 package visibility is

@@ -1,41 +1,52 @@
 package com.scrolla.ui.components
 
+import android.content.Context
 import android.os.Build
-import android.view.HapticFeedbackConstants
-import android.view.View
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
-import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.platform.LocalContext
 
 /**
  * The app's two haptic weights (PREMIUM_CHECKLIST P3.2a).
  *
- * There were zero `performHapticFeedback` calls in the entire app. On Android
- * this is a large part of what "premium" physically means, and it costs one line
- * per surface — but only if it goes in the shared surfaces rather than at forty
- * call sites, which is why this is wired into [ScrollaPrimaryButton] and
- * `Modifier.bounceClick` instead of sprinkled through screens.
+ * **Why this drives the vibrator directly rather than
+ * `View.performHapticFeedback()`.** That API is gated on
+ * `Settings.System.haptic_feedback_enabled`, which governs *touch feedback* —
+ * keyboard taps, system UI presses. Plenty of people turn that off because
+ * keyboard buzz annoys them, and they do not thereby mean "no app should ever
+ * give me feedback". Apps that feel good on Android almost universally use the
+ * vibrator channel, which that setting does not gate; the first version of this
+ * file used `performHapticFeedback` and was silently a no-op on the test device
+ * for exactly that reason.
  *
- * **Platform constants, not Compose's `HapticFeedbackType`.** Compose exposes
- * only `LongPress` and `TextHandleMove`, and `TextHandleMove` maps to
- * `TEXT_HANDLE_MOVE`, which several OEMs treat as a no-op or render so faintly
- * it cannot be felt — it is meant for dragging a text selection handle, not for
- * a button. `CLOCK_TICK` is the light tick the platform actually uses for
- * pickers and is honoured far more widely.
+ * **The user still gets a switch — an honest one.** Bypassing a system setting
+ * only to offer no alternative would be worse than respecting it, so haptics are
+ * on by default and can be turned off in Settings ([isEnabled]/[setEnabled]).
+ * That is the same bargain every well-behaved Android app makes.
  *
- * **This still respects the user.** `View.performHapticFeedback()` returns false
- * and does nothing when the system's touch-feedback setting is off, and that is
- * correct: an app that buzzes after someone has explicitly turned haptics off is
- * not premium, it is rude. If nothing is felt, check
- * `settings get system haptic_feedback_enabled` before suspecting this file —
- * on the Xiaomi test device it was 0 out of the box, which is what made these
- * look broken on 2026-08-26.
+ * `createPredefined` still respects the system's *vibration intensity* setting
+ * and Do Not Disturb, so the OS keeps the final say on strength.
  */
 object ScrollaHaptics {
 
+    private const val PREFS = "scrolla_prefs"
+    private const val KEY_ENABLED = "haptics_enabled"
+
+    fun isEnabled(context: Context): Boolean =
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .getBoolean(KEY_ENABLED, true)
+
+    fun setEnabled(context: Context, enabled: Boolean) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit().putBoolean(KEY_ENABLED, enabled).apply()
+    }
+
     /** Anything you press to navigate or select. Frequent, so it stays light. */
-    fun tap(view: View) {
-        view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+    fun tap(context: Context) {
+        vibrate(context, light = true)
     }
 
     /**
@@ -43,25 +54,48 @@ object ScrollaHaptics {
      * record broken. Rare on purpose; a heavy buzz on every tap reads as a
      * broken phone rather than a premium one.
      */
-    fun confirm(view: View) {
-        val constant = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            HapticFeedbackConstants.CONFIRM
-        } else {
-            HapticFeedbackConstants.LONG_PRESS
-        }
-        view.performHapticFeedback(constant)
+    fun confirm(context: Context) {
+        vibrate(context, light = false)
     }
+
+    private fun vibrate(context: Context, light: Boolean) {
+        if (!isEnabled(context)) return
+        val vibrator = vibrator(context) ?: return
+        if (!vibrator.hasVibrator()) return
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val effect = if (light) VibrationEffect.EFFECT_TICK else VibrationEffect.EFFECT_CLICK
+            vibrator.vibrate(VibrationEffect.createPredefined(effect))
+        } else {
+            // Pre-Q has no predefined effects. These durations are deliberately
+            // short: anything longer stops reading as a tick and starts reading
+            // as a notification.
+            val ms = if (light) 12L else 24L
+            vibrator.vibrate(
+                VibrationEffect.createOneShot(ms, VibrationEffect.DEFAULT_AMPLITUDE)
+            )
+        }
+    }
+
+    private fun vibrator(context: Context): Vibrator? =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            (context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager)
+                ?.defaultVibrator
+        } else {
+            @Suppress("DEPRECATION")
+            context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
+        }
 }
 
 /** Sugar for the common case inside a composable. */
 @Composable
 fun rememberTapHaptic(): () -> Unit {
-    val view = LocalView.current
-    return remember(view) { { ScrollaHaptics.tap(view) } }
+    val context = LocalContext.current
+    return remember(context) { { ScrollaHaptics.tap(context) } }
 }
 
 @Composable
 fun rememberConfirmHaptic(): () -> Unit {
-    val view = LocalView.current
-    return remember(view) { { ScrollaHaptics.confirm(view) } }
+    val context = LocalContext.current
+    return remember(context) { { ScrollaHaptics.confirm(context) } }
 }
