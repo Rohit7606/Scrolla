@@ -88,6 +88,45 @@ class LeaderboardViewModel(
         }
     }
 
+    /** Renames a group. Any member may — see `isGroupRename()` in the rules. */
+    fun renameGroup(groupId: String, newName: String) {
+        viewModelScope.launch {
+            groupRepository.renameGroup(groupId, newName)
+                .onSuccess { refresh() }
+                .onFailure {
+                    ScrollaMessages.show(
+                        text = ScrollaStrings.GROUP_RENAME_FAILED,
+                        actionLabel = ScrollaStrings.ERROR_RETRY_ACTION,
+                        action = { renameGroup(groupId, newName) }
+                    )
+                }
+        }
+    }
+
+    /**
+     * Leaves a group, taking this user's totals in it with them.
+     *
+     * If the group left was the active one, `refresh()` falls back to their
+     * primary and then to whatever remains, so the board never points at a group
+     * they are no longer in.
+     */
+    fun leaveGroup(groupId: String) {
+        val user = authRepository.currentUser ?: return
+        viewModelScope.launch {
+            groupRepository.leaveGroup(groupId, user.uid, user.displayName.orEmpty())
+                .onSuccess {
+                    if (_uiState.value.activeGroup?.groupId == groupId) {
+                        _uiState.value = _uiState.value.copy(activeGroup = null)
+                    }
+                    refresh()
+                }
+                // No retry action: a partial leave may already have removed the
+                // totals, so "try again" is not the reassurance it looks like.
+                // A refresh shows the real current state.
+                .onFailure { ScrollaMessages.show(ScrollaStrings.GROUP_LEAVE_FAILED) }
+        }
+    }
+
     fun refresh() {
         val userId = authRepository.currentUser?.uid
         if (userId == null) {

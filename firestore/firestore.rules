@@ -53,7 +53,7 @@ service cloud.firestore {
       // joinGroup()'s arrayUnion on `members` was denied, and the group record
       // fields could never be written by anyone. Both are allowed now, each
       // narrowed to exactly the fields and shape it needs.
-      allow update: if isSelfJoin() || isRecordImprovement() || isSelfLeave();
+      allow update: if isSelfJoin() || isRecordImprovement() || isSelfLeave() || isGroupRename();
     }
 
     // Adding yourself to a group, changing nothing else. Existing members must
@@ -81,6 +81,27 @@ service cloud.firestore {
               && !(request.auth.uid in request.resource.data.members)
               && request.resource.data.members.hasOnly(resource.data.members)
               && request.resource.data.members.size() == resource.data.members.size() - 1;
+    }
+
+    // Renaming a group, and nothing else.
+    //
+    // Any member, not just the creator. `createdBy` exists and creator-only was
+    // the obvious first choice, but a creator can now leave the group
+    // (isSelfLeave), which under creator-only would strand the name forever with
+    // nobody able to correct even a typo. The blast radius is a shared label
+    // among people who already chose to be in a group together, and it is
+    // trivially reversible.
+    //
+    // The length bound is enforced here as well as in the client because a rule
+    // is the only place a hostile client cannot skip. An empty name would render
+    // as a blank row that still has to be tapped to identify.
+    function isGroupRename() {
+      return signedIn()
+              && request.auth.uid in resource.data.members
+              && changedKeys().hasOnly(['groupName'])
+              && request.resource.data.groupName is string
+              && request.resource.data.groupName.size() > 0
+              && request.resource.data.groupName.size() <= 40;
     }
 
     // Setting the group's all-time best day. Members only, record fields only,

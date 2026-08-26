@@ -37,6 +37,10 @@ class GroupRepository(
 ) {
     companion object {
         const val DELETED_HOLDER = "[deleted]"
+
+        /** Matches the bound enforced in isGroupRename(). Both exist: the rule
+         *  is the only one a hostile client cannot skip. */
+        const val MAX_GROUP_NAME_LENGTH = 40
         private const val TAG = "GroupRepository"
         private const val GROUP_CODE_LENGTH = 6
     }
@@ -233,6 +237,92 @@ class GroupRepository(
     }
 
     /**
+     * Renames a group. Any member may do it — see `isGroupRename()` in
+     * `firestore.rules` for why it is not creator-only.
+     *
+     * The name lives only on the group document; `getUserGroups()` reads it from
+     * there rather than from the per-user membership record, so one write is
+     * enough and no copies can drift.
+     */
+    suspend fun renameGroup(groupId: String, newName: String): Result<Unit> {
+        val trimmed = newName.trim()
+        if (trimmed.isEmpty() || trimmed.length > MAX_GROUP_NAME_LENGTH) {
+            return Result.failure(IllegalArgumentException("Group name must be 1–$MAX_GROUP_NAME_LENGTH characters"))
+        }
+        return try {
+            firestore.collection("groups").document(groupId)
+                .update("groupName", trimmed).await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to rename group: $groupId", e)
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Leaves a single group, taking this user's data in it with them.
+     *
+     * Removing only the `members` entry would leave their `dailyTotals`
+     * documents behind, and the leaderboard reads those — so someone who had
+     * left would keep appearing on the board with a live number, which is the
+     * opposite of leaving.
+     *
+     * Shares [clearUserFromGroup] with account deletion, so the two cannot drift
+     * apart: whatever "remove me from this group" means, it means the same thing
+     * in both places.
+     */
+    suspend fun leaveGroup(groupId: String, userId: String, displayName: String): Result<Unit> {
+        return try {
+            clearUserFromGroup(groupId, userId, displayName)
+            firestore.collection("users").document(userId)
+                .collection("groups").document(groupId)
+                .delete().await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to leave group: $groupId", e)
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Removes one user's presence from one group: their name off the record if
+     * they hold it, their daily totals, then themselves from `members`.
+     *
+     * The order is not incidental. `isRecordImprovement()` requires the caller be
+     * a member, so the record scrub must happen before the `arrayRemove` — after
+     * it, that write is denied forever and a departed user's name is stuck on the
+     * group's Hall of Fame permanently.
+     *
+     * Throws on failure so callers can decide; account deletion collects the
+     * failures, leaving a group surfaces them.
+     */
+    private suspend fun clearUserFromGroup(groupId: String, userId: String, displayName: String) {
+        val record = getGroupRecord(groupId).getOrNull()
+        if (record != null && record.recordHolder == displayName) {
+            firestore.collection("groups").document(groupId)
+                .update(
+                    mapOf(
+                        "recordKm" to record.recordKm,
+                        "recordHolder" to DELETED_HOLDER,
+                        "recordDate" to record.recordDate
+                    )
+                ).await()
+        }
+
+        val totals = firestore.collection("groups").document(groupId)
+            .collection("dailyTotals")
+            .whereEqualTo("userId", userId)
+            .get().await()
+        for (doc in totals.documents) {
+            doc.reference.delete().await()
+        }
+
+        firestore.collection("groups").document(groupId)
+            .update("members", FieldValue.arrayRemove(userId))
+            .await()
+    }
+
+    /**
      * Erases everything this user has in Firestore, ahead of deleting the
      * account itself.
      *
@@ -261,46 +351,12 @@ class GroupRepository(
 
             for (group in groups) {
                 try {
-                    // 1. Scrub the user's name off the group record if they hold
-                    // it. SETTINGS_DELETE_BODY promises exactly this ("your name
-                    // in group history will be replaced with '[deleted]'"), and
-                    // without it a deleted account's name lives on indefinitely
-                    // on the Hall of Fame of every group they were in.
-                    //
-                    // Must happen BEFORE leaving the group: isRecordImprovement()
-                    // requires `request.auth.uid in resource.data.members`, so
-                    // once the arrayRemove below lands, this write is denied
-                    // forever. The record value itself is preserved — the rule
-                    // permits an equal recordKm, so the group keeps its history
-                    // and loses only the name.
-                    val record = getGroupRecord(group.groupId).getOrNull()
-                    if (record != null && record.recordHolder == displayName) {
-                        firestore.collection("groups").document(group.groupId)
-                            .update(
-                                mapOf(
-                                    "recordKm" to record.recordKm,
-                                    "recordHolder" to DELETED_HOLDER,
-                                    "recordDate" to record.recordDate
-                                )
-                            ).await()
-                    }
-
-                    // 2. This user's daily totals in this group. Queried rather
-                    // than guessed by id, because the id encodes a date and we
-                    // do not know which dates exist.
-                    val totals = firestore.collection("groups")
-                        .document(group.groupId)
-                        .collection("dailyTotals")
-                        .whereEqualTo("userId", userId)
-                        .get().await()
-                    for (doc in totals.documents) {
-                        doc.reference.delete().await()
-                    }
-
-                    // 3. Leave the group.
-                    firestore.collection("groups").document(group.groupId)
-                        .update("members", FieldValue.arrayRemove(userId))
-                        .await()
+                    // Shared with leaveGroup(), so "remove me from this group"
+                    // cannot come to mean two different things. Includes the
+                    // record-name scrub, which must precede the arrayRemove:
+                    // isRecordImprovement() requires membership, so afterwards
+                    // that write is denied forever.
+                    clearUserFromGroup(group.groupId, userId, displayName)
                 } catch (e: Exception) {
                     Log.e(TAG, "Failed to clear user data from group ${group.groupId}", e)
                     problems += group.groupId

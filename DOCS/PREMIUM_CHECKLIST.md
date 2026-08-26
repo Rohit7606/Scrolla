@@ -266,6 +266,29 @@ every step. From 2026-08-16 to 2026-08-23 that flow was silently impossible.
       Section 2 table. That log's release gate wants 3 devices and 2
       manufacturers; this is the first entry.
 
+### P2.7 — Rename and leave a group `[B]` — ☑ *built 2026-08-26*
+
+Raised on 2026-08-23 ("I couldn't go and edit the group if wanted") and blocked
+ever since, because `allow update` permitted only `isSelfJoin()` and
+`isRecordImprovement()` — a write to `groupName` was simply denied.
+
+- [x] **P2.7a** `isGroupRename()` rule, any member, name-only, 1–40 chars.
+      *Self-reviewed — see P4.4c.*
+- [x] **P2.7b** Rename UI: overflow menu → dialog with a live character count.
+      The rule enforces the same bound, so without the counter an over-long name
+      fails silently at the server.
+- [x] **P2.7c** Leave group. *The rule was already there for free — `isSelfLeave()`
+      was written for account deletion and is exactly what leaving needs.*
+- [x] **P2.7d** Leaving deletes that group's `dailyTotals` for the user.
+      *Removing only the `members` entry would leave them on the leaderboard with
+      a live number, which is not leaving. Shares `clearUserFromGroup()` with
+      account deletion so the two cannot drift apart.*
+- [ ] **P2.7e** Untested on device. Needs the rules published first.
+- [ ] **P2.7f** A group whose last member leaves is orphaned — the document stays
+      with an empty `members` array and nobody can reach it. Harmless today
+      (Firestore charges nothing meaningful for it) but it should either be
+      deleted or reaped.
+
 ### P2.6 — Nothing writes the group record `[B]` — ◐ *found 2026-08-24, written 2026-08-25*
 
 **No code anywhere in `app/src/main` writes `recordKm`, `recordHolder` or
@@ -524,9 +547,11 @@ plausible fake number.
 - [x] **P4.4a** Render sub-metre values as `<1` rather than `0`.
 - [x] **P4.4b** Keep the spoken form grammatical — TalkBack would otherwise read
       the literal "<1 metres". It now says "less than one metre".
-- [ ] **P4.4c** **A's sign-off required.** `model/DistanceFormatter.kt` is
-      edit-together per §2 and A reviewed its last change (REVIEW_LOG #3). Flag
-      it in the next round.
+- [◐] **P4.4c** A's sign-off. *Self-reviewed by B on 2026-08-26 (REVIEW_LOG #7)
+      because A was unavailable, and logged as such rather than attributed to A.
+      **Still wants a second pair of eyes** — §2 exists because reviews #2 and #4
+      each caught a real bug, #4 being that `allow create` does not grant `allow
+      update`, which meant group joining had never worked at all.*
 
 ### P4.2 — Fake numbers still in the source `[B]`
 

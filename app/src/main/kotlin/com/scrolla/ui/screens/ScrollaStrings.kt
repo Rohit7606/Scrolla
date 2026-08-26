@@ -244,6 +244,22 @@ object ScrollaStrings {
     // Screens 10-11: Groups
     // =========================================
     const val GROUP_SWITCHER_TITLE = "Your groups"
+    const val GROUP_RENAME_ACTION = "Rename group"
+    const val GROUP_RENAME_TITLE = "Rename this group"
+    const val GROUP_RENAME_LABEL = "Group name"
+    const val GROUP_RENAME_SAVE = "Save"
+    const val GROUP_RENAME_CANCEL = "Cancel"
+    const val GROUP_RENAME_FAILED = "Couldn't rename the group"
+    const val GROUP_LEAVE_ACTION = "Leave group"
+    const val GROUP_LEAVE_TITLE = "Leave this group?"
+
+    /** Says the totals go too. Leaving while your numbers stay on the board
+     *  would not be leaving. */
+    const val GROUP_LEAVE_BODY =
+        "You'll be removed from %s, and your totals in it will be deleted. You can rejoin later with the group code."
+    const val GROUP_LEAVE_CONFIRM = "Leave"
+    const val GROUP_LEAVE_CANCEL = "Stay"
+    const val GROUP_LEAVE_FAILED = "Couldn't leave the group"
     const val GROUP_SWITCHER_WIDGET_LABEL = "Widget group"
     const val GROUP_SWITCHER_ADD = "+ Join another group"
     const val GROUP_SWITCHER_CREATE = "+ Create a new group"
