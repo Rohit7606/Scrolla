@@ -241,3 +241,40 @@ new record every single day.
 2. **Finish S2.9** — the Home-vs-leaderboard number match.
 3. **P2.6** — agree ownership, then write the record.
 4. **P0.1** — the first unit tests, starting with `DistanceFormatter`.
+
+---
+
+**2026-08-26 — Person B. The distribution question is settled.**
+
+**Scrolla is not going on the Play Store.** Recorded as PREMIUM_CHECKLIST P0.5a
+and in the manifest comment next to `QUERY_ALL_PACKAGES`, so it does not get
+re-argued.
+
+The reason is not convenience. Play restricts `AccessibilityService` to genuine
+accessibility purposes and measuring scroll distance is not one — and unlike the
+package-visibility permission, this cannot be engineered around.
+`UsageStatsManager` provides screen time and app launches but **not scroll
+distance**, so the app's central metric exists only through the restricted API.
+Listing would have been a gamble on the core of the app rather than a
+formality.
+
+Worth recording in Scrolla's favour if the decision is ever revisited: the
+service config is already the most minimal version possible —
+`accessibilityEventTypes="typeViewScrolled"` with
+`canRetrieveWindowContent="false"`, so it cannot read screen content at all.
+That is the justification to lead with.
+
+**What this changes.** `QUERY_ALL_PACKAGES` stays, so App Breakdown keeps real
+app names for every app. A hosted privacy policy is no longer required. And
+P3.1 — migrating ~151 hardcoded strings into resources, previously the biggest
+single job left — drops to "worth doing if the app ever needs another language".
+
+**What it does not change.** An in-app privacy screen is still required, and is
+now the only open P0.5 item. Sideloading removes Google's requirement, not the
+obligation: the people installing this are handing an accessibility service to a
+friend's APK on trust, which is a higher bar than a store listing, not a lower
+one. Signing and per-build `versionCode` (P0.2c/d) also still matter — without
+them you cannot tell which APK a bug report came from.
+
+**The decision is reversible.** It stops us paying Play's costs today for a
+listing that may never happen; it does not prevent one later.

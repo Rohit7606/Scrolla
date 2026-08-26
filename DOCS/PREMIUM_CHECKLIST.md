@@ -185,7 +185,7 @@ and then offer no exit.
       scoped to that one directory — not the whole cache, which also holds
       Firestore's local persistence.*
 
-### P0.5 — The Play-policy question is unresolved and load-bearing `[Both]`
+### P0.5 — Play policy — ☑ **DECIDED 2026-08-26: sideload permanently**
 
 Two separate problems, one already flagged in the manifest and one not.
 
@@ -196,16 +196,40 @@ The unflagged one is bigger: **Google restricts `AccessibilityService` to genuin
 accessibility purposes**, and measuring scroll distance is not one. This is not a
 detail to discover during review.
 
-- [ ] **P0.5a** Decide explicitly: does Scrolla ever go on Play, or is it
-      permanently a sideloaded app among friends? Write the decision down. It
-      changes what every other item on this list means.
-- [ ] **P0.5b** If Play: replace `QUERY_ALL_PACKAGES` with a `<queries>` element
-      and accept a shorter app-breakdown list.
-- [ ] **P0.5c** If Play: a privacy policy, hosted, linked from Settings, and
-      honest about what the accessibility service can technically see versus what
-      Scrolla actually stores.
-- [ ] **P0.5d** Either way, a privacy screen in-app. The two
-      `..._PRIVACY` strings we already show are good and are not sufficient.
+- [x] **P0.5a** **Decision: Scrolla stays a sideloaded APK handed to friends. It
+      is not going on the Play Store.**
+
+      *The reasoning, so it does not have to be re-argued.* Play restricts
+      `AccessibilityService` to genuine accessibility purposes, and measuring
+      scroll distance is not one. This cannot be engineered around:
+      `UsageStatsManager` gives screen time and app launches but **not scroll
+      distance**, so the app's entire central metric exists only through the
+      restricted API. Listing would be a real gamble on the app's core, not a
+      formality.
+
+      In Scrolla's favour, for the record: the service config is the most minimal
+      version possible — `accessibilityEventTypes="typeViewScrolled"` and
+      `canRetrieveWindowContent="false"`, so it cannot read screen content at
+      all. If this decision is ever revisited, that is the justification to lead
+      with.
+
+      **The decision is reversible.** Choosing sideload now does not prevent a
+      listing later; it stops us paying Play's costs today for a listing that may
+      never happen.
+- [—] **P0.5b** ~~Replace `QUERY_ALL_PACKAGES` with `<queries>`~~ — **not needed
+      under P0.5a.** Keeping it means App Breakdown shows real app names for
+      every app rather than a curated subset. Revisit only if the Play decision
+      changes.
+- [—] **P0.5c** ~~Hosted privacy policy~~ — **not required under P0.5a.** The
+      in-app version below still is.
+- [ ] **P0.5d** **An in-app privacy screen. Still required, and now the only
+      P0.5 item left.** Sideloading removes Google's requirement, not the
+      obligation — the people installing this are handing an accessibility
+      service to a friend's APK on trust, which is a higher bar than a store
+      listing, not a lower one. It should be honest about what the service can
+      technically see (`typeViewScrolled` only, no window content) versus what
+      Scrolla stores and uploads. The two `..._PRIVACY` strings already shown are
+      good and are not sufficient.
 
 ---
 
@@ -438,7 +462,7 @@ switch. Three independent signals, all reporting healthy, none of them looking.
 
 ## P3 — Making it beautiful
 
-### P3.1 — Strings live in Kotlin, not resources `[B]`
+### P3.1 — Strings live in Kotlin, not resources `[B]` — ⬇ **deprioritised by P0.5a**
 
 **151 hardcoded `Text()` strings; zero `stringResource` calls.** `strings.xml`
 contains exactly one entry: `app_name`.
@@ -448,6 +472,15 @@ app cannot honour — no string can flip, because no string is a resource.
 
 `ScrollaStrings.kt` was the right instinct (centralised, reviewable copy) in the
 wrong place. This is a mechanical move, not a rewrite.
+
+**Re-scoped 2026-08-26.** With Scrolla sideloaded to one friend group rather than
+listed (P0.5a), localisation stops being load-bearing and this drops from "the
+biggest remaining job" to "worth doing if the app ever needs another language".
+The migration is ~151 call sites for no user-visible change today. **One part
+does survive the re-scope:** `android:supportsRtl="true"` in the manifest remains
+a claim the app cannot honour, since no string is a resource and none can flip.
+Either do P3.1e or set it to `false` — the app's own discipline is not to claim
+things that are not true.
 
 - [ ] **P3.1a** Migrate `ScrollaStrings` into `res/values/strings.xml`.
 - [ ] **P3.1b** Replace the `Text(ScrollaStrings.X)` call sites with
