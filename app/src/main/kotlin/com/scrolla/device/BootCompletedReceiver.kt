@@ -45,6 +45,11 @@ class BootCompletedReceiver : BroadcastReceiver() {
                     )
                 )
                 db.serviceHealthDao().updateAccessibilityEnabled(enabled)
+
+                // P2.12: re-arm the background health watch after a reboot, which
+                // clears scheduled alarms. Without this the watch only exists once
+                // the app has been opened post-boot.
+                TrackingHealthWatcher.schedule(context.applicationContext)
             } catch (e: Exception) {
                 // Fail loud, never crash. Leave state untouched so a later real
                 // check (MainActivity.onCreate) can correct it.

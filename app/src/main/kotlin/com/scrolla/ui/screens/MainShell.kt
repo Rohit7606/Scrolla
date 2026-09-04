@@ -32,8 +32,20 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.ui.draw.clip
+import com.scrolla.ui.components.bounceClick
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
@@ -58,6 +70,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.scrolla.model.DistanceFormatter
+import com.scrolla.ui.ScrollaGraph
 import com.scrolla.ui.ScrollaMessages
 import com.scrolla.ui.components.RefreshOnResume
 import com.scrolla.ui.components.rememberTapHaptic
@@ -147,6 +160,16 @@ fun MainShell(
             if (result == SnackbarResult.ActionPerformed) message.action?.invoke()
         }
     }
+
+    // Tracking-off banner (P2.12). The health row is kept current by
+    // MainActivity.onResume, which re-checks the accessibility switch on every
+    // foreground return and writes it to Room — so returning from Settings after
+    // re-enabling clears this without a manual refresh. Shown for the explicit
+    // false only: a null row is "not checked yet", which must not flash a
+    // false alarm on a cold start before the first check lands.
+    val serviceHealth by ScrollaGraph.scrollRepository.observeServiceHealth()
+        .collectAsState(initial = null)
+    val trackingOff = serviceHealth?.isAccessibilityServiceEnabled == false
 
     Box(modifier = modifier.fillMaxSize()) {
     AnimatedContent(
@@ -416,11 +439,76 @@ fun MainShell(
         }
     }
 
+        if (trackingOff) {
+            TrackingOffBanner(
+                onFixClick = {
+                    context.startActivity(
+                        Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
+                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    )
+                },
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .windowInsetsPadding(WindowInsets.statusBars)
+            )
+        }
+
         SnackbarHost(
             hostState = snackbarHostState,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .navigationBarsPadding()
+        )
+    }
+}
+
+/**
+ * Sits above every tab whenever tracking is off (P2.12). Uses the error role so
+ * it reads as a problem, not a tip, and carries the one action that resolves it.
+ * It intentionally cannot be dismissed: the state it reports is real and
+ * persistent, and a dismissable warning about silent data loss would just be
+ * swiped away and forgotten — which is the failure it exists to prevent.
+ */
+@Composable
+private fun TrackingOffBanner(
+    onFixClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val colors = MaterialTheme.scrollaColors
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 8.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(colors.warningContainer)
+            .border(1.dp, colors.warning.copy(alpha = 0.4f), RoundedCornerShape(16.dp))
+            .bounceClick(onClick = onFixClick)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Icon(
+            imageVector = Icons.Filled.Warning,
+            contentDescription = null,
+            tint = colors.warning,
+            modifier = Modifier.size(20.dp)
+        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = ScrollaStrings.BANNER_TRACKING_OFF_TITLE,
+                style = MaterialTheme.typography.titleSmall,
+                color = colors.onWarningContainer
+            )
+            Text(
+                text = ScrollaStrings.BANNER_TRACKING_OFF_BODY,
+                style = MaterialTheme.typography.bodySmall,
+                color = colors.onWarningContainer.copy(alpha = 0.85f)
+            )
+        }
+        Text(
+            text = ScrollaStrings.BANNER_TRACKING_OFF_ACTION,
+            style = MaterialTheme.typography.labelLarge,
+            color = colors.warning
         )
     }
 }

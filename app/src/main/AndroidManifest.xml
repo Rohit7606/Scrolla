@@ -89,5 +89,11 @@
             </intent-filter>
         </receiver>
 
+        <!-- P2.12: fired only by our own AlarmManager, so it is not exported. -->
+        <receiver
+            android:name=".device.TrackingHealthReceiver"
+            android:enabled="true"
+            android:exported="false" />
+
     </application>
 </manifest>

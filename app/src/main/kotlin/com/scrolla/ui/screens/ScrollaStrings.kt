@@ -201,6 +201,15 @@ object ScrollaStrings {
     const val SETTINGS_HEALTH_INTERRUPTED_TITLE = "Tracking was interrupted"
     const val SETTINGS_HEALTH_INTERRUPTED_BODY_TEMPLATE = "Your phone may have stopped Scrolla to save battery — this is common on %s devices"
     const val SETTINGS_HEALTH_INTERRUPTED_BUTTON = "Fix battery settings"
+
+    // Tracking-off banner (P2.12). Shown across every tab whenever the
+    // accessibility service is not enabled — a crash, or a UPI app having asked
+    // the user to turn it off. Deliberately not preachy: it states the fact and
+    // offers the one action that fixes it.
+    const val BANNER_TRACKING_OFF_TITLE = "Tracking is off"
+    const val BANNER_TRACKING_OFF_BODY = "Scroll distance isn't being recorded. Turn Scrolla back on in Accessibility settings."
+    const val BANNER_TRACKING_OFF_ACTION = "Turn on"
+
     const val SETTINGS_LAST_SYNCED_PREFIX = "Last synced"
     const val SETTINGS_NEVER_SYNCED = "Never synced"
     const val SETTINGS_BATTERY_SECTION_TEMPLATE = "Battery settings — your phone: %s"

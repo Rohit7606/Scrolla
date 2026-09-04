@@ -1,6 +1,7 @@
 package com.scrolla
 
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.widget.Toast
@@ -15,6 +16,7 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.lifecycleScope
 import com.google.firebase.auth.FirebaseAuth
 import com.scrolla.auth.AuthRepository
+import com.scrolla.device.TrackingHealthWatcher
 import com.scrolla.device.isScrollAccessibilityServiceEnabled
 import com.scrolla.room.ScrollaDatabase
 import com.scrolla.room.ServiceHealthState
@@ -35,6 +37,14 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         refreshAccessibilityStatus()
+
+        // P2.12: keep the background health watch armed. Idempotent, so calling
+        // it on every launch simply re-arms the one alarm.
+        TrackingHealthWatcher.schedule(applicationContext)
+
+        // The FGS notification (bug #1) and the P2.12 alert both need this on
+        // API 33+, where it defaults denied and the app had no request flow.
+        requestNotificationPermissionIfNeeded()
 
         setContent {
             ScrollaUILabTheme {
@@ -144,6 +154,22 @@ class MainActivity : ComponentActivity() {
                 // persisted state; a crash here must not block the UI from launching.
                 e.printStackTrace()
             }
+        }
+    }
+
+    /**
+     * POST_NOTIFICATIONS is a runtime permission on API 33+ and defaults denied,
+     * which is DEVICE_TEST_LOG bug #1 — the foreground-service notification never
+     * showed on a fresh install because nothing asked. The P2.12 tracking-off
+     * alert needs it too. A single quiet request at launch; if denied, the
+     * in-app banner still covers the app-open case.
+     */
+    private fun requestNotificationPermissionIfNeeded() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
+        val granted = checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) ==
+            android.content.pm.PackageManager.PERMISSION_GRANTED
+        if (!granted) {
+            requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 0)
         }
     }
 }
