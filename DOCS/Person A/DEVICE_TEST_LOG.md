@@ -233,6 +233,52 @@ leave group, rename group, and the group record reaching Hall of Fame (P2.6d).
 
 ---
 
+### 2026-09-04 (later) — the five never-run screens, walked by hand (P2.2a)
+
+MIUI blocks adb input injection, so B drove the phone while frames were captured
+every two seconds. Screens reached: **Settings, Weekly Recap, Hall of Fame** —
+the first time any of them has been seen running with real data.
+
+**Three bugs, none of which a build, a review or 54 unit tests had caught.**
+
+| # | Screen | What it showed | Why |
+|---|---|---|---|
+| 1 | Insights | "Saturday — no data yet", six days stale, today unselected | `remember` with no keys captured `weekData` while it was still empty |
+| 2 | Weekly Recap | **"595 m this week"** for 13 days of distance | seven most recent *rows* ≠ last seven *days* |
+| 3 | Settings | "Display name: **Not yet available**" to a user Auth calls "Rohit A" | `enabled = false` overwrote the value with that string |
+
+All three fixed (`2c2338c`, `ba4fed8`). Bug 2 is the sharpest: Personal Records
+had **already solved that exact trap** — its best-week card deliberately walks
+consecutive calendar dates rather than consecutive rows — and the recap one screen
+over had it unfixed.
+
+**What was verified working, on a device, for the first time:**
+
+- **The service health card is honest and complete.** "Tracking is active ·
+  Accessibility permission enabled · **Last recorded 18:03 · Last synced 18:04**".
+  Both timestamps render, which closes S2.7's last gap — and that footnote is
+  precisely what would have contradicted the "Tracking is active" headline during
+  the 2026-08-25 outage.
+- **P2.6d passes.** Hall of Fame shows a real group record: "You · **104 m** ·
+  25 Aug", matching `daily_totals` for that date exactly. The write, the
+  eligibility gate and the read path work end to end.
+- Haptics toggle, Export my data, and a live Delete account row all present.
+- Home renders `1 m` from three real Instagram events, an em-dash for standing,
+  and a peak-hour insight matching `hourBucket = 17`.
+
+**⚠️ But see PREMIUM_CHECKLIST P2.11.** The record is held by **the crash day**,
+and **tomorrow it will be replaced by today's 3.2 m** — a day the service spent
+almost entirely dead. `isRecordImprovement()` only permits equal-or-lower, so
+that would make it permanent. Decide before the next sync.
+
+**Also found:** Scrolla counts **its own scrolling** — 19 rows for `com.scrolla`,
+10.6 cm of it produced by scrolling Settings during this test. On a
+lowest-wins board, checking your score worsens your score. Logged as P2.10 for A.
+
+**Still never run on a device:** Personal Records and App Breakdown.
+
+---
+
 ## 3. OEM BATTERY BEHAVIOR — PRE-FILLED KNOWN QUIRKS
 
 This section is pre-filled with known OEM battery-killing behavior from documented Android fragmentation research. **These are not guesses** — they are well-documented patterns. Update with actual observed behavior as testing happens; add a ✅ next to findings that are confirmed on a real device, a ❌ next to ones that didn't reproduce.
