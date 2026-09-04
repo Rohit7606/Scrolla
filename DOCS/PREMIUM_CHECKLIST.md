@@ -376,6 +376,29 @@ every angle except the one that matters.
       Swapping `RecordEligibility.isPlausiblyComplete()` is the only change
       needed if either lands.
 
+### P2.8 — `app_totals` is a dead table `[A — `room/`]` — ☐ *found 2026-09-04*
+
+`AppTotal` is declared in `ScrollaDatabase`, carried through the migrations, and
+specified in `DATA_CONTRACT.md` §2.1 as "one row per (day, app), **recomputed
+alongside DailyTotal**". A device pull after 1,721 real events found **zero rows**,
+because nothing in `app/src/main` reads or writes it — every occurrence is the
+entity file and the database registration.
+
+App Breakdown is unaffected: `getTodayTopApps()` aggregates from `scroll_events`
+via `getTopAppsByDay()`. So this is dead weight plus a contract that documents
+behaviour that does not happen — not a broken screen.
+
+This is the **fifth** instance of the pattern (nothing wrote `recordKm`; the join
+code was discarded by `MainShell`; `hasData` was computed and never accepted;
+fake preview defaults survived their own sweep). Each was found by grepping for
+the writer rather than reading the prose.
+
+- [ ] **P2.8a** Either populate it in `flushBatch()` alongside the `DailyTotal`
+      recompute, or delete the entity and correct `DATA_CONTRACT.md` §2.1. Deleting
+      is the smaller change and nothing needs the table today; populating is right
+      only if a per-app historical view is actually wanted. **A's call** — it is
+      `room/`, and it needs a migration either way.
+
 ### P2.2 — Screens never run on a device `[B]`
 
 Personal Records, Hall of Fame, App Breakdown, Weekly Recap and Settings are
@@ -615,6 +638,28 @@ doing 2–3 real hours lands around 0.8–1.2 km.
 This matters more than a normal copy bug because it is the first number a new
 user ever sees, in an app whose entire discipline is "never a plausible fake
 number", and because their own first real day will contradict it.
+
+> **Measured data now exists, and it is worse than 3–7×.** Pulled from the
+> Xiaomi on 2026-09-04 — five consecutive days of one real user's `daily_totals`,
+> the first multi-day record the project has had:
+>
+> | Day | Distance |
+> |---|---|
+> | 2026-08-23 | 152 m |
+> | 2026-08-24 | 106 m |
+> | 2026-08-25 | 104 m *(crash day — tracking died at 09:34, so a floor)* |
+> | 2026-08-26 | **205 m** *(heaviest)* |
+> | 2026-08-27 | 26 m *(partial)* |
+>
+> The heaviest full day is **205 m**. `ONBOARDING_REVEAL_NUMBER = "2.8"` km is
+> **~13.7× that** — and it is the first number a new user sees, in an app whose
+> discipline is never showing a plausible fake one. Two honest caveats: the
+> service was crashed or disabled for stretches of this window, so every figure
+> is a lower bound; and this is one user on one device, not a sample. But it
+> points the same way as the published ~510 m/day estimate, and it means even
+> the "heavy user lands 0.8–1.2 km" figure in this document is optimistic
+> against the only real data we have. **The landmark table remains correctly
+> scaled** — Empire State Building at 443 m is roughly a heavy real day.
 
 - [ ] **P4.1a** Settle the figure. The landmark table is already scaled correctly
       for reality: Empire State Building 443 m for an average day, Burj Khalifa

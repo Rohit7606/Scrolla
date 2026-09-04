@@ -26,7 +26,7 @@ List every device in the friend group here before testing begins. These are the 
 | Person | Device | Manufacturer | Model | Android version | Tested? |
 |---|---|---|---|---|---|
 | A | — | _to fill_ | _to fill_ | _to fill_ | ☐ |
-| B | Xiaomi | Xiaomi | (serial 79CACEKN6TJJR84D) | _to fill_ | ☑ |
+| B | Redmi Note 10 | Xiaomi | M2101K7BI (serial 79CACEKN6TJJR84D) | Android 13 (MIUI) | ☑ |
 | Friend 1 | _model not yet recorded_ | _to fill_ | _to fill_ | _to fill_ | ☑ |
 | Friend 2 | — | — | — | — | ☐ |
 | Friend 3 | — | — | — | — | ☐ |
@@ -149,6 +149,87 @@ _To run on hardware and paste raw `service_health` SQLite output via:_
 | **2. Master Switch Off (The 2026-08-25 Outage Case)** | Turn Accessibility master switch OFF in Android Settings, reopen Scrolla | `isAccessibilityServiceEnabled = 0`, Settings health card shows INACTIVE | ☑ **Confirmed by B, 2026-08-25**, on the Xiaomi this crash happened on. Raw `service_health` row not captured — recorded as B's confirmation, not as a pasted matrix. |
 | **3. Graceful Shutdown** | Force-stop the app via Settings / UI | `isServiceRunning = 0` (written via `onUnbind`/`onDestroy`) | ⏳ Pending on-device run |
 | **4. Abrupt Kill** | `adb shell am kill com.scrolla` | `isServiceRunning = 1` | ⏳ Pending on-device run |
+
+---
+
+### 2026-09-04 — Xiaomi: first device session on the unmerged branch (Person B)
+
+**Device:** Xiaomi Redmi Note 10 (M2101K7BI), Android 13 / MIUI, serial
+79CACEKN6TJJR84D — the same device the 2026-08-25 crash happened on.
+**Build:** `b/health-card-cleanup` @ `2c2338c`, debug APK, installed with
+`adb install -r` (data-preserving).
+
+**The device was still in the crashed state from 2026-08-25**, ten days later:
+`accessibility_enabled = 0`, Scrolla listed under both `Enabled services` and
+`Crashed services`, `Binding services` empty. Nobody had re-enabled it, so the
+device recorded nothing between 2026-08-27 and today.
+
+**Reinstalling brought the service back.** After `adb install -r` and a launch,
+`isAccessibilityServiceEnabled` flipped to `1`, `lastEventTimestamp` advanced,
+and three real Instagram events were captured within minutes. Worth knowing as a
+recovery path: a reinstall re-binds the service on MIUI where a crash left it
+enabled-but-dead. **This is not a fix** — the crash cause is still unknown and
+still unreported (P0.3).
+
+**One finding on the health signals themselves.** With the service crashed, the
+row read `isServiceRunning = 1` while `isAccessibilityServiceEnabled = 0`. A's
+P2.4 fix clears `isServiceRunning` in `onDestroy()`/`onUnbind()`, and **a crash
+calls neither**, so that flag can still be stale-true. It did not matter here
+only because the master-switch check now dominates the card's verdict — which is
+exactly what P2.4 was for. Worth noting that the latch is not fully gone; it is
+outvoted.
+
+**What the app showed, all of it correct:**
+
+| Screen | Observed | Verdict |
+|---|---|---|
+| Home — today's figure | `1 m`, from 3 Instagram events totalling 101.74 cm | ✅ Real, and rendered in metres rather than `0.0 km` |
+| Home — standing | em-dash + "no group results yet" | ✅ Honest absence, not a fabricated rank |
+| Home — insight card | "Most of it happens between 5 and 6pm" | ✅ Matches `hourBucket = 17` in the DB |
+| Insights — top apps | "Keep scrolling to see your top apps" | ✅ Correct empty state for a near-empty day |
+| Insights — weekly chart | six flat days + today marked | ✅ No invented zeros |
+
+**And one real bug, which is the whole argument for device passes.**
+Insights opened showing **"Saturday — no data yet"** — a day six days ago —
+while today sat unselected at the right-hand end. The default selection was
+captured in a `remember` with no keys, so it evaluated once before the
+ViewModel's first emission, when `weekData` was empty; `indexOfFirst { it.isToday }`
+returned -1 and the `?: 0` fallback selected the leftmost bar. Nothing re-ran it
+when data arrived. Fixed in `2c2338c`. **A build, a review and 54 unit tests all
+passed over this** — it is a timing bug, invisible to every one of them.
+
+**Also found, not user-facing:** the `app_totals` table is **dead**. It is
+declared in `ScrollaDatabase`, specified in `DATA_CONTRACT.md` §2.1 as
+"recomputed alongside DailyTotal", and **nothing in `app/src/main` reads or
+writes it** — zero rows after 1,721 events. App Breakdown is unaffected;
+`getTodayTopApps()` aggregates from `scroll_events` via `getTopAppsByDay()`.
+So this is dead weight plus a contract that describes something untrue, not a
+broken screen. A's layer (`room/`) — flagged, not touched.
+
+---
+
+### ⚠️ MIUI blocks adb input injection — the device pass cannot be automated here
+
+`adb shell input tap` fails with
+`SecurityException: Injecting input events requires the caller ... INJECT_EVENTS`.
+This is the same class of MIUI restriction already logged for
+`settings put secure` on 2026-08-25, and it means **nobody can drive Scrolla's UI
+over adb on this device.** Screenshots, database pulls, `dumpsys` and installs
+all work; taps and swipes do not.
+
+Consequences for the release gate:
+
+- The five never-run screens (P2.2a) **cannot be reached without hands on the
+  phone**. Only Home and the tab that happens to be open can be captured.
+- Enabling **Developer options → USB debugging (Security settings)** lifts this,
+  but on MIUI that toggle requires a signed-in Xiaomi account and a SIM, so it is
+  a real piece of setup rather than a checkbox.
+- Any future scripted UI testing on this device needs that toggle first.
+
+**Still not covered by this session:** service survival with the screen off (T1),
+reboot survival (T4), the re-enablement banner (T5), widget updates (no widget
+exists), and everything gated on the undeployed Firestore rules — delete account,
+leave group, rename group, and the group record reaching Hall of Fame (P2.6d).
 
 ---
 
