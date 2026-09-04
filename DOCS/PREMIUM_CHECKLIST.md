@@ -22,7 +22,9 @@ setup are edit-together. Tagged per item.
 These are not polish. Each one is a thing that is either missing entirely or
 silently disabled, and none of them show up in a successful build.
 
-### P0.1 — Tests exist at all `[Both]` — ◐ **started 2026-08-24**
+### P0.1 — Tests exist at all `[Both]` — ◐ **54 tests as of 2026-09-04**
+
+*(Re-counted from `@Test` annotations: `RecordEligibilityTest` 12, `DistanceFormatterTest` 14, `DataExportTest` 10, `GroupStandingTest` 10, `HomeInsightsTest` 8. The "46" this line carried was written before the insight tests landed the same day. Still **zero** `androidTest` — no instrumented test has ever run.)*
 
 **First test landed 2026-08-24:** `GroupStandingTest` — 10 tests, passing in both the debug and release variants. It covers `selfStanding()`, the pure function behind Home's group rank, and was written alongside that feature rather than after it. `app/src/test/kotlin/` now exists, so the next test costs nothing to add.
 
@@ -38,12 +40,14 @@ scrolling. All four are pure-function logic bugs — the exact class of bug a un
 test catches instantly and a device test catches slowly or never.
 
 - [x] **P0.1a** Create `app/src/test/kotlin/com/scrolla/`. *Done 2026-08-24.*
-- [ ] **P0.1b** `DistanceFormatterTest` — 88 lines of pure functions, the cheapest
-      high-value test in the repo. Cover: the metre/km crossover at 999.5 m in
-      both directions, `formatDistance` unit agreement (the delta-chip bug),
-      `nearestLandmark` returning the nearest entry however absurd (this is
-      contract, and the ratio gate that hides it lives in `HomeViewModel` — test
-      both halves so nobody "fixes" the contract later).
+- [x] **P0.1b** `DistanceFormatterTest`. *Done 2026-08-26 — 14 tests. Flagged on
+      day one as the cheapest high-value test in the repo and written last, which
+      is its own small lesson. Covers the 999.5 m crossover from both sides,
+      `formatDistance` unit agreement (the delta-chip bug), the sub-metre case
+      below, and `nearestLandmark` returning the nearest entry however absurd —
+      asserted as **contract**, so that if the ratio gate ever migrates out of
+      `HomeViewModel` into the formatter, both tests fail rather than one
+      silently passing.*
 - [ ] **P0.1c** `InsightsViewModelTest.buildWeek` — the rolling 7-day window,
       with a fixed clock. Assert today is last, no day is `isFuture`, and
       yesterday is labelled "Yesterday". This is the bug we just fixed; it should
@@ -93,10 +97,17 @@ between the debug and release APKs today.
 - [ ] **P0.2d** A versioning rule. `versionCode` must increment per build handed
       to anyone, or you cannot tell which APK a bug report came from.
 
-### P0.3 — Nothing reports crashes `[Both]`
+### P0.3 — Nothing reports crashes `[A — taken 2026-08-25]`
 
 Firebase is already in the project. Crashlytics is not. When the app dies on
 someone else's phone you find out because they mention it, or you don't.
+
+**This stopped being hypothetical on 2026-08-25.** The accessibility service
+crashed and the crash itself was unrecoverable: `logcat -b crash` had rotated past
+it within 9.5 hours and dropbox held nothing. We know the service died only
+because `dumpsys accessibility` still listed it under `Crashed services`. On any
+device we do not physically hold, that information does not exist at all. A has
+taken this.
 
 - [ ] **P0.3a** Add Firebase Crashlytics.
 - [ ] **P0.3b** Non-fatal reports on the paths that currently swallow errors — the
@@ -105,7 +116,7 @@ someone else's phone you find out because they mention it, or you don't.
 - [ ] **P0.3c** Confirm no scroll content, package list, or user identity beyond
       the Firebase UID reaches a crash report. See P1.2.
 
-### P0.4 — Delete account is a dead row `[B]`
+### P0.4 — Delete account is a dead row `[B]` — ◐ **built 2026-08-25, rules not deployed**
 
 `SettingsScreen.kt:300-304` renders a "Delete" row with `enabled = false`. It has
 never done anything.
@@ -115,20 +126,68 @@ requirement. For an app built on an AccessibilityService it is *the* trust
 affordance — you cannot ask someone to let you observe every scroll they make
 and then offer no exit.
 
-- [ ] **P0.4a** Implement deletion: Firebase Auth account, `/users/{uid}`, the
-      user's `dailyTotals` documents in every group they belong to, and their
-      entry in each group's `members` array.
-- [ ] **P0.4b** Firestore rules for self-deletion — `isSelfLeave()` does not exist
-      yet, and the current rules only permit `isSelfJoin()` and
-      `isRecordImprovement()`. Needs A's review per §2.
-- [ ] **P0.4c** Wipe the local Room database on delete. Otherwise "delete my
-      account" leaves every scroll event on the device.
-- [ ] **P0.4d** Confirmation dialogue with real consequences spelled out, not a
-      generic "Are you sure?".
-- [ ] **P0.4e** While you are there: local data export. Cheap once deletion has
-      already enumerated everything, and it is the other half of the same promise.
+- [x] **P0.4g** Abort deletion if any group fails to clear. *Found 2026-08-25
+      reviewing P2.3: `deleteAllUserData()` returns the groups it could **not**
+      clear, and the caller was discarding that list and deleting the account
+      anyway. Since every rule is gated on `request.auth.uid`, dropping the
+      credential would have made that leftover data permanently unreachable —
+      nobody could see it, nobody could delete it, in the flow whose whole point
+      is removal. Now the account is kept and the user is told. A kept account is
+      recoverable; a stranded orphan is not.*
+- [x] **P0.4a** Implement deletion. *`GroupRepository.deleteAllUserData()` +
+      `AuthRepository.deleteAccount()`. **Order is load-bearing:** every rule is
+      gated on `request.auth.uid`, so deleting the Firebase account first would
+      strand the cloud data permanently — unreachable rows nobody can see or
+      remove, in the one flow whose entire purpose is removal. Cloud first, then
+      Room, then the credential.*
+- [x] **P0.4f** Scrub the deleted user's name from any group record they hold.
+      *`SETTINGS_DELETE_BODY` has always promised "your name in group history
+      will be replaced with '[deleted]'" and nothing did it. Must run **before**
+      leaving the group: `isRecordImprovement()` requires the caller be a member,
+      so after `arrayRemove` the write is denied forever. The record value
+      survives — the rule permits an equal `recordKm` — so the group keeps its
+      history and loses only the name.*
+- [◐] **P0.4b** Firestore rules for self-deletion. ***Reviewed and approved by A 2026-08-25 (REVIEW_LOG #5). Still needs publishing to Firebase — reviewed is not deployed, and the delete button fails at `isSelfLeave` on a real device until it is.***
+      Two changes:
+      `isSelfLeave()` (subset + exactly-one-shorter + caller absent, so a member
+      cannot remove someone else and add an impostor while keeping the size
+      arithmetic intact), and a split of the `dailyTotals` write rule. That
+      second one was a latent blocker nobody had noticed: `allow write` covers
+      deletes, but on a delete `request.resource` is null, so
+      `request.resource.data.userId == request.auth.uid` could never pass and
+      **deleting your own totals was impossible**. Account deletion was
+      unimplementable until this was split into `create, update` and `delete`.*
+- [x] **P0.4c** Wipe the local Room database on delete. *`clearAllTables()`
+      between the cloud wipe and the credential drop. This is the most sensitive
+      store in the app — every scroll, per app, per hour — and skipping it would
+      mean "delete my account" deleted the account and none of the surveillance.*
+- [x] **P0.4d** Confirmation dialogue with real consequences. *And it turned out
+      the copy already existed — `SETTINGS_DELETE_TITLE`, `_BODY`, `_CONFIRM`,
+      `_CANCEL`, `_IN_PROGRESS` and `_INPUT_HINT` ("Type DELETE to confirm") were
+      all written months ago and never rendered. The original design was stronger
+      than the plain dialog first drafted here, so it is now wired as intended:
+      type-to-confirm, an enumerated body, and a dismiss button that says "Keep my
+      account" rather than "Cancel", which is ambiguous about what is being
+      cancelled. Another instance of the written-but-never-rendered problem — see
+      P4.3b.*
+- [x] **P0.4e** Local data export. *`DataExport` builds a CSV — per-day history
+      oldest-first, plus today's per-app breakdown — shared through the same
+      `ACTION_SEND` chooser the group code and weekly recap already use. Placed
+      directly above Delete, because the moment someone is looking for the way
+      out is the moment they might want to take their data with them.*
+      *CSV over JSON: the likeliest thing anyone does with this is open it in a
+      spreadsheet. App labels come from other apps' manifests and can contain
+      commas and quotes, so they are quoted and escaped — an unquoted label
+      silently shifts every later column, which a user would only notice long
+      after trusting the file. 10 tests.*
+      *Corrected 2026-08-26 after a real run: the first version shared the CSV
+      through `EXTRA_TEXT`, so chat apps pasted the whole thing into a message
+      body rather than attaching anything. It is now written to
+      `cacheDir/exports` and shared as a `content://` URI through a FileProvider
+      scoped to that one directory — not the whole cache, which also holds
+      Firestore's local persistence.*
 
-### P0.5 — The Play-policy question is unresolved and load-bearing `[Both]`
+### P0.5 — Play policy — ☑ **DECIDED 2026-08-26: sideload permanently**
 
 Two separate problems, one already flagged in the manifest and one not.
 
@@ -139,16 +198,40 @@ The unflagged one is bigger: **Google restricts `AccessibilityService` to genuin
 accessibility purposes**, and measuring scroll distance is not one. This is not a
 detail to discover during review.
 
-- [ ] **P0.5a** Decide explicitly: does Scrolla ever go on Play, or is it
-      permanently a sideloaded app among friends? Write the decision down. It
-      changes what every other item on this list means.
-- [ ] **P0.5b** If Play: replace `QUERY_ALL_PACKAGES` with a `<queries>` element
-      and accept a shorter app-breakdown list.
-- [ ] **P0.5c** If Play: a privacy policy, hosted, linked from Settings, and
-      honest about what the accessibility service can technically see versus what
-      Scrolla actually stores.
-- [ ] **P0.5d** Either way, a privacy screen in-app. The two
-      `..._PRIVACY` strings we already show are good and are not sufficient.
+- [x] **P0.5a** **Decision: Scrolla stays a sideloaded APK handed to friends. It
+      is not going on the Play Store.**
+
+      *The reasoning, so it does not have to be re-argued.* Play restricts
+      `AccessibilityService` to genuine accessibility purposes, and measuring
+      scroll distance is not one. This cannot be engineered around:
+      `UsageStatsManager` gives screen time and app launches but **not scroll
+      distance**, so the app's entire central metric exists only through the
+      restricted API. Listing would be a real gamble on the app's core, not a
+      formality.
+
+      In Scrolla's favour, for the record: the service config is the most minimal
+      version possible — `accessibilityEventTypes="typeViewScrolled"` and
+      `canRetrieveWindowContent="false"`, so it cannot read screen content at
+      all. If this decision is ever revisited, that is the justification to lead
+      with.
+
+      **The decision is reversible.** Choosing sideload now does not prevent a
+      listing later; it stops us paying Play's costs today for a listing that may
+      never happen.
+- [—] **P0.5b** ~~Replace `QUERY_ALL_PACKAGES` with `<queries>`~~ — **not needed
+      under P0.5a.** Keeping it means App Breakdown shows real app names for
+      every app rather than a curated subset. Revisit only if the Play decision
+      changes.
+- [—] **P0.5c** ~~Hosted privacy policy~~ — **not required under P0.5a.** The
+      in-app version below still is.
+- [ ] **P0.5d** **An in-app privacy screen. Still required, and now the only
+      P0.5 item left.** Sideloading removes Google's requirement, not the
+      obligation — the people installing this are handing an accessibility
+      service to a friend's APK on trust, which is a higher bar than a store
+      listing, not a lower one. It should be honest about what the service can
+      technically see (`typeViewScrolled` only, no window content) versus what
+      Scrolla stores and uploads. The two `..._PRIVACY` strings already shown are
+      good and are not sufficient.
 
 ---
 
@@ -160,9 +243,9 @@ detail to discover during review.
       `# Google Services` header with **nothing under it**. For a Firebase Android
       app this file is not really a secret, but the empty section means the
       decision was never actually made. Make it deliberately.
-- [ ] **P1.1b** `.gitignore` contains a block of mangled UTF-16 lines around the
-      `scrolla_database` entries — a space between every character, so those
-      patterns match nothing. Rewrite the file as UTF-8.
+- [x] **P1.1b** `.gitignore` rewritten as clean UTF-8. *The mangled lines matched
+      nothing. Verified afterwards that `*.hprof` and `*.logcat` still ignore the
+      heap dumps and logcat sitting in the repo root.*
 
 ### P1.2 — What leaves the device `[B]`
 
@@ -209,7 +292,30 @@ every step. From 2026-08-16 to 2026-08-23 that flow was silently impossible.
       Section 2 table. That log's release gate wants 3 devices and 2
       manufacturers; this is the first entry.
 
-### P2.6 — Nothing writes the group record `[B]` — *found 2026-08-24*
+### P2.7 — Rename and leave a group `[B]` — ☑ *built 2026-08-26*
+
+Raised on 2026-08-23 ("I couldn't go and edit the group if wanted") and blocked
+ever since, because `allow update` permitted only `isSelfJoin()` and
+`isRecordImprovement()` — a write to `groupName` was simply denied.
+
+- [x] **P2.7a** `isGroupRename()` rule, any member, name-only, 1–40 chars.
+      *Self-reviewed — see P4.4c.*
+- [x] **P2.7b** Rename UI: overflow menu → dialog with a live character count.
+      The rule enforces the same bound, so without the counter an over-long name
+      fails silently at the server.
+- [x] **P2.7c** Leave group. *The rule was already there for free — `isSelfLeave()`
+      was written for account deletion and is exactly what leaving needs.*
+- [x] **P2.7d** Leaving deletes that group's `dailyTotals` for the user.
+      *Removing only the `members` entry would leave them on the leaderboard with
+      a live number, which is not leaving. Shares `clearUserFromGroup()` with
+      account deletion so the two cannot drift apart.*
+- [ ] **P2.7e** Untested on device. Needs the rules published first.
+- [ ] **P2.7f** A group whose last member leaves is orphaned — the document stays
+      with an empty `members` array and nobody can reach it. Harmless today
+      (Firestore charges nothing meaningful for it) but it should either be
+      deleted or reaped.
+
+### P2.6 — Nothing writes the group record `[B]` — ◐ *found 2026-08-24, written 2026-08-25*
 
 **No code anywhere in `app/src/main` writes `recordKm`, `recordHolder` or
 `recordDate`.** Every single occurrence is a read (`GroupRepository:217`), a
@@ -232,17 +338,43 @@ cause was never logged. It stayed hidden because the read path, the previews and
 the security rules for the field all exist — the feature looks complete from
 every angle except the one that matters.
 
-- [ ] **P2.6a** Decide where the record is written. Most natural: after a
-      successful `triggerFirestoreSync()`, compare the user's completed-day total
-      against `recordKm` and write if lower. Note "lowest wins" — the record is a
-      *minimum*, which is why `isRecordImprovement()` tests `<=`.
-- [ ] **P2.6b** Settle whether it is A's or B's. The trigger point sits in A's
-      `ScrollRepositoryImpl`; the Firestore group-document write is B's per §2.
-      This is an edit-together seam and needs agreeing before either writes code.
-- [ ] **P2.6c** Only write a record for a *finished* day. Writing mid-day makes
-      every morning a new record, since the running total starts near zero and
-      lowest wins.
-- [ ] **P2.6d** Then P2.1d becomes testable.
+- [x] **P2.6a** Decide where the record is written. *Done 2026-08-25 —
+      `SyncViewModel.updateGroupRecords()`, after the totals sync so a day that
+      has just become eligible is already in Firestore when its record lands.
+      `GroupRepository.updateGroupRecordIfBetter()` does the write, strictly
+      lower rather than `<=`: an equal value is not an improvement, and
+      rewriting the doc would take the record from whoever set it first.*
+- [x] **P2.6b** Settle whether it is A's or B's. *Resolved 2026-08-25: **B owns
+      it end to end.** No edit-together seam is needed after all — `SyncViewModel`
+      (`ui/`) already drives the sync cadence and `GroupRepository` (`firestore/`)
+      already owns group-document writes, so both the trigger and the write sit in
+      B's half. A's `ScrollRepositoryImpl` is not touched.*
+- [x] **P2.6c** Only write a record for a *finished* day. *Done — and it turned
+      out to be the smaller half of the problem. The record is a **minimum**, so
+      **every** failure mode of the tracker produces a winning score, not just a
+      partial day. Concretely: had this write existed on 2026-08-25, the crashed
+      day would have set a group record of **5.5 m**, and `isRecordImprovement()`
+      only permits `recordKm <= resource.data.recordKm` — so nobody could ever
+      have beaten it and nobody could ever have raised it. A bad record is
+      permanent short of editing Firestore by hand. `RecordEligibility` therefore
+      fails closed on every rule: today, future days, zero-distance days,
+      never-written timestamps, corrupt rows, and days whose last recorded scroll
+      was before 18:00 local.*
+- [ ] **P2.6d** Then P2.1d becomes testable — confirm on device that a record
+      appears in Hall of Fame, and that the improvement-only rule behaves with two
+      writers. Not yet run.
+- [ ] **P2.6e** **The eligibility rule is a proxy, and worth improving.**
+      "Tracking broke" and "I genuinely barely touched my phone" are the same
+      shape in daily-totals data — both are just a small number — so no rule can
+      separate them from what B can currently reach. The chosen gate is
+      `DailyTotal.lastUpdated`, which is effectively "time of last scroll".
+      A slightly better proxy, *distinct hour buckets in the day*, is not
+      reachable from B's half: `ScrollRepository` exposes no per-day hour buckets
+      (`getPeakHourForDay` returns only the top one). The real answer is per-day
+      tracking health, which does not exist — `service_health` is a single
+      current-state row with no history. Both would need `room/` work from A.
+      Swapping `RecordEligibility.isPlausiblyComplete()` is the only change
+      needed if either lands.
 
 ### P2.2 — Screens never run on a device `[B]`
 
@@ -269,41 +401,70 @@ occurrences. Every error state today is inline and permanent; there is no way to
 surface a transient failure such as `setPrimaryGroup` failing, which still sets
 an error message with no path to a human being.
 
-- [ ] **P2.3a** A `SnackbarHost` in `MainShell` and a shared way for any ViewModel
-      to push a transient message to it. *The remaining piece.*
+- [x] **P2.3a** A `SnackbarHost` in `MainShell` and a shared way for any
+      ViewModel to push a transient message to it. *Done 2026-08-25.
+      `ui/ScrollaMessages.kt` is a singleton `SharedFlow` bus, matching how
+      `ScrollaGraph` already works here rather than threading a callback through
+      every ViewModel. The host sits **above** `AnimatedContent`, not inside
+      `MainTabsScreen`'s `Scaffold` — inside it, a message raised on Settings or
+      Hall of Fame or the group flows would never appear.*
+      *It also fixed a live bug. `setPrimaryGroup`'s failure wrote to
+      `LeaderboardUiState.errorMessage`, the same field a failed **load** uses,
+      and `LeaderboardScreen` renders that field **instead of** the rows. One
+      failed tap blanked a leaderboard that was on screen and perfectly valid,
+      reporting a button's failure as the data's. It now raises a snackbar with
+      a working Retry.*
 - [x] **P2.3b** Route every existing `errorMessage` into a screen. *Done
       2026-08-24 — all four ViewModels now reach one.*
 - [x] **P2.3c** Errors that are recoverable get a retry action, not just a
       complaint. *Leaderboard and Hall of Fame both retry.*
-- [ ] **P2.3d** Distinguish "offline" from "failed" — nothing in the app currently
-      checks connectivity at all (no `ConnectivityManager` usage anywhere), so a
-      Firestore failure while offline reads as a generic error.
+- [ ] **P2.3d** Distinguish "offline" from "failed" — nothing in the app checks
+      connectivity at all (no `ConnectivityManager` usage anywhere), so a
+      Firestore failure while offline still reads as a generic error. The
+      snackbar makes this cheap to add now: the copy is the only missing part.
 
-### P2.4 — `isServiceRunning` is inferred, not observed `[A]`
+### P2.4 — `isServiceRunning` is inferred, not observed `[A]` — ☑ **done 2026-08-25**
 
-`onServiceConnected()` does not set `isServiceRunning = true` — only a successful
-`flushBatch()` does. So a service enabled ten seconds ago has the flag `false`
-through no fault of its own.
+Originally filed as an accuracy nitpick. It was not: on 2026-08-25 the
+accessibility service **crashed** on a Xiaomi device and the health card read
+"Tracking is active" for 9.5 hours, because `isServiceRunning` was a latch that
+only ever got set true, `lastEventTimestamp` had never been written in the app's
+life, and `isScrollAccessibilityServiceEnabled()` never consulted the master
+switch. Three independent signals, all reporting healthy, none of them looking.
 
-The Settings health card currently guards around this by mapping a never-flushed
-row to UNKNOWN. That guard is a UI-side patch over a service-side inaccuracy.
-
-- [ ] **P2.4a** Set the flag when the service actually connects. The service knows
-      the moment it happens; inferring it from the first flush is strictly worse
-      information. A's call, A's file.
-- [ ] **P2.4b** Once done, revisit whether the UNKNOWN guard in `SettingsScreen`
-      is still needed or is now hiding real INTERRUPTED states.
+- [x] **P2.4a** Set the flag when the service actually connects. *Done by A —
+      `onServiceConnected()` writes it directly, `onUnbind()`/`onDestroy()` clear
+      it. `ServiceHealthDao` also moved to targeted `@Query` updates, which removed
+      a lost-update race the original brief had not spotted: `flushBatch()` was
+      writing the whole row back from a snapshot taken before its inserts, so a
+      concurrent shutdown write would have been resurrected.*
+- [x] **P2.4b** Revisit the UNKNOWN guard in `SettingsScreen`. *Removed 2026-08-25.
+      It existed only because the flag was unreliable, and once the flag became
+      trustworthy the guard could only hide real INTERRUPTED states. UNKNOWN is
+      still reachable for a genuinely absent health row.*
+- [x] **P2.4c** `lastEventTimestamp` is now written — a `@Volatile` in-memory stamp
+      persisted at flush, so it and `lastRoomFlushTimestamp` come from different
+      sources and diverge when events arrive but writes fail.
+- [x] **P2.4d** On-device verification. *Confirmed working by B on the Xiaomi
+      (serial 79CACEKN6TJJR84D) on 2026-08-25 — the device the crash happened on.
+      Raw `service_health` rows were not captured, so `DEVICE_TEST_LOG.md` records
+      this as B's confirmation rather than as a pasted matrix.*
+- [ ] **P2.4e** Split `degradedReason` into flush and sync columns. Both
+      subsystems share it, so a scroll flush clears a sync error within ten
+      seconds and vice versa — and the new `onAccessibilityEvent` catch now writes
+      there too, so an event error flickers rather than persisting. Pre-existing,
+      but there are three writers now. A has it queued alongside P0.3.
 
 ### P2.5 — Push what exists `[B]`
 
-- [ ] **P2.5a** `b/group-flow-fixes` has **7 unpushed commits**, including the
-      chart-rolling and accessibility-on-resume fixes. Push, PR, merge.
+- [x] **P2.5a** `b/group-flow-fixes` — pushed and merged as PR #11 (2026-08-25),
+      14 commits. A's `a/service-health-detection` merged after it as `b59fef3`.
 
 ---
 
 ## P3 — Making it beautiful
 
-### P3.1 — Strings live in Kotlin, not resources `[B]`
+### P3.1 — Strings live in Kotlin, not resources `[B]` — ⬇ **deprioritised by P0.5a**
 
 **151 hardcoded `Text()` strings; zero `stringResource` calls.** `strings.xml`
 contains exactly one entry: `app_name`.
@@ -313,6 +474,15 @@ app cannot honour — no string can flip, because no string is a resource.
 
 `ScrollaStrings.kt` was the right instinct (centralised, reviewable copy) in the
 wrong place. This is a mechanical move, not a rewrite.
+
+**Re-scoped 2026-08-26.** With Scrolla sideloaded to one friend group rather than
+listed (P0.5a), localisation stops being load-bearing and this drops from "the
+biggest remaining job" to "worth doing if the app ever needs another language".
+The migration is ~151 call sites for no user-visible change today. **One part
+does survive the re-scope:** `android:supportsRtl="true"` in the manifest remains
+a claim the app cannot honour, since no string is a resource and none can flip.
+Either do P3.1e or set it to `false` — the app's own discipline is not to claim
+things that are not true.
 
 - [ ] **P3.1a** Migrate `ScrollaStrings` into `res/values/strings.xml`.
 - [ ] **P3.1b** Replace the `Text(ScrollaStrings.X)` call sites with
@@ -329,18 +499,75 @@ wrong place. This is a mechanical move, not a rewrite.
 **Zero `performHapticFeedback` calls in the entire app.** This is a large part of
 what "premium" physically means on Android and it is roughly one line per site.
 
-- [ ] **P3.2a** Haptics on primary buttons, tab switches, and — most of all — a
-      personal record being broken. That last one is the app's emotional payload
-      and it currently lands silently.
-- [ ] **P3.2b** No pull-to-refresh anywhere. The Leaderboard deliberately caches
-      behind a staleness window to protect the Firestore quota — correct — and
-      gives the user no way to say "no, check now". Add `PullToRefreshBox`,
-      bypassing the staleness check on an explicit gesture.
-- [ ] **P3.2c** Audit the empty states. Only a handful of `isEmpty()` branches
-      exist across all screens. Every list needs one, and it should say what to do
-      next, not just that there is nothing.
+- [x] **P3.2a** Haptics on primary buttons and tab switches. *Done 2026-08-26.
+      Wired into `ScrollaPrimaryButton` and `Modifier.bounceClick` — the two
+      shared touch surfaces — rather than at forty call sites, so the whole app
+      got it in three edits. Two weights only: a light tick for taps, a heavier
+      one for confirmations, because a strong buzz on every tap reads as a broken
+      phone rather than a premium one.*
+      *Three corrections after device testing, and the last one mattered most.
+      **The device had touch feedback off** (`settings get system
+      haptic_feedback_enabled` returned `0`), and `performHapticFeedback()`
+      silently does nothing in that case — correctly, since an app that buzzes
+      after someone has turned haptics off is rude, not premium. **Check that
+      setting before suspecting the code.** Separately, the first version used
+      Compose's `HapticFeedbackType.TextHandleMove`, which maps to
+      `TEXT_HANDLE_MOVE` — meant for dragging a text selection handle, and
+      treated as a no-op or rendered imperceptibly by several OEMs. Now uses
+      platform constants directly through `LocalView`: `CLOCK_TICK` for taps and
+      `CONFIRM` for confirmations. **Then the premise turned out to be wrong.**
+      `haptic_feedback_enabled` gates *touch feedback* — keyboard taps, system UI
+      — not app-initiated vibration, which is a separate channel. Apps that feel
+      good on Android use the vibrator directly, which is why Kuvera's haptics
+      work with that switch off. Scrolla now does the same: `VibrationEffect
+      .createPredefined(EFFECT_TICK / EFFECT_CLICK)` through `VibratorManager`,
+      with the `VIBRATE` permission (normal, no runtime prompt).*
+      *Bypassing a system setting while offering no alternative would be worse
+      than respecting it, so Settings now has a **Haptic feedback** toggle, on by
+      default. The system's vibration-intensity setting and Do Not Disturb still
+      apply, so the OS keeps the final say on strength.*
+- [ ] **P3.2e** Haptics on a record being broken. *Split out of P3.2a because it
+      is genuinely harder: nothing currently knows a record was **just** broken.
+      `updateGroupRecordIfBetter()` returns true, but it runs inside a background
+      sync, so the moment it fires is not a moment the user is looking at
+      anything. Needs a "new since you last looked" signal first. This is the
+      app's emotional payload and it still lands silently.*
+- [x] **P3.2b** Pull-to-refresh on the Leaderboard. *Done 2026-08-26.
+      `refreshFromPull()` bypasses `LEADERBOARD_CACHE_STALE_MS` deliberately: the
+      cache exists to stop **incidental** reads costing quota, not to overrule
+      someone who has explicitly asked. `isRefreshing` is set only by the gesture,
+      so the spinner belongs to the pull and not to the tab-open read.*
+- [◐] **P3.2c** Audit the empty states. *Counted per screen 2026-08-26: Home 5,
+      Leaderboard 4, Personal Records 4, Profile 3, Hall of Fame 3, App Breakdown
+      3, Insights 2 — and **Weekly Recap 0**. Fixed: `WeeklyRecapViewModel` had
+      always computed `hasData` and `WeeklyRecapScreen` did not accept the
+      parameter, so a week with nothing recorded rendered a confident hero figure
+      of "0 m" and offered it for sharing. It now shows a dash and different copy.
+      Same shape as the join code that was generated and then discarded by
+      `MainShell` — worth grepping for other state a ViewModel computes and no
+      screen takes.*
+- [ ] **P3.2g** The remaining screens' empty states still say only that there is
+      nothing, not what to do next.
 - [ ] **P3.2d** Loading states: prefer skeletons over spinners on screens that
       have a known shape.
+
+### P3.2f — The rotating insight card did not rotate `[B]` — ☑ *fixed 2026-08-26*
+
+S2.1 asked for "a rotating insight card wired to ≥ 1 real insight type". One type
+was built, so the clause passed while the card never rotated — and three of the
+four labels written for it (`HOME_INSIGHT_PERSONAL_BEST_LABEL`,
+`HOME_INSIGHT_QUICK_WIN_LABEL`, `HOME_INSIGHT_PLACEHOLDER_*`) had never been
+rendered. `MainShell` hardcoded the peak-hour type, so when `peakHour` was null
+the card rendered nothing at all, despite placeholder copy existing for exactly
+that case.
+
+- [x] **P3.2f-a** `HomeInsights.select()` — a pure, clock-free function over
+      three real insight types plus the placeholder. 8 tests.
+- [x] **P3.2f-b** Never invent: a personal-best insight only when today is
+      genuinely under the best day, a quick win only when today is below
+      yesterday, and no comparison at all when there is no row for yesterday.
+- [x] **P3.2f-c** Rotate deterministically on day-of-year, so the card is stable
+      for a whole day. One that changes on every recomposition reads as a bug.
 
 ### P3.3 — Accessibility, actual `[B]`
 
@@ -400,20 +627,58 @@ number", and because their own first real day will contradict it.
 - [ ] **P4.1d** `OnboardingScreen.kt:809` hardcodes "About 2,800 times further
       than you guessed" — derived from the same wrong number.
 
+### P4.4 — Sub-metre distances rendered as "0 m" `[model/ — needs A sign-off]` — ☑ *fixed 2026-08-26*
+
+Found in a real data export, not by reading code: Telegram at 0.4 m and the
+system launcher at 0.3 m both displayed **"0 m"** on App Breakdown, which is
+indistinguishable from an app that had never been scrolled at all.
+`formatDisplayValue` used `%.0f`, so everything under half a metre became a
+confident zero — in the app whose entire discipline is never showing a
+plausible fake number.
+
+- [x] **P4.4a** Render sub-metre values as `<1` rather than `0`.
+- [x] **P4.4b** Keep the spoken form grammatical — TalkBack would otherwise read
+      the literal "<1 metres". It now says "less than one metre".
+- [◐] **P4.4c** A's sign-off. *Self-reviewed by B on 2026-08-26 (REVIEW_LOG #7)
+      because A was unavailable, and logged as such rather than attributed to A.
+      **Still wants a second pair of eyes** — §2 exists because reviews #2 and #4
+      each caught a real bug, #4 being that `allow create` does not grant `allow
+      update`, which meant group joining had never worked at all.*
+
 ### P4.2 — Fake numbers still in the source `[B]`
 
-- [ ] **P4.2a** `HomeScreen.kt:64` and `LeaderboardScreen.kt:61` carry `2.8f` as
-      **default parameter values**. Preview scaffolding today, and one careless
-      call site away from being rendered to a user. Remove the defaults or make
-      them obviously absurd.
+- [x] **P4.2a** Fake preview defaults removed. *Done 2026-08-26 and it was worse
+      than the two sites originally logged. `HomeScreen` also defaulted
+      `rankPosition = 2`, `HallOfFameScreen` defaulted to a record held by
+      "Lewis" on "July 12" with `hasRecord = true`, and `ProfileScreen` carried a
+      full fake profile — name, best day, seven-day average, group count, group
+      name. All now null or zero. A default that renders plausibly is one
+      forgotten argument away from being shown to a user as their own data, and
+      it would look like working software.*
+- [ ] **P4.2b** **Reopened 2026-09-04 — the sweep missed a screen.**
+      `LeaderboardScreen.kt:75-80` still declares `groupName = "College Friends"`,
+      `mostImprovedName: String? = "Lewis"` and a three-row invented `entries`
+      list as default parameter values. `MainShell:522` passes `null` and real
+      data, so nothing fabricated reaches a user today — which is word for word
+      what was true of `rankPosition = 2` before P4.2a called it a landmine.
+      Found by grepping for defaults rather than by the sweep meant to catch
+      them. Fix it, then re-run the grep across every `@Composable` with a
+      preview, not just the ones already known to have had fake data.
 
 ### P4.3 — Dead weight `[Both]`
 
-- [ ] **P4.3a** `libs.firebase.ai` is declared in `build.gradle.kts` with **zero
-      usages** in the source. Remove it.
-- [ ] **P4.3b** Re-run the written-but-never-rendered string audit after P3.1.
-      It found 58 last time and pointed straight at several real bugs; it is the
-      highest-yield cheap audit we have.
+- [x] **P4.3a** `libs.firebase.ai` removed. *Zero usages; it was shipping in
+      every APK.*
+- [◐] **P4.3b** The written-but-never-rendered string audit. *Re-run 2026-08-26:
+      **43 unused of 214**, down from 58. It has now paid off three times — it
+      found the delete-flow copy (including the type-to-confirm hint we adopted),
+      and the "[deleted]" record promise. Two more it surfaces now:
+      `ERROR_NO_CONNECTION` is unused, which is exactly P2.3d; and the join
+      errors exist as two parallel sets (`GROUP_JOIN_ERROR_*` and
+      `JOIN_GROUP_ERROR_*`), one used and one not. Several others name features
+      that do not exist — `LEADERBOARD_MOST_CONSISTENT`,
+      `SETTINGS_WIDGET_GROUP_*`, `HOME_INSIGHT_PERSONAL_BEST_LABEL` — so the
+      rotating insight card advertised in S2.1 has one of its four types built.*
 
 ---
 

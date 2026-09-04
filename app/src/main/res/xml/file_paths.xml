@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!--
+        Exports are written to cacheDir/exports and shared as a content:// URI.
+        Only this subdirectory is exposed, not the whole cache: the app's cache
+        also holds Firestore's local persistence, and a provider scoped to "."
+        would make that readable by any app granted a share URI.
+    -->
+    <cache-path name="exports" path="exports/" />
+</paths>

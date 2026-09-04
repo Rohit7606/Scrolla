@@ -46,9 +46,12 @@ fun ScrollaPrimaryButton(
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(if (isPressed) 0.95f else 1f, label = "buttonScale")
+    val tap = rememberTapHaptic()
 
     Button(
-        onClick = { if (!isLoading) onClick() },
+        // Every primary action in the app funnels through here, so one line
+        // covers the lot.
+        onClick = { if (!isLoading) { tap(); onClick() } },
         modifier = modifier
             .scale(scale)
             .heightIn(min = 56.dp), // Increased from 48dp for a premium, hit-friendly tactile feel

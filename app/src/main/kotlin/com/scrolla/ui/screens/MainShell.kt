@@ -32,7 +32,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -43,6 +49,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
@@ -51,7 +58,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.scrolla.model.DistanceFormatter
+import com.scrolla.ui.ScrollaMessages
 import com.scrolla.ui.components.RefreshOnResume
+import com.scrolla.ui.components.rememberTapHaptic
 import com.scrolla.ui.theme.ScrollaType
 import com.scrolla.ui.theme.scrollaColors
 
@@ -122,9 +131,27 @@ fun MainShell(
         popBackStack()
     }
 
+    // The host sits above AnimatedContent rather than inside MainTabsScreen's
+    // Scaffold, so a message raised on a detail screen (Settings, Hall of Fame,
+    // the group flows) is still shown. Inside the tab Scaffold it would only
+    // ever appear on the four main tabs.
+    val snackbarHostState = androidx.compose.runtime.remember { SnackbarHostState() }
+    LaunchedEffect(Unit) {
+        ScrollaMessages.messages.collect { message ->
+            val result = snackbarHostState.showSnackbar(
+                message = message.text,
+                actionLabel = message.actionLabel,
+                withDismissAction = message.actionLabel == null,
+                duration = SnackbarDuration.Short
+            )
+            if (result == SnackbarResult.ActionPerformed) message.action?.invoke()
+        }
+    }
+
+    Box(modifier = modifier.fillMaxSize()) {
     AnimatedContent(
         targetState = currentRoute,
-        modifier = modifier.fillMaxSize(),
+        modifier = Modifier.fillMaxSize(),
         transitionSpec = {
             fadeIn(animationSpec = tween(200)) togetherWith
                 fadeOut(animationSpec = tween(150))
@@ -157,6 +184,28 @@ fun MainShell(
                     onSignOutClick = {
                         settingsViewModel.signOut(context)
                         onSignedOut()
+                    },
+                    onExportDataClick = {
+                        settingsViewModel.exportData(context) { uri ->
+                            // EXTRA_STREAM, not EXTRA_TEXT: the latter puts the
+                            // whole CSV in the message body, so chat apps paste
+                            // it as a very long message instead of attaching a
+                            // file. FLAG_GRANT_READ_URI_PERMISSION is what lets
+                            // the chosen app actually open the content:// URI.
+                            val send = Intent(Intent.ACTION_SEND).apply {
+                                type = "text/csv"
+                                putExtra(Intent.EXTRA_SUBJECT, ScrollaStrings.SETTINGS_EXPORT_SUBJECT)
+                                putExtra(Intent.EXTRA_STREAM, uri)
+                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                            }
+                            context.startActivity(Intent.createChooser(send, null))
+                        }
+                    },
+                    isDeleting = settingsState.isDeleting,
+                    deleteError = settingsState.deleteError,
+                    onDismissDeleteError = { settingsViewModel.dismissDeleteError() },
+                    onDeleteAccountClick = {
+                        settingsViewModel.deleteAccount(context) { onSignedOut() }
                     },
                     onFixBatteryClick = {
                         // The health card's action button was inert, which is the
@@ -237,6 +286,12 @@ fun MainShell(
                     onCreateGroupClick = { navigateTo(ScreenRoute.CreateGroup) },
                     onSetWidgetGroupClick = { group ->
                         leaderboardViewModel.setPrimaryGroup(group.id)
+                    },
+                    onRenameClick = { group, newName ->
+                        leaderboardViewModel.renameGroup(group.id, newName)
+                    },
+                    onLeaveClick = { group ->
+                        leaderboardViewModel.leaveGroup(group.id)
                     },
                     onShareClick = { group ->
                         // The group's document id is its join code, so no lookup
@@ -327,6 +382,7 @@ fun MainShell(
                 WeeklyRecapScreen(
                     weeklyDistanceKm = recapState.weeklyDistanceKm,
                     landmarkText = recapState.landmarkText,
+                    hasData = recapState.hasData,
                     onSkipClick = popBackStack,
                     onShareClick = {
                         // S3.5's Bitmap card is not built yet; sharing the figure
@@ -358,6 +414,14 @@ fun MainShell(
                 )
             }
         }
+    }
+
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .navigationBarsPadding()
+        )
     }
 }
 
@@ -433,10 +497,13 @@ private fun MainTabsScreen(
                         // Named even without a rank, so the card reads "— / College
                         // Friends" rather than disowning a group the user is in.
                         groupName = standing?.groupName ?: boardState.activeGroup?.groupName,
-                        insightLabel = ScrollaStrings.HOME_INSIGHT_PEAK_HOUR_LABEL,
-                        insightBody = homeState.peakHour?.let { hour ->
-                            "Most of it happens between ${ScrollaFormatters.formatHourRange(hour)}."
-                        },
+                        // Was hardcoded to the peak-hour type, so the "rotating"
+                        // card showed one insight and rendered nothing at all
+                        // when peakHour was null.
+                        insightLabel = homeState.insight?.label
+                            ?: ScrollaStrings.HOME_INSIGHT_PLACEHOLDER_LABEL,
+                        insightBody = homeState.insight?.body
+                            ?: ScrollaStrings.HOME_INSIGHT_PLACEHOLDER_BODY,
                         onSettingsClick = onSettingsClick,
                         onRankChipClick = { onTabSelected(1) } // Switch to leaderboard
                     )
@@ -459,6 +526,8 @@ private fun MainTabsScreen(
                         memberCount = boardState.activeGroup?.memberCount,
                         errorMessage = boardState.errorMessage,
                         onRetryClick = { leaderboardViewModel.refresh() },
+                        isRefreshing = boardState.isRefreshing,
+                        onRefresh = { leaderboardViewModel.refreshFromPull() },
                         onSwitchGroupClick = onManageGroupsClick,
                         emptyBoardMessage = if (boardState.activeGroup == null) {
                             ScrollaStrings.LEADERBOARD_EMPTY_NO_GROUP
@@ -517,6 +586,7 @@ private fun ScrollaNavigationBar(
     onTabSelected: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val tap = rememberTapHaptic()
     val hairline = MaterialTheme.scrollaColors.cardBorder
 
     // The accent marks where you are — that is one of its four uses in
@@ -539,7 +609,7 @@ private fun ScrollaNavigationBar(
             val selected = selectedTab == index
             NavigationBarItem(
                 selected = selected,
-                onClick = { onTabSelected(index) },
+                onClick = { tap(); onTabSelected(index) },
                 icon = {
                     Icon(
                         imageVector = if (selected) dest.selectedIcon else dest.unselectedIcon,

@@ -10,6 +10,7 @@ import com.scrolla.model.DistanceFormatter
 import com.scrolla.model.ScrollaConstants
 import com.scrolla.room.ScrollRepository
 import com.scrolla.ui.ScrollaGraph
+import com.scrolla.ui.ScrollaMessages
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -23,7 +24,10 @@ data class LeaderboardUiState(
     val entries: List<LeaderboardEntry> = emptyList(),
     val groupStats: GroupStats? = null,
     val groupBestDay: String? = null,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    /** True only for a user-initiated pull, so the spinner is the gesture's and
+     *  not the tab-open read's. */
+    val isRefreshing: Boolean = false
 )
 
 /**
@@ -50,6 +54,16 @@ class LeaderboardViewModel(
         refresh()
     }
 
+    /**
+     * A deliberate pull-to-refresh. Ignores the staleness window on purpose:
+     * the cache exists to stop *incidental* reads costing quota, not to overrule
+     * someone who has explicitly asked.
+     */
+    fun refreshFromPull() {
+        _uiState.value = _uiState.value.copy(isRefreshing = true)
+        refresh()
+    }
+
     /** Called when the Group tab opens. No-op if the cached data is still fresh. */
     fun refreshIfStale() {
         val age = System.currentTimeMillis() - lastLoadedAt
@@ -73,7 +87,56 @@ class LeaderboardViewModel(
         viewModelScope.launch {
             groupRepository.setPrimaryGroup(userId, groupId)
                 .onSuccess { refresh() }
-                .onFailure { _uiState.value = _uiState.value.copy(errorMessage = it.message) }
+                // Not uiState.errorMessage: that field is what a failed *load*
+                // writes to, and LeaderboardScreen renders it instead of the
+                // rows. A failed tap would blank a board that was on screen and
+                // perfectly valid, reporting a button's failure as the data's.
+                .onFailure {
+                    ScrollaMessages.show(
+                        text = ScrollaStrings.ERROR_PRIMARY_GROUP,
+                        actionLabel = ScrollaStrings.ERROR_RETRY_ACTION,
+                        action = { setPrimaryGroup(groupId) }
+                    )
+                }
+        }
+    }
+
+    /** Renames a group. Any member may — see `isGroupRename()` in the rules. */
+    fun renameGroup(groupId: String, newName: String) {
+        viewModelScope.launch {
+            groupRepository.renameGroup(groupId, newName)
+                .onSuccess { refresh() }
+                .onFailure {
+                    ScrollaMessages.show(
+                        text = ScrollaStrings.GROUP_RENAME_FAILED,
+                        actionLabel = ScrollaStrings.ERROR_RETRY_ACTION,
+                        action = { renameGroup(groupId, newName) }
+                    )
+                }
+        }
+    }
+
+    /**
+     * Leaves a group, taking this user's totals in it with them.
+     *
+     * If the group left was the active one, `refresh()` falls back to their
+     * primary and then to whatever remains, so the board never points at a group
+     * they are no longer in.
+     */
+    fun leaveGroup(groupId: String) {
+        val user = authRepository.currentUser ?: return
+        viewModelScope.launch {
+            groupRepository.leaveGroup(groupId, user.uid, user.displayName.orEmpty())
+                .onSuccess {
+                    if (_uiState.value.activeGroup?.groupId == groupId) {
+                        _uiState.value = _uiState.value.copy(activeGroup = null)
+                    }
+                    refresh()
+                }
+                // No retry action: a partial leave may already have removed the
+                // totals, so "try again" is not the reassurance it looks like.
+                // A refresh shows the real current state.
+                .onFailure { ScrollaMessages.show(ScrollaStrings.GROUP_LEAVE_FAILED) }
         }
     }
 
@@ -88,7 +151,9 @@ class LeaderboardViewModel(
             _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
 
             val groups = groupRepository.getUserGroups(userId).getOrElse { error ->
-                _uiState.value = _uiState.value.copy(isLoading = false, errorMessage = error.message)
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false, isRefreshing = false, errorMessage = error.message
+                )
                 return@launch
             }
 
@@ -107,6 +172,7 @@ class LeaderboardViewModel(
             val totals = groupRepository.getGroupLeaderboard(active.groupId, today).getOrElse { error ->
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
+                    isRefreshing = false,
                     groups = groups,
                     activeGroup = active,
                     errorMessage = error.message
@@ -135,6 +201,7 @@ class LeaderboardViewModel(
 
             lastLoadedAt = System.currentTimeMillis()
             lastLoadedGroupId = active.groupId
+            _uiState.value = _uiState.value.copy(isRefreshing = false)
         }
     }
 

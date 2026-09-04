@@ -55,18 +55,18 @@ import com.scrolla.ui.theme.spacing
 @Composable
 fun ProfileScreen(
     modifier: Modifier = Modifier,
-    displayName: String = "Rohit",
-    memberSinceLabel: String? = "Tracking since 6 July",
+    displayName: String = "",
+    memberSinceLabel: String? = null,
     /** Null until the sensor has produced at least one full day. */
-    personalBestKm: Float? = 0.4f,
-    personalBestRelativeDate: String? = "12 July",
-    sevenDayAvgKm: Float? = 3.1f,
-    previousSevenDayAvgKm: Float? = 3.6f,
+    personalBestKm: Float? = null,
+    personalBestRelativeDate: String? = null,
+    sevenDayAvgKm: Float? = null,
+    previousSevenDayAvgKm: Float? = null,
     /** Null until the group has a record to measure against. */
-    hallOfFameGapKm: Float? = 1.9f,
+    hallOfFameGapKm: Float? = null,
     isRecordHolder: Boolean = false,
-    groupCount: Int = 2,
-    primaryGroupName: String? = "College Friends",
+    groupCount: Int = 0,
+    primaryGroupName: String? = null,
     /** Non-null when the group read failed. Without this the row fell back to
      *  "not in any groups yet", which is a false statement rather than a
      *  missing one. */

@@ -32,6 +32,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -51,6 +52,7 @@ import com.scrolla.ui.theme.WarningDark
 import com.scrolla.ui.theme.WarningLight
 import com.scrolla.ui.theme.ErrorDark
 import com.scrolla.ui.theme.ErrorLight
+import com.scrolla.ui.components.ScrollaHaptics
 import com.scrolla.ui.components.bentoCard
 import com.scrolla.ui.components.bounceClick
 
@@ -72,6 +74,10 @@ private fun formatHealthTime(timestamp: Long?, template: String, neverText: Stri
             .format(java.util.Date(timestamp))
     )
 }
+
+/** What the user must type to enable the delete button. Not localised on
+ *  purpose: it is a fixed token, not prose. */
+private const val DELETE_KEYWORD = "DELETE"
 
 enum class UiServiceHealthState {
     ACTIVE,
@@ -106,15 +112,86 @@ fun SettingsScreen(
     onEditNameClick: () -> Unit = {},
     onAddPhoneClick: () -> Unit = {},
     onSignOutClick: () -> Unit = {},
-    onDeleteAccountClick: () -> Unit = {}
+    onDeleteAccountClick: () -> Unit = {},
+    onExportDataClick: () -> Unit = {},
+    /** True while deletion is in flight — the row must not be tappable twice. */
+    isDeleting: Boolean = false,
+    /** Non-null when deletion failed. Shown instead of closing silently, because
+     *  a user who thinks they are deleted and is not has been actively misled. */
+    deleteError: String? = null,
+    onDismissDeleteError: () -> Unit = {}
 ) {
     val spacing = MaterialTheme.spacing
     val scrollState = rememberScrollState()
 
     var isVisible by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
     var showSignOutConfirm by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    var showDeleteConfirm by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    var deleteConfirmText by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf("") }
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    var hapticsOn by androidx.compose.runtime.remember {
+        androidx.compose.runtime.mutableStateOf(ScrollaHaptics.isEnabled(ctx))
+    }
     androidx.compose.runtime.LaunchedEffect(Unit) {
         isVisible = true
+    }
+
+    if (deleteError != null) {
+        AlertDialog(
+            onDismissRequest = onDismissDeleteError,
+            title = { Text(ScrollaStrings.SETTINGS_DELETE_TITLE) },
+            text = { Text(deleteError) },
+            confirmButton = {
+                TextButton(onClick = onDismissDeleteError) {
+                    Text(ScrollaStrings.ERROR_DISMISS)
+                }
+            }
+        )
+    }
+
+    if (showDeleteConfirm) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirm = false; deleteConfirmText = "" },
+            title = { Text(ScrollaStrings.SETTINGS_DELETE_TITLE) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(spacing.medium)) {
+                    Text(ScrollaStrings.SETTINGS_DELETE_BODY)
+                    // SETTINGS_DELETE_INPUT_HINT has existed since the copy was
+                    // first written and had never been rendered. A type-to-confirm
+                    // gate is the right weight for an action with no undo, and it
+                    // was already the intended design.
+                    OutlinedTextField(
+                        value = deleteConfirmText,
+                        onValueChange = { deleteConfirmText = it },
+                        singleLine = true,
+                        label = { Text(ScrollaStrings.SETTINGS_DELETE_INPUT_HINT) },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = deleteConfirmText.trim().equals(DELETE_KEYWORD, ignoreCase = false),
+                    onClick = {
+                        showDeleteConfirm = false
+                        deleteConfirmText = ""
+                        onDeleteAccountClick()
+                    }
+                ) {
+                    Text(
+                        ScrollaStrings.SETTINGS_DELETE_CONFIRM,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+            },
+            // The safe choice says what it does. "Cancel" next to a deletion
+            // prompt is ambiguous about which thing is being cancelled.
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirm = false; deleteConfirmText = "" }) {
+                    Text(ScrollaStrings.SETTINGS_DELETE_CANCEL)
+                }
+            }
+        )
     }
 
     if (showSignOutConfirm) {
@@ -188,14 +265,20 @@ fun SettingsScreen(
 
                     val uiHealthState = when {
                         serviceHealthState == null -> UiServiceHealthState.UNKNOWN
+                        // Now checks the accessibility master switch too, not just
+                        // the enabled-services list — a crashed service stays in
+                        // that list, which is how a dead service read as healthy
+                        // for 9.5 hours on 2026-08-25. This branch is what catches
+                        // that case now.
                         !serviceHealthState.isAccessibilityServiceEnabled -> UiServiceHealthState.STOPPED
-                        // isServiceRunning is only ever set true by a successful
-                        // flush, and onServiceConnected() does not set it. So a
-                        // service enabled seconds ago has it false through no
-                        // fault of its own — reporting INTERRUPTED there accuses
-                        // the OS of killing something that has simply not had
-                        // anything to write yet.
-                        serviceHealthState.lastRoomFlushTimestamp == 0L -> UiServiceHealthState.UNKNOWN
+                        // A `lastRoomFlushTimestamp == 0L -> UNKNOWN` guard used to
+                        // sit here, because isServiceRunning was only ever set true
+                        // by a successful flush — so a service enabled seconds ago
+                        // had it false through no fault of its own, and INTERRUPTED
+                        // accused the OS of killing something that had simply not
+                        // had anything to write yet. onServiceConnected() now sets
+                        // the flag directly, so the flag means what it says and the
+                        // guard would only hide real INTERRUPTED states.
                         !serviceHealthState.isServiceRunning -> UiServiceHealthState.INTERRUPTED
                         serviceHealthState.degradedReason != null -> UiServiceHealthState.DEGRADED
                         else -> UiServiceHealthState.ACTIVE
@@ -327,10 +410,58 @@ fun SettingsScreen(
                         )
                         
                         SettingsItem(
-                            label = ScrollaStrings.SETTINGS_DELETE_ACCOUNT,
-                            onClick = onDeleteAccountClick,
+                            label = ScrollaStrings.SETTINGS_HAPTICS_LABEL,
+                            value = if (hapticsOn) {
+                                ScrollaStrings.SETTINGS_HAPTICS_ON
+                            } else {
+                                ScrollaStrings.SETTINGS_HAPTICS_OFF
+                            },
+                            // Scrolla drives the vibrator directly rather than
+                            // going through touch feedback, so the system's
+                            // touch-feedback switch does not turn these off.
+                            // Bypassing that setting without offering an
+                            // alternative would be worse than respecting it,
+                            // so this is the alternative.
+                            onClick = {
+                                val next = !hapticsOn
+                                ScrollaHaptics.setEnabled(ctx, next)
+                                hapticsOn = next
+                                if (next) ScrollaHaptics.confirm(ctx)
+                            }
+                        )
+
+                        androidx.compose.material3.HorizontalDivider(
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
+                            modifier = Modifier.padding(horizontal = 16.dp)
+                        )
+
+                        SettingsItem(
+                            // Sits directly above Delete on purpose: the moment
+                            // someone is looking for the way out is the moment
+                            // they might want to take their data with them.
+                            label = ScrollaStrings.SETTINGS_EXPORT_LABEL,
+                            onClick = onExportDataClick
+                        )
+
+                        androidx.compose.material3.HorizontalDivider(
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
+                            modifier = Modifier.padding(horizontal = 16.dp)
+                        )
+
+                        SettingsItem(
+                            label = if (isDeleting) {
+                                ScrollaStrings.SETTINGS_DELETE_IN_PROGRESS
+                            } else {
+                                ScrollaStrings.SETTINGS_DELETE_ACCOUNT
+                            },
+                            // Was `enabled = false` and had never done anything.
+                            // For an app built on an accessibility service this
+                            // is the trust affordance, not a nice-to-have: you
+                            // cannot ask someone to let you watch every scroll
+                            // they make and then offer no way out.
+                            onClick = { showDeleteConfirm = true },
                             isDestructive = true,
-                            enabled = false
+                            enabled = !isDeleting
                         )
                     }
                 }

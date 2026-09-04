@@ -54,10 +54,10 @@ import com.scrolla.ui.components.bounceClick
 @Composable
 fun HallOfFameScreen(
     modifier: Modifier = Modifier,
-    hasRecord: Boolean = true,
-    recordHolderName: String = "Lewis",
+    hasRecord: Boolean = false,
+    recordHolderName: String = "",
     recordDistanceKm: Float = 0.4f,
-    recordDate: String = "July 12",
+    recordDate: String = "",
     isCurrentUserHolder: Boolean = false,
     gapToRecordKm: Float = 1.9f,
     /** Non-null when the read failed. Takes priority over the no-record empty
