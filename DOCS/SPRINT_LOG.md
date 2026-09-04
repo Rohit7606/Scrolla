@@ -313,7 +313,7 @@ and it is the whole remaining product.
 
 **Two things now gate the project, and neither is a missing feature:**
 
-1. **Twenty commits sit unmerged on `b/health-card-cleanup`.** Pushed, no PR.
+1. **Fourteen commits sit unmerged on `b/health-card-cleanup`** — 37 files, +2,525/-210. Pushed, no PR. (Local `main` is also 23 commits behind `origin/main`; pull before comparing anything locally.)
    `main` has none of: account deletion, the group record write, CSV export,
    rename/leave, the snackbar bus, haptics, pull-to-refresh, the sub-metre fix,
    or four of the five test files.

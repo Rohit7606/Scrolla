@@ -16,7 +16,7 @@
 
 > ### ⚠️ Two things gate everything below, and neither is code
 >
-> **1. Twenty commits sit unmerged on `b/health-card-cleanup`.** The branch is
+> **1. Fourteen commits sit unmerged on `b/health-card-cleanup`** (37 files, +2,525/-210 against `origin/main`). The branch is
 > pushed; no PR is open. `main` does not contain account deletion, the group
 > record write, data export, rename/leave group, the snackbar bus, haptics, the
 > sub-metre fix, or four of the five test files. Everything in this file that is
@@ -255,7 +255,7 @@ Same purpose as A's decisions log — prevents an AI agent from "correcting" an 
 | 7 | 2026-08-24 | **Nothing anywhere in `app/src/main` writes `recordKm`, `recordHolder` or `recordDate`.** Every occurrence is a read, a data-class field, a ViewModel mapping or a Compose preview default. So S3.4 renders its empty state permanently, `LeaderboardViewModel.groupBestDay` is always null, and `isRecordImprovement()` — written, A-reviewed and Playground-verified in both directions — guards a write no client makes. The sprint log called S3.4 "double-blocked" on sync and rules; both are now fixed and it still would not work. Tracked as PREMIUM_CHECKLIST P2.6. | 🔴 Critical | S3 | ☑ **Written 2026-08-25.** B owns it end to end — no edit-together seam was needed, since `SyncViewModel` (`ui/`) already drives the cadence and `GroupRepository` (`firestore/`) already owns group writes. `RecordEligibility` fails closed on today, future days, zero-distance days, never-written timestamps, corrupt rows, and days whose last scroll was before 18:00. **Not yet confirmed on a device — P2.6d.** |
 | 8 | 2026-08-24 | `HomeScreen` declares `rankPosition: Int? = 2` and `HallOfFameScreen` declares `recordHolderName = "Lewis"` / `recordDate = "July 12"` as **default parameter values**. Preview scaffolding, but one careless call site away from rendering a fabricated number in an app whose stated discipline is never showing a plausible fake one. Tracked as PREMIUM_CHECKLIST P4.2. | 🟡 High | S3 | ☑ 2026-08-26 — and it was worse than logged: `ProfileScreen` carried a whole fake profile (name, best day, seven-day average, group count, group name). All now null or zero. |
 | 9 | 2026-09-04 | **The P4.2a sweep missed `LeaderboardScreen`.** It still declares `groupName = "College Friends"`, `mostImprovedName: String? = "Lewis"` and a three-row fake `entries` list as default parameter values (`LeaderboardScreen.kt:75-80`). `MainShell:522` passes `null`/real data, so nothing fabricated reaches a user today — which is exactly what was true of `rankPosition = 2` before it was fixed. Same landmine, same screen family, found by grepping rather than by the sweep that was supposed to catch it. Reopens PREMIUM_CHECKLIST P4.2a. | 🟡 High | S3 | ☐ |
-| 10 | 2026-09-04 | **Twenty commits are unmerged on `b/health-card-cleanup` and the reviewed Firestore rules are undeployed.** Delete account, leave group and rename group are finished code that fails at the server on a real device. Not a bug in the usual sense — a delivery gap — but it has the same effect as a bug for anyone holding the APK. | 🔴 Critical | S3 | ☐ |
+| 10 | 2026-09-04 | **Fourteen commits (37 files) are unmerged on `b/health-card-cleanup` and the reviewed Firestore rules are undeployed.** Delete account, leave group and rename group are finished code that fails at the server on a real device. Not a bug in the usual sense — a delivery gap — but it has the same effect as a bug for anyone holding the APK. | 🔴 Critical | S3 | ☐ |
 
 **Severity guide:**
 - 🔴 **Critical:** Wrong data shown to user (wrong km, wrong rank, phantom Firestore reads). Blocks release.
@@ -371,7 +371,7 @@ which still defaults to a fake group name, a fake "most improved" holder and
 three invented leaderboard rows.
 
 - **Next, in order:**
-  1. **Open the PR** — 20 commits, and everything else is downstream of it.
+  1. **Open the PR** — 14 commits across 37 files, and everything else is downstream of it.
   2. **Deploy the rules.** Delete, leave and rename are dead on device until then, and #5 is already A-approved.
   3. **Device pass**: P2.6d (record reaching Hall of Fame), P2.7e (rename/leave), P2.2a/b (the five never-run screens, with data and without), and delete end to end.
   4. **P4.1** — settle the 2.8 km onboarding figure before another APK goes out.
