@@ -22,7 +22,9 @@ setup are edit-together. Tagged per item.
 These are not polish. Each one is a thing that is either missing entirely or
 silently disabled, and none of them show up in a successful build.
 
-### P0.1 — Tests exist at all `[Both]` — ◐ **46 tests as of 2026-08-26**
+### P0.1 — Tests exist at all `[Both]` — ◐ **54 tests as of 2026-09-04**
+
+*(Re-counted from `@Test` annotations: `RecordEligibilityTest` 12, `DistanceFormatterTest` 14, `DataExportTest` 10, `GroupStandingTest` 10, `HomeInsightsTest` 8. The "46" this line carried was written before the insight tests landed the same day. Still **zero** `androidTest` — no instrumented test has ever run.)*
 
 **First test landed 2026-08-24:** `GroupStandingTest` — 10 tests, passing in both the debug and release variants. It covers `selfStanding()`, the pure function behind Home's group rank, and was written alongside that feature rather than after it. `app/src/test/kotlin/` now exists, so the next test costs nothing to add.
 
@@ -653,6 +655,15 @@ plausible fake number.
       name. All now null or zero. A default that renders plausibly is one
       forgotten argument away from being shown to a user as their own data, and
       it would look like working software.*
+- [ ] **P4.2b** **Reopened 2026-09-04 — the sweep missed a screen.**
+      `LeaderboardScreen.kt:75-80` still declares `groupName = "College Friends"`,
+      `mostImprovedName: String? = "Lewis"` and a three-row invented `entries`
+      list as default parameter values. `MainShell:522` passes `null` and real
+      data, so nothing fabricated reaches a user today — which is word for word
+      what was true of `rankPosition = 2` before P4.2a called it a landmine.
+      Found by grepping for defaults rather than by the sweep meant to catch
+      them. Fix it, then re-run the grep across every `@Composable` with a
+      preview, not just the ones already known to have had fake data.
 
 ### P4.3 — Dead weight `[Both]`
 
