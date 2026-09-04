@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 
 data class WeeklyRecapUiState(
     val isLoading: Boolean = true,
@@ -32,12 +33,22 @@ class WeeklyRecapViewModel(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
 
-            val history = scrollRepository.getRecentDailyTotals(7)
-            val total = history.map { it.totalKm }.sum()
+            // The repository returns the seven most recent *rows*, and a day
+            // with no scrolling has no row — so seven rows can span any amount
+            // of calendar time. Summing them unfiltered made this screen report
+            // "595 m this week" for distance accumulated over thirteen days.
+            val window = WeeklyWindow.rowsWithin(
+                scrollRepository.getRecentDailyTotals(WeeklyWindow.WINDOW_DAYS),
+                LocalDate.now()
+            )
+            val total = window.map { it.totalKm }.sum()
 
             _uiState.value = WeeklyRecapUiState(
                 isLoading = false,
-                hasData = history.isNotEmpty(),
+                // Rows outside the window are not this week's data, so a week
+                // with nothing in it must reach the empty state rather than
+                // render a hero figure borrowed from a fortnight ago.
+                hasData = window.isNotEmpty(),
                 weeklyDistanceKm = total,
                 landmarkText = landmarkFor(total)
             )

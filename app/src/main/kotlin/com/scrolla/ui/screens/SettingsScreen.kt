@@ -105,7 +105,9 @@ fun SettingsScreen(
     modifier: Modifier = Modifier,
     serviceHealthState: com.scrolla.room.ServiceHealthState? = null,
     deviceOem: String = "Samsung",
-    displayName: String = "Rohit",
+    // Blank, not a name. A default that renders plausibly is one forgotten
+    // argument away from being shown to a user as their own data (P4.2).
+    displayName: String = "",
     phoneLinked: Boolean = false,
     onBackClick: () -> Unit = {},
     onFixBatteryClick: () -> Unit = {},
@@ -368,7 +370,11 @@ fun SettingsScreen(
                     ) {
                         SettingsItem(
                             label = ScrollaStrings.SETTINGS_DISPLAY_NAME_LABEL,
-                            value = displayName,
+                            // Real data when Auth has it. Blank is possible —
+                            // FirebaseUser.displayName can be null even for a
+                            // Google account — and that is the only case where
+                            // "not yet available" is a true statement here.
+                            value = displayName.ifBlank { ScrollaStrings.SETTINGS_NOT_YET_AVAILABLE },
                             onClick = onEditNameClick,
                             enabled = false
                         )
@@ -380,7 +386,11 @@ fun SettingsScreen(
                         
                         SettingsItem(
                             label = ScrollaStrings.SETTINGS_BACKUP_LABEL,
-                            value = if (phoneLinked) ScrollaStrings.SETTINGS_BACKUP_LINKED else ScrollaStrings.SETTINGS_BACKUP_ADD,
+                            // "Add phone number" is an offer, and S1.B4 is not
+                            // built, so offering it on a dead row is the lie the
+                            // disabled state was there to avoid. Say the feature
+                            // is missing until linking actually exists.
+                            value = if (phoneLinked) ScrollaStrings.SETTINGS_BACKUP_LINKED else ScrollaStrings.SETTINGS_NOT_YET_AVAILABLE,
                             onClick = onAddPhoneClick,
                             valueColor = if (phoneLinked) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary,
                             enabled = false
@@ -593,8 +603,16 @@ private fun SettingsItem(
                 .copy(alpha = rowAlpha)
         )
 
+        // `enabled` controls whether the row can be *tapped*, and says nothing
+        // about whether the value exists. It used to overwrite the value with
+        // "Not yet available" whenever the row was disabled, so Settings told a
+        // signed-in user their display name was unavailable while Auth was
+        // holding it — a confident false statement about data the app had, which
+        // is the failure this app's honesty rule exists to prevent. A row that
+        // genuinely has nothing to show now says so at the call site, where the
+        // absence is actually known.
         Text(
-            text = if (enabled) (value ?: "") else ScrollaStrings.SETTINGS_NOT_YET_AVAILABLE,
+            text = value ?: "",
             style = MaterialTheme.typography.bodyLarge,
             color = if (enabled) valueColor else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = rowAlpha)
         )
