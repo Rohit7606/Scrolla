@@ -30,7 +30,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -99,9 +99,17 @@ fun InsightsScreen(
     val colors = MaterialTheme.scrollaColors
     val scrollState = rememberScrollState()
 
-    var selectedDay by remember {
-        mutableIntStateOf(weekData.indexOfFirst { it.isToday }.takeIf { it >= 0 } ?: 0)
-    }
+    // Only the user's own tap is remembered. The default is derived on every
+    // composition instead of captured once, because `remember` with no keys ran
+    // before the ViewModel's first emission: weekData was empty, indexOfFirst
+    // returned -1, and the `?: 0` fallback selected the leftmost bar — six days
+    // ago — for the rest of the session. Opening Insights read "Saturday, no
+    // data yet" while today sat unselected on the right. Found on device
+    // 2026-09-04, not by a build.
+    var userSelectedDay by remember { mutableStateOf<Int?>(null) }
+    val selectedDay = userSelectedDay
+        ?: weekData.indexOfFirst { it.isToday }.takeIf { it >= 0 }
+        ?: 0
 
     Column(
         modifier = modifier
@@ -151,7 +159,7 @@ fun InsightsScreen(
                         day = day,
                         maxKm = maxKm,
                         selected = index == selectedDay,
-                        onClick = { selectedDay = index },
+                        onClick = { userSelectedDay = index },
                         modifier = Modifier.weight(1f)
                     )
                 }
