@@ -17,9 +17,10 @@ import com.scrolla.room.ScrollEvent
 import com.scrolla.room.ScrollaDatabase
 import com.scrolla.room.ServiceHealthState
 import java.util.HashMap
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 
@@ -32,7 +33,48 @@ class ScrollAccessibilityService : AccessibilityService() {
     private val batchBuffer = HashMap<String, Float>() // key: "day:appPackage:hourBucket", value: accumulated scrollCm
     private var eventCountSinceFlush = 0
     private var lastFlushTimestamp = 0L
-    private val serviceScope = CoroutineScope(Dispatchers.IO + Job())
+    /**
+     * Keeps a failed background write from killing tracking.
+     *
+     * The scope used to be `Dispatchers.IO + Job()` with no handler. In Android
+     * an uncaught exception in a `launch` block reaches the thread's default
+     * uncaught-exception handler, which kills the **process** — and killing this
+     * process kills the accessibility binding, so the framework marks the
+     * service "malfunctioning", switches the accessibility master switch off,
+     * and tracking stops while the toggle in Settings still reads on. That is
+     * the 2026-08-25 outage and the 2026-09-04 one: nine and a half hours, then
+     * eighteen hours, of silence from a background write nobody could see fail.
+     *
+     * A plain `Job()` made it worse: one child failing cancels every sibling, so
+     * even surviving the crash would have left the scope dead and every later
+     * flush a no-op. `SupervisorJob` isolates failures to the coroutine that
+     * had them.
+     *
+     * A dropped Room write costs one batch of scroll distance. Losing the
+     * service costs every batch until a human notices, so this trade is not
+     * close.
+     */
+    private val crashGuard = CoroutineExceptionHandler { _, throwable ->
+        Log.e(TAG, "Uncaught exception in a service coroutine — tracking kept alive", throwable)
+        // Best-effort, and must never itself throw: this is the last line before
+        // the default handler that would kill the process.
+        try {
+            CoroutineScope(Dispatchers.IO).launch {
+                try {
+                    ScrollaDatabase.getDatabase(applicationContext)
+                        .serviceHealthDao()
+                        .markFlushFailed(
+                            reason = "coroutine: ${throwable::class.simpleName}: ${throwable.message?.take(100)}",
+                            eventTs = lastEventAt
+                        )
+                } catch (_: Throwable) {
+                }
+            }
+        } catch (_: Throwable) {
+        }
+    }
+
+    private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob() + crashGuard)
 
     // Fix 3: In-memory timestamp of the most recent scroll event. Stamped on
     // every call to onAccessibilityEvent(), persisted during flush. This is the
@@ -49,11 +91,23 @@ class ScrollAccessibilityService : AccessibilityService() {
         // 3-arg overload (API 29+) takes an integer type; matches manifest
         // android:foregroundServiceType="specialUse".
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            startForeground(
-                ScrollaConstants.FOREGROUND_NOTIFICATION_ID,
-                buildNotification(),
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
-            )
+            // Guarded because this runs on the service's entry point: anything
+            // thrown here propagates out of onServiceConnected and the framework
+            // marks the service malfunctioning. startForeground can throw for
+            // reasons outside our control — a foreground-start restriction, an
+            // OEM notification policy, or a type the platform does not accept
+            // (FOREGROUND_SERVICE_TYPE_SPECIAL_USE is an API 34 constant and this
+            // device is API 33). Tracking without the foreground notification is
+            // degraded; no tracking at all is the failure we are fixing.
+            try {
+                startForeground(
+                    ScrollaConstants.FOREGROUND_NOTIFICATION_ID,
+                    buildNotification(),
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
+                )
+            } catch (e: Exception) {
+                Log.e(TAG, "startForeground failed — continuing without it", e)
+            }
         }
 
         // Fix 2: Mark isServiceRunning = true at the point the service actually
@@ -195,10 +249,16 @@ class ScrollAccessibilityService : AccessibilityService() {
 
     private fun flushBatch(snapshot: HashMap<String, Float>) {
         serviceScope.launch {
-            val db = ScrollaDatabase.getDatabase(applicationContext)
             // Capture the in-memory event timestamp before any DB work.
             val eventTs = lastEventAt
             try {
+                // getDatabase() sat OUTSIDE this try until 2026-09-05, alone
+                // among the five launch blocks in this file. It opens SQLite, so
+                // it can throw on a locked or corrupt database, an I/O error, or
+                // a failed migration — and this is the hot path, running every 50
+                // events or 10 seconds while scrolling. Uncaught there, it killed
+                // the process and took the accessibility binding with it.
+                val db = ScrollaDatabase.getDatabase(applicationContext)
                 val timestamp = System.currentTimeMillis()
                 for ((key, scrollCm) in snapshot) {
                     if (scrollCm > 0f) {
@@ -254,10 +314,15 @@ class ScrollAccessibilityService : AccessibilityService() {
                 // detection knows events were arriving even though writes failed.
                 Log.e("BatchFlush", "Batch flush failed", e)
                 try {
-                    db.serviceHealthDao().markFlushFailed(
-                        reason = "${e::class.simpleName}: ${e.message?.take(100)}",
-                        eventTs = eventTs
-                    )
+                    // Re-acquired rather than reused: opening the database is now
+                    // inside the try above, so if that is what failed there is no
+                    // handle to reuse. If it fails again the inner catch takes it.
+                    ScrollaDatabase.getDatabase(applicationContext)
+                        .serviceHealthDao()
+                        .markFlushFailed(
+                            reason = "${e::class.simpleName}: ${e.message?.take(100)}",
+                            eventTs = eventTs
+                        )
                 } catch (_: Exception) {
                     // If the DB itself is broken, we can't mark degraded either.
                 }
