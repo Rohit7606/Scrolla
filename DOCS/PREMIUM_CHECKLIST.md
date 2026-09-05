@@ -563,6 +563,63 @@ on, so tracking stops for reasons that look identical to a crash.
 - [ ] **P2.13b** Say it in onboarding. Someone handed an APK deserves to know
       their payment app may object *before* they grant the permission, not after.
 
+### P2.14 — A-track audit findings `[A]` — ☐ *audited 2026-09-05, full detail in `DOCS/AUDIT_A_TRACK.md`*
+
+B audited everything A owns after the third silent outage, on the principle that
+the outage's cause — an unguarded line in the hottest path — was unlikely to be
+the only one of its kind. Logged as the mandatory **M1 review #8, verdict Changes
+required**. Eleven findings; the first four matter.
+
+- [ ] **P2.14a 🔴 The RecyclerView reset guard does not guard.** Its `if` body
+      contains only a `Log.d`; `computed` is returned unchanged and `pxToCm`
+      applies `Math.abs()`, so a view recycle contributes its full jump as
+      phantom distance. **`abs()` is only safe because of this guard.** It
+      contradicts S0.5 and the M1 checklist item ticked in review #1 — both were
+      satisfied by watching the log line appear, not by checking the distance was
+      excluded. Device data is consistent: 29 % of Chrome batches and 9 % of
+      Reddit's exceed 100 cm (max 512 cm in ten seconds ≈ 34 screen-heights)
+      against 1.5 % for Instagram, which uses the `scrollDeltaY` path where no
+      reset detection exists at all. **Every accuracy figure in
+      `SENSOR_PROGRESS.md` was measured with this present** and is biased high for
+      `scrollY`-path apps — S0.7 needs re-running after the fix.
+- [ ] **P2.14b 🟠 `getDatabase()`'s double-checked lock is missing its second
+      check**, so two threads can each build a Room instance over the same file —
+      two connection pools, one database. Called concurrently from the service
+      (five sites), both receivers, `MainActivity` and the repository. A plausible
+      source of the exception behind the outages; complements rather than replaces
+      the `try` fix in `54ac926`.
+- [ ] **P2.14c 🟠 "Your lowest day ever" is usually today.** `MIN(totalKm)` and
+      `ORDER BY totalKm ASC LIMIT 1` do not exclude the current, partial day.
+      Proven on device 2026-09-05: returns **today at 4.06 m** where it should
+      return 2026-09-04 at 21.55 m. So the app announces a new personal record
+      every morning. `RecordEligibility` guards exactly this for the **group**
+      record; the personal record has nothing — the same trap one screen over, as
+      with P2.9.
+- [ ] **P2.14d 🟡 Every `scroll_events` read is a full scan, and the table is
+      unbounded.** No index on `day`; `EXPLAIN QUERY PLAN` returns `SCAN
+      scroll_events` for the query Home runs on every load. Measured growth ~400
+      rows/day ≈ **146,000 rows/year**. `deleteOlderThan()` exists and **is never
+      called from anywhere**, so nothing bounds the most sensitive store in the
+      app — which is also a retention question the privacy copy does not answer.
+- [ ] **P2.14e 🟡 `AppTotal` has no DAO at all** — no `appTotalDao()` accessor and
+      no DAO type, so nothing could write it even in principle. Supersedes P2.8
+      with the stronger finding.
+- [ ] **P2.14f 🟡 A failed UI read marks the *tracking service* degraded**, via
+      `markDegraded` → `markSyncFailed`. Conflates "a query failed" with "tracking
+      is broken" on the one card whose job is to be trustworthy about that, and
+      mislabels reads as sync failures. Makes P2.4e three writers, not two.
+- [ ] **P2.14g 🟡 No foreground service below API 30 despite `minSdk 24`.**
+      `startForeground` is gated on `Build.VERSION_CODES.R`, so on Android 7–10
+      there is no persistent notification and no foreground priority — the app
+      installs, appears to work, and tracks almost nothing. Support them or raise
+      `minSdk`.
+- [ ] **P2.14h ⚪** Dead code from the health refactor: `getOnce()`,
+      `getTotalCmBetweenDays()`, and a retained whole-row `upsert()` that is the
+      exact pattern A's decision log #4 was written to eliminate.
+- [ ] **P2.14i ⚪** `lastKnownScrollY` is never pruned, and
+      `android:exported="false"` on the accessibility service deviates from the
+      documented norm (works on three devices — flag, do not change blind).
+
 ### P2.2 — Screens never run on a device `[B]`
 
 Personal Records, Hall of Fame, App Breakdown, Weekly Recap and Settings are
