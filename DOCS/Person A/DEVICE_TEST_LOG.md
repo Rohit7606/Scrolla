@@ -279,6 +279,96 @@ lowest-wins board, checking your score worsens your score. Logged as P2.10 for A
 
 ---
 
+### 2026-09-05 — Xiaomi: the second outage, diagnosed. "Toggle on, service dead."
+
+**Reported by B with a screen recording**, which is the clearest artefact this
+project has produced. It shows, in order: the **notification the P2.12 watcher
+fired at 12:19** — *"Scrolla stopped tracking · Tap to turn it back on"* — then
+Settings → Accessibility → Downloaded apps listing **"Scrolla — Not working. Tap
+for info."**, then inside it **"This service is malfunctioning"** sitting above a
+**switched-on** "Use Scrolla" toggle.
+
+**The detection half works.** That notification is the first field proof of the
+P2.12 watcher, on a real outage, unprompted. `POST_NOTIFICATIONS` had been
+granted, the alarm fired, and it told the truth.
+
+**State when the device was attached (still crashed):**
+
+```
+Enabled services:{{com.scrolla/...ScrollAccessibilityService}}
+Binding services:{}
+Crashed services:{{com.scrolla/...ScrollAccessibilityService}}
+settings get secure accessibility_enabled  ->  0
+```
+
+So the framework had switched the accessibility master switch off — it does that
+when its only enabled service dies — while the per-service toggle kept rendering
+as on. **The one screen a user checks is the one that cannot tell them.**
+
+**Duration: 18 hours.** Last scroll event `2026-09-04 18:46:50`, noticed 12:19
+the next day. It died ~34 minutes after that day's build was installed. The
+previous outage was 9.5 hours. `service_health` again read
+`isServiceRunning = 1` with `isAccessibilityServiceEnabled = 0` — the stale latch,
+because a crash calls neither `onDestroy` nor `onUnbind`.
+
+**Root cause: three unguarded paths that turn a background failure into a process
+kill** — and killing the process kills the binding, which is the whole failure.
+
+1. `serviceScope` was `Dispatchers.IO + Job()` with **no `CoroutineExceptionHandler`**.
+   In Android an uncaught exception in a `launch` reaches the thread's default
+   handler, which kills the process. Plain `Job()` compounded it: one child
+   failing cancels every sibling, so surviving the kill would still have left
+   every later flush a silent no-op.
+2. **`flushBatch` opened the database outside its `try`** — alone among the five
+   launch blocks in the file — on the hot path that runs every 50 events or 10
+   seconds while scrolling. `getDatabase()` opens SQLite and can throw on a locked
+   or corrupt DB, an I/O error, or a failed migration.
+3. `startForeground` ran unguarded on `onServiceConnected`, the entry point, so
+   anything it threw propagated straight out. Worth noting
+   `FOREGROUND_SERVICE_TYPE_SPECIAL_USE` is an **API 34** constant and this device
+   is **API 33**.
+
+All three fixed 2026-09-05 (`54ac926`). `service/` is A's — **needs retro-review**.
+
+**Honest limit: not proven against a captured stack trace.** The crash buffer was
+**256 KB** and had rotated past both outages. It is now **16 MB**
+(`adb shell logcat -G 16M`) — the S0.7 Logcat-truncation lesson applied to
+crashes. The fixes make the whole class non-fatal regardless of which exception
+it was, but the specific throw is still unidentified. **This is P0.3's argument in
+one line: two outages, both unrecoverable, on the one device we physically hold.**
+
+**Not a battery kill.** Worth recording because it is the intuitive answer and it
+is wrong here: Scrolla is on the idle whitelist (`user,com.scrolla,10315`), in
+standby bucket **5 (EXEMPTED)**, and its FGS was live. The process deaths visible
+in logcat afterwards (`cch+55 CEM`, once `Killing ... camera boost`) are all
+**cached, empty** processes at `adj=955/965`, spun up only to run the P2.12 alarm
+broadcast and then reclaimed. That is the aftermath, not the cause.
+
+**Recovery, again:** reinstalling re-binds the service and flips the master switch
+back to 1. Toggling in Settings also works. Neither is available to a friend
+holding an APK who does not know anything is wrong — which is why P2.12 exists.
+
+---
+
+### 2026-09-05 — UPI apps block Scrolla by name (PREMIUM_CHECKLIST P2.13)
+
+**supermoney** shows a full-screen interstitial naming Scrolla directly:
+
+> **Turn off accessibility access** — These apps can control your screen or tap on
+> buttons. Turn it off to protect your UPI payments. **Scrolla** → *Open settings*
+
+Google Pay India (`com.google.android.apps.nbu.paisa.user`) and HDFC
+(`com.hdfcbank.android.now`) are on the same device and enforce the same
+NPCI/RBI-driven check. Nothing in Scrolla's code changes this, and **evading it is
+not an option** — it is an anti-fraud control, and defeating it is what the
+malware it exists to stop does.
+
+It compounds the outage problem: a user turns Scrolla off to pay, does not turn it
+back on, and the resulting silence is indistinguishable from a crash. Tracked as
+P2.13; it needs a product decision, not a patch.
+
+---
+
 ## 3. OEM BATTERY BEHAVIOR — PRE-FILLED KNOWN QUIRKS
 
 This section is pre-filled with known OEM battery-killing behavior from documented Android fragmentation research. **These are not guesses** — they are well-documented patterns. Update with actual observed behavior as testing happens; add a ✅ next to findings that are confirmed on a real device, a ❌ next to ones that didn't reproduce.

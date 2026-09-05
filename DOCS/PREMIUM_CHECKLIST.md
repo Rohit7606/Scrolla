@@ -475,6 +475,94 @@ P2.6e is a design note and this is a thing that happens tomorrow.
       died" and "a genuinely quiet day" as the same shape, because in
       `daily_totals` they are.
 
+### P2.12 — Tracking stopped silently, for days `[Both]` — ◐ *detection built 2026-09-04, cause fixed 2026-09-05*
+
+**The complaint, verbatim: "the scroll tracking stops working even when the
+toggle is on."** A screen recording on 2026-09-05 shows exactly that — Android's
+own Accessibility → Downloaded apps list reads **"Scrolla — Not working. Tap for
+info."**, and inside, above an **enabled** toggle, **"This service is
+malfunctioning."**
+
+`dumpsys` agrees: `Enabled services` contains us, `Binding services` is empty,
+`Crashed services` contains us, and `accessibility_enabled` is `0`. The framework
+switches the master accessibility switch off when its only enabled service dies,
+but the per-service toggle keeps rendering as on. So the UI a user checks is the
+one surface that cannot tell them.
+
+Measured gaps on B's Xiaomi: **9.5 hours** (2026-08-25) and **18 hours**
+(events stopped 2026-09-04 18:46:50, noticed the next midday).
+
+**Two separate problems, fixed separately.**
+
+**(a) Nothing told anyone.** Home did not observe health at all, so the app
+looked entirely normal with tracking dead.
+- [x] **P2.12a** In-app banner across every tab whenever the accessibility switch
+      is off, deep-linking to accessibility settings. Driven by the health row
+      `MainActivity.onResume` already refreshes, so returning from Settings clears
+      it. Shown for an explicit `false` only — a null row is "not checked yet" and
+      must not flash a false alarm on cold start. `[B, ui/]`
+- [x] **P2.12b** `TrackingHealthWatcher` — an AlarmManager check every ~15 min
+      that posts one high-priority notification when the service is down while the
+      app is closed, and clears it when healthy. Inexact, non-wakeup, no
+      exact-alarm permission; re-armed on boot and launch. `[A's device/ — needs
+      retro-review]`
+- [x] **P2.12c** Request `POST_NOTIFICATIONS` at launch. Fixes DEVICE_TEST_LOG
+      bug #1 in passing: the foreground notification never showed on a fresh
+      install because nothing asked.
+- [x] **P2.12d** **Confirmed working in the field.** The 2026-09-05 recording
+      shows the notification — *"Scrolla stopped tracking · Tap to turn it back on"*
+      — fired at 12:19. The detection half is proven on a real outage.
+
+**(b) Why it died.** Three unguarded paths, any of which kills the process, and
+killing the process is what kills the binding.
+- [x] **P2.12e** `serviceScope` was `Dispatchers.IO + Job()` with **no
+      `CoroutineExceptionHandler`**. An uncaught exception in a `launch` reaches
+      the thread's default handler, which kills the process. Plain `Job()` made it
+      worse — one child failing cancels every sibling, so even surviving would
+      leave every later flush a silent no-op. Now `SupervisorJob` + a handler that
+      logs and marks degraded.
+- [x] **P2.12f** `flushBatch` opened the database **outside its `try`** — alone
+      among the five launch blocks in the file — on the hot path that runs every
+      50 events or 10 seconds. Moved inside; the catch re-acquires rather than
+      reuses, since opening is now what may have failed.
+- [x] **P2.12g** `startForeground` ran unguarded on `onServiceConnected`, the
+      service's entry point. Note `FOREGROUND_SERVICE_TYPE_SPECIAL_USE` is an
+      **API 34** constant and the test device is **API 33**.
+- [ ] **P2.12h** **Not yet proven against a captured stack trace.** The crash
+      buffer was 256 KB and had rotated past both outages. Raised to **16 MB** on
+      the test device — the same lesson as the S0.7 Logcat truncation, applied to
+      crashes. Confirm the fix by running a full day without an outage, and
+      capture the trace if one still happens.
+- [ ] **P2.12i** This is the argument for **P0.3 (Crashlytics)** in one line: two
+      outages, both unrecoverable, on the one device we physically hold. On a
+      friend's phone there would have been nothing at all.
+
+### P2.13 — UPI apps refuse to run while Scrolla is enabled `[Both]` — ☐ *no code fix exists*
+
+**supermoney blocks payments and names Scrolla explicitly:** *"Turn off
+accessibility access — These apps can control your screen or tap on buttons.
+Turn it off to protect your UPI payments. **Scrolla** → Open settings."*
+Google Pay India and HDFC are installed on the same device and enforce the same
+NPCI/RBI-driven anti-fraud check.
+
+**This is structural and cannot be engineered around.** Scroll distance exists
+only through `AccessibilityService` — the same P0.5a reasoning that took Scrolla
+off the Play Store — and that is precisely the API payment apps block on.
+Allowlisting is granted to genuine accessibility tools, which Scrolla is not.
+**Evading the detection is not an option**: it is an anti-fraud control, and
+defeating it is what the malware it exists to stop does.
+
+It also feeds P2.12: the user turns Scrolla off to pay and does not turn it back
+on, so tracking stops for reasons that look identical to a crash.
+
+- [ ] **P2.13a** Decide the product answer. Three honest options: accept it and
+      make re-enabling fast (P2.12's banner already does much of this); add a
+      deliberate "pause for payments" affordance so the disable is intentional and
+      reminded; or reconsider whether a UPI-using friend group is the right test
+      cohort. That last one is a real question — in India this is not an edge case.
+- [ ] **P2.13b** Say it in onboarding. Someone handed an APK deserves to know
+      their payment app may object *before* they grant the permission, not after.
+
 ### P2.2 — Screens never run on a device `[B]`
 
 Personal Records, Hall of Fame, App Breakdown, Weekly Recap and Settings are
