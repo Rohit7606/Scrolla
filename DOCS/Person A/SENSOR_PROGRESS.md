@@ -6,6 +6,29 @@
 
 ---
 
+> ## ⚠️ EVERY ACCURACY FIGURE IN THIS FILE IS SUSPECT — added by B, 2026-09-06
+>
+> The S0.5 RecyclerView reset guard **never discarded anything.** Its `if` body
+> contained only a `Log.d`, so the delta was returned unchanged, `pxToCm`'s
+> `Math.abs()` made it positive, and every view recycle was billed as real
+> scrolling at full magnitude. It shipped that way from S0.5 until 2026-09-06.
+>
+> That means **S0.7 and S0.8 measured a sensor with a known inflation bug**, and
+> both are biased high. The bias is uneven, which matters more than its size:
+> apps on the `scrollY` path (Chrome, Reddit) are affected; Instagram is not,
+> because it reports `scrollY = 0` and uses the `scrollDeltaY` path, which has no
+> reset detection to be broken. So the OEM- and app-comparisons drawn from those
+> runs are comparing differently-biased numbers.
+>
+> **Both tests need re-running before any accuracy claim here is quoted again**,
+> including in the pitch. The fix and its 15 tests are in `service/ScrollDelta.kt`;
+> full detail in `DOCS/AUDIT_A_TRACK.md` (A1) and review #9.
+>
+> Nothing else in Section 4's decision log is affected — the composite key, the
+> `scrollDeltaY` fallback and the privacy configuration all audited clean.
+
+---
+
 ## 1. CURRENT STATUS — ONE-LINER FOR PERSON B
 
 > _(A updates this line at the end of every session so B knows where things stand without reading the whole file)_

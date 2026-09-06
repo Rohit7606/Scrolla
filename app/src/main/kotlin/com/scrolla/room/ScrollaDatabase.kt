@@ -14,7 +14,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         AppTotal::class,
         ServiceHealthState::class
     ],
-    version = 2
+    version = 3
 )
 abstract class ScrollaDatabase : RoomDatabase() {
     // S1.A2: DAO accessors
@@ -34,17 +34,46 @@ abstract class ScrollaDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * A4: index `scroll_events.day`, which every read filters on and none
+         * could use — the device's query plan for the Home total was a full
+         * `SCAN` over a table that grows ~400 rows a day forever.
+         *
+         * The name must be exactly `index_scroll_events_day`: that is what Room
+         * generates from `@Index(value = ["day"])`, and Room compares the
+         * migrated schema against the generated one at open time. Any other
+         * name throws IllegalStateException on the first launch after upgrade.
+         */
+        private val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL(
+                    "CREATE INDEX IF NOT EXISTS index_scroll_events_day ON scroll_events (day)"
+                )
+            }
+        }
+
+        /**
+         * A2 (AUDIT_A_TRACK.md): the second `INSTANCE` check inside the lock is
+         * load-bearing, not boilerplate. Without it two threads that both saw
+         * `INSTANCE == null` each build a Room instance in turn, and the second
+         * overwrites the singleton - two connection pools over one SQLite file.
+         *
+         * That is a real race here rather than a theoretical one: this is called
+         * concurrently from [com.scrolla.service.ScrollAccessibilityService] (on
+         * Dispatchers.IO), BootCompletedReceiver, MainActivity,
+         * TrackingHealthReceiver and ScrollRepositoryImpl, several of which fire
+         * together at boot.
+         */
         fun getDatabase(context: Context): ScrollaDatabase {
             return INSTANCE ?: synchronized(this) {
-                val instance = Room.databaseBuilder(
+                INSTANCE ?: Room.databaseBuilder(
                     context.applicationContext,
                     ScrollaDatabase::class.java,
                     "scrolla_database"
                 )
-                    .addMigrations(MIGRATION_1_2)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                     .build()
-                INSTANCE = instance
-                instance
+                    .also { INSTANCE = it }
             }
         }
     }

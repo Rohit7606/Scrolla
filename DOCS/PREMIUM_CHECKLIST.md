@@ -22,9 +22,11 @@ setup are edit-together. Tagged per item.
 These are not polish. Each one is a thing that is either missing entirely or
 silently disabled, and none of them show up in a successful build.
 
-### P0.1 — Tests exist at all `[Both]` — ◐ **54 tests as of 2026-09-04**
+### P0.1 — Tests exist at all `[Both]` — ◐ **79 tests as of 2026-09-06**
 
-*(Re-counted from `@Test` annotations: `RecordEligibilityTest` 12, `DistanceFormatterTest` 14, `DataExportTest` 10, `GroupStandingTest` 10, `HomeInsightsTest` 8. The "46" this line carried was written before the insight tests landed the same day. Still **zero** `androidTest` — no instrumented test has ever run.)*
+*(Counted from the actual JUnit XML rather than by hand: `ScrollDeltaTest` 15, `DistanceFormatterTest` 14, `RecordEligibilityTest` 12, `DataExportTest` 10, `GroupStandingTest` 10, `WeeklyWindowTest` 10, `HomeInsightsTest` 8 — 79 total, 0 failing. The "54" this line carried on 2026-09-04 was itself a hand-count that missed `WeeklyWindowTest`; the real figure was 64 before the audit fixes added `ScrollDeltaTest`. Hand-counting `@Test` annotations has now been wrong twice, so this number comes from `app/build/test-results/` from here on. Still **zero** `androidTest` — no instrumented test has ever run.)*
+
+*`ScrollDeltaTest` is the one that matters most: it covers the sensor's core arithmetic, which had **no test at all** until 2026-09-06 despite being the thing the entire product measures.*
 
 **First test landed 2026-08-24:** `GroupStandingTest` — 10 tests, passing in both the debug and release variants. It covers `selfStanding()`, the pure function behind Home's group rank, and was written alongside that feature rather than after it. `app/src/test/kotlin/` now exists, so the next test costs nothing to add.
 
@@ -610,14 +612,20 @@ on, so tracking stops for reasons that look identical to a crash.
 - [ ] **P2.13b** Say it in onboarding. Someone handed an APK deserves to know
       their payment app may object *before* they grant the permission, not after.
 
-### P2.14 — A-track audit findings `[A]` — ☐ *audited 2026-09-05, full detail in `DOCS/AUDIT_A_TRACK.md`*
+### P2.14 — A-track audit findings `[A]` — ◐ *audited 2026-09-05, fixed 2026-09-06, full detail in `DOCS/AUDIT_A_TRACK.md`*
 
 B audited everything A owns after the third silent outage, on the principle that
 the outage's cause — an unguarded line in the hottest path — was unlikely to be
 the only one of its kind. Logged as the mandatory **M1 review #8, verdict Changes
 required**. Eleven findings; the first four matter.
 
-- [ ] **P2.14a 🔴 The RecyclerView reset guard does not guard.** Its `if` body
+**Status 2026-09-06:** nine of eleven fixed and verified (review #9). Two are
+left deliberately open because they are decisions rather than defects, and both
+are A's to make: **P2.14e** (delete `AppTotal` or populate it) and the retention
+half of **P2.14d** (choosing how long `scroll_events` is kept). **All of these
+changes are in A's layer and need A's retro-review**, per AGENTS.md §2.
+
+- [x] **P2.14a 🔴 The RecyclerView reset guard does not guard.** Its `if` body
       contains only a `Log.d`; `computed` is returned unchanged and `pxToCm`
       applies `Math.abs()`, so a view recycle contributes its full jump as
       phantom distance. **`abs()` is only safe because of this guard.** It
@@ -629,43 +637,91 @@ required**. Eleven findings; the first four matter.
       reset detection exists at all. **Every accuracy figure in
       `SENSOR_PROGRESS.md` was measured with this present** and is biased high for
       `scrollY`-path apps — S0.7 needs re-running after the fix.
-- [ ] **P2.14b 🟠 `getDatabase()`'s double-checked lock is missing its second
+      **Fixed 2026-09-06.** A reset now moves the baseline and contributes zero.
+      The arithmetic moved into `service/ScrollDelta.kt` as a pure function with
+      no Android types, and `ScrollDeltaTest` (15 tests) asserts on the
+      **returned delta** rather than on a log line — which is the specific thing
+      that let this pass review twice. S0.7/S0.8 re-run still outstanding.
+- [x] **P2.14b 🟠 `getDatabase()`'s double-checked lock is missing its second
       check**, so two threads can each build a Room instance over the same file —
       two connection pools, one database. Called concurrently from the service
       (five sites), both receivers, `MainActivity` and the repository. A plausible
       source of the exception behind the outages; complements rather than replaces
       the `try` fix in `54ac926`.
-- [ ] **P2.14c 🟠 "Your lowest day ever" is usually today.** `MIN(totalKm)` and
+      **Fixed 2026-09-06** — standard `INSTANCE ?: synchronized { INSTANCE ?: build().also { INSTANCE = it } }`.
+- [x] **P2.14c 🟠 "Your lowest day ever" is usually today.** `MIN(totalKm)` and
       `ORDER BY totalKm ASC LIMIT 1` do not exclude the current, partial day.
       Proven on device 2026-09-05: returns **today at 4.06 m** where it should
       return 2026-09-04 at 21.55 m. So the app announces a new personal record
       every morning. `RecordEligibility` guards exactly this for the **group**
       record; the personal record has nothing — the same trap one screen over, as
       with P2.9.
-- [ ] **P2.14d 🟡 Every `scroll_events` read is a full scan, and the table is
+      **Fixed 2026-09-06.** Both queries take `WHERE day < :today AND totalKm > 0`;
+      `today` is supplied by the repository so the A/B contract signatures are
+      unchanged. Verified against the device database the same day: the old query
+      returned **2026-09-06 at 6.75 m** (today, four hours old), the new one
+      returns **2026-09-04 at 21.55 m**. All four call sites already handled null
+      and now say something true on day one instead of crowning the first
+      morning a record.
+- [◐] **P2.14d 🟡 Every `scroll_events` read is a full scan, and the table is
       unbounded.** No index on `day`; `EXPLAIN QUERY PLAN` returns `SCAN
       scroll_events` for the query Home runs on every load. Measured growth ~400
       rows/day ≈ **146,000 rows/year**. `deleteOlderThan()` exists and **is never
       called from anywhere**, so nothing bounds the most sensitive store in the
       app — which is also a retention question the privacy copy does not answer.
+      **Index fixed 2026-09-06** — `@Index("day")` plus `MIGRATION_2_3`, schema
+      version 3. Verified by upgrading the real device database in place rather
+      than by inspection: 2044 events and 8 daily totals survived, `user_version`
+      went 2 → 3, and the plan for Home's query changed from `SCAN scroll_events`
+      to `SEARCH scroll_events USING INDEX index_scroll_events_day (day=?)`.
+      **Retention is still open and is a decision, not a defect** — see below.
+- [ ] **P2.14d-retention 🟡 Nothing bounds `scroll_events`.** `deleteOlderThan()`
+      is still uncalled. Deliberately left rather than defaulted: picking a
+      retention period is a privacy commitment, and the app currently tells users
+      "App breakdown stays on this device" without saying for how long, because
+      the answer is "forever". **Needs a decision from A and B**, then wiring plus
+      a copy change. The DAO method now documents that this is why it is kept.
 - [ ] **P2.14e 🟡 `AppTotal` has no DAO at all** — no `appTotalDao()` accessor and
       no DAO type, so nothing could write it even in principle. Supersedes P2.8
-      with the stronger finding.
-- [ ] **P2.14f 🟡 A failed UI read marks the *tracking service* degraded**, via
+      with the stronger finding. **Left open deliberately: this is A's call.**
+      Deleting the entity is smaller and nothing reads it (App Breakdown
+      aggregates from `scroll_events`), but populating it in `flushBatch` is a
+      legitimate alternative, and `DATA_CONTRACT.md` §2.1 currently describes
+      behaviour that has never existed either way. Not a silent decision to make
+      on A's behalf.
+- [x] **P2.14f 🟡 A failed UI read marks the *tracking service* degraded**, via
       `markDegraded` → `markSyncFailed`. Conflates "a query failed" with "tracking
       is broken" on the one card whose job is to be trustworthy about that, and
       mislabels reads as sync failures. Makes P2.4e three writers, not two.
-- [ ] **P2.14g 🟡 No foreground service below API 30 despite `minSdk 24`.**
+      **Fixed 2026-09-06** — `markDegraded` and its nine call sites removed;
+      reads no longer write service health at all. AGENTS.md §4.8 ("fail loud
+      internally") still holds, because every one of those catch blocks already
+      logged at error level immediately above the removed line. Surfacing read
+      failures properly needs its own column, which is P2.4e. **`DATA_CONTRACT.md`
+      §4 still documents the old behaviour and needs A's sign-off to update.**
+- [x] **P2.14g 🟡 No foreground service below API 30 despite `minSdk 24`.**
       `startForeground` is gated on `Build.VERSION_CODES.R`, so on Android 7–10
       there is no persistent notification and no foreground priority — the app
       installs, appears to work, and tracks almost nothing. Support them or raise
-      `minSdk`.
-- [ ] **P2.14h ⚪** Dead code from the health refactor: `getOnce()`,
+      `minSdk`. **Fixed 2026-09-06 by supporting them**, not by raising `minSdk`:
+      the 2-arg `startForeground` is called below API 30, inside the same
+      try/catch. Raising `minSdk` was the alternative but that is a distribution
+      decision, and given that MIUI killing a *foreground* service is already this
+      project's main outage cause, shipping no foreground service at all was
+      strictly worse. Untested on a real API 24–29 device — nobody has one.
+- [x] **P2.14h ⚪** Dead code from the health refactor: `getOnce()`,
       `getTotalCmBetweenDays()`, and a retained whole-row `upsert()` that is the
       exact pattern A's decision log #4 was written to eliminate.
-- [ ] **P2.14i ⚪** `lastKnownScrollY` is never pruned, and
+      **Fixed 2026-09-06** — all three deleted after confirming zero callers.
+      `deleteOlderThan()` was deliberately kept: it is uncalled too, but it is the
+      mechanism the retention decision above will need.
+- [x] **P2.14i ⚪** `lastKnownScrollY` is never pruned, and
       `android:exported="false"` on the accessibility service deviates from the
       documented norm (works on three devices — flag, do not change blind).
+      **Pruning fixed 2026-09-06** — now an LRU `LinkedHashMap` capped at 500
+      views. Eviction is cheap by construction: a re-encountered key is treated
+      as first-seen, sets a baseline and contributes zero for one event.
+      **`exported="false"` deliberately unchanged**, as the audit recommended.
 
 ### P2.2 — Screens never run on a device `[B]`
 

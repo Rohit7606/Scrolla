@@ -26,8 +26,25 @@ import java.time.LocalDate
 
 class ScrollAccessibilityService : AccessibilityService() {
 
-    // S0.4: Per-view HashMap for delta tracking. Key = "packageName:className:viewId"
-    private val lastKnownScrollY = HashMap<String, Int>()
+    // S0.4: Per-view baselines for delta tracking. Key = "packageName:className:viewId"
+    //
+    // A9 (AUDIT_A_TRACK.md): this was a plain HashMap that was added to on every
+    // event and never pruned, so it grew for the entire life of the process —
+    // and this process is meant to live for weeks. An LRU bounds it.
+    //
+    // Eviction is cheap by construction: a key that comes back after being
+    // evicted is simply treated as a view seen for the first time, which
+    // establishes a baseline and contributes zero distance for that one event.
+    // So the worst case is losing a single delta on a view the user has not
+    // touched in a long time, which is well under the noise floor.
+    private val lastKnownScrollY = object : LinkedHashMap<String, Int>(
+        /* initialCapacity = */ 128,
+        /* loadFactor = */ 0.75f,
+        /* accessOrder = */ true
+    ) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, Int>?): Boolean =
+            size > MAX_TRACKED_VIEWS
+    }
 
     // S1.A3: In-memory batch buffer for accumulating scroll distance
     private val batchBuffer = HashMap<String, Float>() // key: "day:appPackage:hourBucket", value: accumulated scrollCm
@@ -90,24 +107,46 @@ class ScrollAccessibilityService : AccessibilityService() {
         // S1.A5: StartForeground as per AGENTS.md Section 4.1
         // 3-arg overload (API 29+) takes an integer type; matches manifest
         // android:foregroundServiceType="specialUse".
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            // Guarded because this runs on the service's entry point: anything
-            // thrown here propagates out of onServiceConnected and the framework
-            // marks the service malfunctioning. startForeground can throw for
-            // reasons outside our control — a foreground-start restriction, an
-            // OEM notification policy, or a type the platform does not accept
-            // (FOREGROUND_SERVICE_TYPE_SPECIAL_USE is an API 34 constant and this
-            // device is API 33). Tracking without the foreground notification is
-            // degraded; no tracking at all is the failure we are fixing.
-            try {
+        // Guarded because this runs on the service's entry point: anything
+        // thrown here propagates out of onServiceConnected and the framework
+        // marks the service malfunctioning. startForeground can throw for
+        // reasons outside our control — a foreground-start restriction, an
+        // OEM notification policy, or a type the platform does not accept
+        // (FOREGROUND_SERVICE_TYPE_SPECIAL_USE is an API 34 constant and this
+        // device is API 33). Tracking without the foreground notification is
+        // degraded; no tracking at all is the failure we are fixing.
+        //
+        // A7 (AUDIT_A_TRACK.md): this whole block used to be inside
+        // `if (SDK_INT >= R)`, so on API 24–29 — which minSdk = 24 admits —
+        // startForeground was never called at all. No persistent notification,
+        // no foreground priority, and an ordinary background process for the OS
+        // to reclaim early, on exactly the older low-memory devices where that
+        // happens soonest. Scrolla would install, look fine, and track almost
+        // nothing, with no notification to hint otherwise. Given that MIUI
+        // killing a *foreground* service is already the project's main outage
+        // cause, shipping no foreground service at all was strictly worse.
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                // 3-arg overload takes the type integer, matching the manifest's
+                // android:foregroundServiceType="specialUse".
                 startForeground(
                     ScrollaConstants.FOREGROUND_NOTIFICATION_ID,
                     buildNotification(),
                     ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
                 )
-            } catch (e: Exception) {
-                Log.e(TAG, "startForeground failed — continuing without it", e)
+            } else {
+                // API 24–29: the 2-arg overload. There is no service-type
+                // argument on these platforms and none is required — the
+                // manifest attribute is simply ignored below API 29.
+                // buildNotification() already guards channel creation on O, so
+                // this is correct on 24–25 (no channels) too.
+                startForeground(
+                    ScrollaConstants.FOREGROUND_NOTIFICATION_ID,
+                    buildNotification()
+                )
             }
+        } catch (e: Exception) {
+            Log.e(TAG, "startForeground failed — continuing without it", e)
         }
 
         // Fix 2: Mark isServiceRunning = true at the point the service actually
@@ -180,31 +219,30 @@ class ScrollAccessibilityService : AccessibilityService() {
 
             val compositeKey = "$pkg:$className:$viewId"
 
-            // ----- S0.4 delta computation (three paths) -----
-            // Branch 1: scrollY != 0 (normal delta path)
-            val delta: Int = if (scrollY != 0) {
-                // Compute per–view delta
-                val lastY = lastKnownScrollY[compositeKey]
-                val computed = if (lastY != null) (scrollY - lastY) else 0
-
-                // ----- RESET detection (inside this branch only) -----
-                if (computed < -ScrollaConstants.RECYCLE_RESET_THRESHOLD_PX) {
-                    val cm = DistanceFormatter.pxToCm(computed, resources.displayMetrics.ydpi)
-                    Log.d(TAG, "pkg=$pkg RESET DETECTED delta=$computed deltaCm=$cm scrollY=$scrollY key=$compositeKey")
+            // ----- S0.4 delta computation -----
+            // The arithmetic lives in ScrollDelta so it is unit-testable; see
+            // that file for why (A1 shipped broken because the only evidence
+            // ever checked was a log line, which a pure function makes
+            // unnecessary). Instagram and friends report scrollDeltaY while
+            // scrollY stays 0, which is the fallback path in there.
+            val result = ScrollDelta.compute(
+                scrollY = scrollY,
+                lastKnownY = lastKnownScrollY[compositeKey],
+                scrollDeltaY = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    event.scrollDeltaY
+                } else {
+                    null
                 }
+            )
 
-                // Update the HashMap for the next event
-                lastKnownScrollY[compositeKey] = scrollY
-                computed
-            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P
-                    && event.scrollDeltaY != -1
-                    && event.scrollDeltaY != 0) {
-                // Instagram, Chrome, etc. report scrollDeltaY even when scrollY==0.
-                // Use that value directly; do NOT update the HashMap here.
-                event.scrollDeltaY
-            } else {
-                0
+            result.newBaseline?.let { lastKnownScrollY[compositeKey] = it }
+
+            if (result.wasRecycleReset) {
+                val discarded = DistanceFormatter.pxToCm(result.rawDelta, resources.displayMetrics.ydpi)
+                Log.d(TAG, "pkg=$pkg RESET DETECTED delta=${result.rawDelta} discardedCm=$discarded scrollY=$scrollY key=$compositeKey")
             }
+
+            val delta: Int = result.delta
 
             // -----------------------------------------------------
 
@@ -381,5 +419,15 @@ class ScrollAccessibilityService : AccessibilityService() {
 
     companion object {
         private const val TAG = "ScrollAccessibilityService"
+
+        /**
+         * Upper bound on tracked per-view baselines (A9).
+         *
+         * Sized to be far above what a real session reaches — a heavy day on
+         * the test device produced a few hundred distinct composite keys — so
+         * eviction is a backstop against an unbounded process rather than
+         * something that happens in normal use.
+         */
+        private const val MAX_TRACKED_VIEWS = 500
     }
 }

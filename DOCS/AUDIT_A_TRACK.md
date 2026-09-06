@@ -22,6 +22,54 @@ logged as review #8). One item on the M1 checklist is not satisfied — see A1.
 
 ---
 
+## RESOLUTION — 2026-09-06
+
+Worked through in the order suggested at the bottom of this document. **Nine of
+eleven fixed and verified; two left open on purpose.**
+
+| # | Finding | Status |
+|---|---|---|
+| A1 | Reset guard only logs | **Fixed** + 15 unit tests |
+| A2 | Broken double-checked lock | **Fixed** |
+| A3 | Personal best includes today | **Fixed**, verified on device data |
+| A4 | No index on `scroll_events.day` | **Fixed**, migration verified on the live DB |
+| A4b | Table unbounded, `deleteOlderThan` uncalled | **Open — decision** |
+| A5 | `AppTotal` has no DAO | **Open — A's call** |
+| A6 | Reads mark the service degraded | **Fixed** |
+| A7 | No foreground service below API 30 | **Fixed** by supporting 24–29 |
+| A8 | Dead code | **Fixed** — three methods deleted |
+| A9 | `lastKnownScrollY` unpruned | **Fixed** — LRU capped at 500 |
+| A10 | `exported="false"` | **Unchanged, deliberately** |
+
+**Verification, since this whole audit exists because things were signed off on
+weak evidence:**
+
+- 79 unit tests pass, up from 64. The 15 new ones assert on **returned values**
+  from `ScrollDelta.compute`, never on log output.
+- The schema migration was tested by **upgrading the real device database in
+  place**, not by reading the SQL: `user_version` 2 → 3, all 2044 events and 8
+  daily totals intact, index present, and the Home query's plan confirmed to have
+  changed from `SCAN scroll_events` to `SEARCH … USING INDEX`. Room validates the
+  index name at open time, so this would have thrown on first launch if the name
+  in `MIGRATION_2_3` had not matched the generated one — checked against
+  `ScrollaDatabase_Impl.kt` as well.
+- A3 was checked by running both the old and new SQL against the pulled database:
+  old returns today at 6.75 m, new returns 2026-09-04 at 21.55 m.
+
+**What is NOT verified:** A7 has no API 24–29 device to test on, and A1's effect
+on real-world accuracy cannot be measured until S0.7 is re-run — see below.
+
+**Still required, and blocking:**
+
+1. **A must retro-review all of it.** Every change here is in `service/`, `room/`
+   or `device/`, which are A's under AGENTS.md §2. Logged as review #9.
+2. **S0.7 and S0.8 must be re-run.** Every accuracy figure in `SENSOR_PROGRESS.md`
+   was measured with A1 present and is biased high for `scrollY`-path apps. The
+   numbers in this document's own evidence table are affected too.
+3. **Two decisions** — retention (A4b) and `AppTotal` (A5).
+
+---
+
 ## A1 🔴 The RecyclerView reset guard does not guard. It only logs.
 
 **`service/ScrollAccessibilityService.kt`**, in the `scrollY != 0` branch:

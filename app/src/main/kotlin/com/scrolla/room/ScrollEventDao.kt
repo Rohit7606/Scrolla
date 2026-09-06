@@ -18,9 +18,19 @@ interface ScrollEventDao {
     @Query("SELECT hourBucket, SUM(scrollCm) as totalCm FROM scroll_events WHERE day = :day GROUP BY hourBucket ORDER BY totalCm DESC LIMIT 1")
     suspend fun getPeakHourForDay(day: String): HourBucketCm?
 
-    @Query("SELECT SUM(scrollCm) FROM scroll_events WHERE day BETWEEN :startDay AND :endDay")
-    suspend fun getTotalCmBetweenDays(startDay: String, endDay: String): Float?
+    // A8: `getTotalCmBetweenDays()` was removed — zero callers. Range totals are
+    // built from daily_totals (see WeeklyWindow), which is the cheaper source.
 
+    /**
+     * Retention. **Nothing calls this yet** — see A4 in AUDIT_A_TRACK.md.
+     *
+     * Kept rather than deleted precisely because it is the mechanism that would
+     * bound this table: `scroll_events` grows ~400 rows/day forever, and it is
+     * the most sensitive store in the app. The app tells users "App breakdown
+     * stays on this device", which is true, but never says for how long,
+     * because today the answer is "always". Wiring this up needs a retention
+     * period chosen deliberately, not defaulted.
+     */
     @Query("DELETE FROM scroll_events WHERE day < :beforeDay")
     suspend fun deleteOlderThan(beforeDay: String)
 }

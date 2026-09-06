@@ -19,18 +19,17 @@ interface ServiceHealthDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun ensureRowExists(state: ServiceHealthState)
 
-    /**
-     * Whole-row replace. Retained for backward compatibility but no longer
-     * called from any hot path — all frequent writers use targeted updates
-     * below to avoid read-then-write races on the singleton row.
-     */
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun upsert(state: ServiceHealthState)
+    // A8 (AUDIT_A_TRACK.md): `upsert()` and `getOnce()` were removed here.
+    //
+    // Both were left over from the fetch-then-copy pattern of A's decision log
+    // #4, and both had zero callers once the targeted updates below replaced
+    // it. They are not neutral dead code: together they are precisely the
+    // read-then-write pair that caused the lost-update race on this singleton
+    // row, so keeping them available invites reintroducing the bug the targeted
+    // queries exist to prevent. Row creation is `ensureRowExists` (IGNORE, so
+    // it cannot clobber), and reading is `observe()`.
 
     // --- Reads ---
-
-    @Query("SELECT * FROM service_health WHERE id = 1 LIMIT 1")
-    suspend fun getOnce(): ServiceHealthState?
 
     @Query("SELECT * FROM service_health WHERE id = 1")
     fun observe(): Flow<ServiceHealthState?>

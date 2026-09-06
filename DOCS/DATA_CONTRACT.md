@@ -83,6 +83,15 @@ data class DailyTotal(
 ```
 
 **`AppTotal.kt`** — one row per (day, app), recomputed alongside DailyTotal:
+
+> ⚠️ **This describes behaviour that has never existed** (audit A5, 2026-09-06).
+> The entity is registered in `@Database(entities = [...])`, but `ScrollaDatabase`
+> exposes no `appTotalDao()` and no `AppTotalDao` type exists anywhere — so
+> nothing writes these rows, and nothing could, even in principle. The device
+> confirms it: **zero rows after 1,832 events**. Nothing is broken by this, since
+> App Breakdown aggregates from `scroll_events` via `getTodayTopApps()`; it is
+> dead weight plus an untrue contract. **A to decide** whether to populate it in
+> `flushBatch` or delete the entity and strike this section.
 ```kotlin
 @Entity(
     tableName = "app_totals",
@@ -271,7 +280,17 @@ suspend fun syncToFirestore(userId: String, totalKm: Float, date: String) {
 
 This is the exact interface between the two tracks. A implements these in `ScrollRepository.kt`. B imports and calls them from ViewModels — never from Composable functions directly.
 
-All functions are `suspend` unless noted. All are safe to call from a ViewModel's `viewModelScope`. None of them throw — they return `null` or empty collections on failure (A's error handling logs the failure and marks `ServiceHealthState.degradedReason`).
+All functions are `suspend` unless noted. All are safe to call from a ViewModel's `viewModelScope`. None of them throw — they return `null` or empty collections on failure, and the failure is logged at error level.
+
+> **Corrected 2026-09-06 (B, audit A6 — needs A's sign-off).** This paragraph
+> used to end "and marks `ServiceHealthState.degradedReason`". It no longer does,
+> and should not have: a *read* failing is not the *tracking service* being
+> degraded, but that is what the health card then told the user, on the one card
+> whose entire job is to be trustworthy about whether tracking works. It also
+> wrote through `markSyncFailed`, so a failed `getTodayTopApps` was recorded as a
+> sync failure. Reads now log and return their safe default, and nothing else.
+> Surfacing read failures honestly needs a separate column — PREMIUM_CHECKLIST
+> P2.4e.
 
 ```kotlin
 interface ScrollRepository {

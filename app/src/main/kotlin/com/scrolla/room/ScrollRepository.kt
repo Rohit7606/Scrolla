@@ -49,12 +49,15 @@ interface ScrollRepository {
      *  Returns empty list if no data. */
     suspend fun getRecentDailyTotals(days: Int): List<DailyTotal>
 
-    /** The user's single best (lowest) km day, ever. Returns null if fewer than 1 day of data.
-     *  Used on the Personal Records screen. */
+    /** The user's single best (lowest) km day among **completed** days.
+     *  Today is excluded — it is always the lowest while it is still running,
+     *  which used to make every morning a new record (audit A3). So this is
+     *  null until the user has one finished day with scrolling on it, not just
+     *  until they have "1 day of data". Used on the Personal Records screen. */
     suspend fun getPersonalBestKm(): Float?
 
-    /** The full DailyTotal for the user's best day — includes the date string for display.
-     *  Returns null if no data. */
+    /** The full DailyTotal behind [getPersonalBestKm] — includes the date
+     *  string for display. Same exclusions; null until a completed day exists. */
     suspend fun getPersonalBestDay(): DailyTotal?
 
     /** Total km for a specific calendar date string ("2025-01-15").
@@ -101,7 +104,6 @@ class ScrollRepositoryImpl(
             DistanceFormatter.cmToKm(rawTodayCm())
         } catch (e: Exception) {
             Log.e(tag, "getTodayTotalKm() failed for day=${today()}", e)
-            markDegraded("getTodayTotalKm: ${e.message}")
             0f
         }
     }
@@ -111,7 +113,6 @@ class ScrollRepositoryImpl(
             rawTodayCm()
         } catch (e: Exception) {
             Log.e(tag, "getTodayTotalCm() failed for day=${today()}", e)
-            markDegraded("getTodayTotalCm: ${e.message}")
             0f
         }
     }
@@ -127,7 +128,6 @@ class ScrollRepositoryImpl(
             scrollEventDao.getTopAppsByDay(today())
         } catch (e: Exception) {
             Log.e(tag, "getTodayTopApps() failed for day=${today()}", e)
-            markDegraded("getTodayTopApps: ${e.message}")
             emptyList()
         }
     }
@@ -137,7 +137,6 @@ class ScrollRepositoryImpl(
             scrollEventDao.getPeakHourForDay(today())?.hourBucket
         } catch (e: Exception) {
             Log.e(tag, "getTodayPeakHour() failed for day=${today()}", e)
-            markDegraded("getTodayPeakHour: ${e.message}")
             null
         }
     }
@@ -147,27 +146,26 @@ class ScrollRepositoryImpl(
             dailyTotalDao.getRecentDays(days)
         } catch (e: Exception) {
             Log.e(tag, "getRecentDailyTotals() failed for days=$days", e)
-            markDegraded("getRecentDailyTotals: ${e.message}")
             emptyList()
         }
     }
 
+    // A3: today is supplied here rather than read in the DAO so the query stays
+    // a plain string comparison and the A/B contract signatures do not change.
     override suspend fun getPersonalBestKm(): Float? {
         return try {
-            dailyTotalDao.getPersonalBest()
+            dailyTotalDao.getPersonalBest(LocalDate.now().toString())
         } catch (e: Exception) {
             Log.e(tag, "getPersonalBestKm() failed", e)
-            markDegraded("getPersonalBestKm: ${e.message}")
             null
         }
     }
 
     override suspend fun getPersonalBestDay(): DailyTotal? {
         return try {
-            dailyTotalDao.getPersonalBestDay()
+            dailyTotalDao.getPersonalBestDay(LocalDate.now().toString())
         } catch (e: Exception) {
             Log.e(tag, "getPersonalBestDay() failed", e)
-            markDegraded("getPersonalBestDay: ${e.message}")
             null
         }
     }
@@ -177,7 +175,6 @@ class ScrollRepositoryImpl(
             dailyTotalDao.getForDay(date)?.totalKm ?: 0f
         } catch (e: Exception) {
             Log.e(tag, "getTotalKmForDate() failed for date=$date", e)
-            markDegraded("getTotalKmForDate: ${e.message}")
             0f
         }
     }
@@ -188,7 +185,6 @@ class ScrollRepositoryImpl(
         return serviceHealthDao.observe()
             .catch { e ->
                 Log.e(tag, "observeServiceHealth() flow emitted error", e)
-                markDegraded("observeServiceHealth: ${e.message}")
                 emit(null)
             }
     }
@@ -253,19 +249,28 @@ class ScrollRepositoryImpl(
         }
     }
 
-    /**
-     * Marks ServiceHealthState.degradedReason on a repository failure (per
-     * DATA_CONTRACT.md §4 and AGENTS.md §4.8) via targeted update.
-     * Fully guarded: a failure here is swallowed so marking degraded can never
-     * surface to the caller.
+    /*
+     * A6 (AUDIT_A_TRACK.md): there was a markDegraded() here that every read in
+     * this class called on failure, implemented as serviceHealthDao
+     * .markSyncFailed(reason). It was wrong twice over:
+     *
+     *  1. It reported a *read* failure as a *tracking* failure. If Home's query
+     *     threw, the Settings health card started saying tracking was degraded
+     *     while tracking was in fact fine. That card's entire job is to be
+     *     trustworthy about whether tracking works, so a false positive there is
+     *     worse than saying nothing.
+     *  2. It wrote through the sync-failure query, so degradedReason ended up
+     *     reading "getTodayTopApps: ..." attributed to sync.
+     *
+     * Reads no longer write service health at all. AGENTS.md §4.8 ("fail loud
+     * internally, invisible to the caller") is still satisfied: every catch
+     * block above logs at error level and returns its documented safe default.
+     *
+     * If read failures should be surfaced to the user, that needs its own
+     * column rather than a third writer sharing degradedReason — which is
+     * exactly PREMIUM_CHECKLIST P2.4e. DATA_CONTRACT.md §4 still describes the
+     * old behaviour and needs A's sign-off to update.
      */
-    private suspend fun markDegraded(reason: String) {
-        try {
-            serviceHealthDao.markSyncFailed(reason)
-        } catch (_: Exception) {
-            // Swallow — the original failure is already logged at the call site.
-        }
-    }
 }
 
 
