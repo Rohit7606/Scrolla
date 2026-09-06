@@ -592,6 +592,33 @@ killing the process is what kills the binding.
 - [x] **P2.12g** `startForeground` ran unguarded on `onServiceConnected`, the
       service's entry point. Note `FOREGROUND_SERVICE_TYPE_SPECIAL_USE` is an
       **API 34** constant and the test device is **API 33**.
+- [x] **P2.12j 🔴 The banner read a cache that lies, and it lied reassuringly.**
+      Reported as "the tracking-off banner appears after every rebuild even
+      though the toggle is on, then disappears when I reopen the app". Measured
+      2026-09-06, and the truth was the opposite of the report in the part that
+      matters. **A reinstall really does disable the accessibility service** —
+      the device showed `accessibility_enabled = 0`, `enabled_accessibility_services = null`
+      and `Bound services:{}`, still true 20 seconds and several minutes later,
+      so the banner was correct to appear. **The bug was it going away.** The
+      health row simultaneously read `isServiceRunning = 1,
+      isAccessibilityServiceEnabled = 1`: a package replace kills the process
+      without `onDestroy` or `onUnbind`, so nothing writes `false`, and the only
+      re-check ran in `MainActivity.onCreate`/`onResume`. Between a rebuild and
+      the next resume the app silently reassured the user while recording
+      nothing. Fixed by asking `AccessibilityManager` directly
+      (`rememberAccessibilityEnabled`) — on composition, on every `ON_RESUME`,
+      and via the state-change callback — instead of reading Room. Room stays
+      the source for the Settings health card, which is history; the banner is
+      about what is true now. `MainActivity` also now clears `isServiceRunning`
+      when the switch is off, since the service cannot be running then whatever
+      the row claims. Verified on device with the service genuinely off: banner
+      renders.
+- [ ] **P2.12k** **A rebuild silently costs you tracking.** Not a code defect,
+      but a testing-process one worth writing down: the accessibility service
+      does not reliably survive `adb install -r`. It survived once on 2026-09-06
+      and not on the two reinstalls after. **Gaps in the test data may be
+      rebuilds rather than OEM kills**, and any device session should start by
+      confirming the toggle rather than assuming it.
 - [ ] **P2.12h** **Not yet proven against a captured stack trace.** The crash
       buffer was 256 KB and had rotated past both outages. Raised to **16 MB** on
       the test device — the same lesson as the S0.7 Logcat truncation, applied to

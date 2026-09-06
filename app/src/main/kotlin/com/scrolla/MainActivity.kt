@@ -149,6 +149,18 @@ class MainActivity : ComponentActivity() {
                     )
                 )
                 db.serviceHealthDao().updateAccessibilityEnabled(enabled)
+
+                // If the switch is off the service cannot be running, whatever
+                // the row currently claims. Worth writing explicitly because
+                // `isServiceRunning` is only ever cleared by onDestroy/onUnbind,
+                // and a package replace or an OEM process kill takes the process
+                // without either — leaving the Settings health card reporting a
+                // running tracker with nothing behind it. Measured on 2026-09-06:
+                // the row read (isServiceRunning=1, isAccessibilityServiceEnabled=1)
+                // while the device reported Bound services:{}.
+                if (!enabled) {
+                    db.serviceHealthDao().updateServiceRunning(false)
+                }
             } catch (e: Exception) {
                 // Fail loud, never crash. A future Service Health screen reads the
                 // persisted state; a crash here must not block the UI from launching.

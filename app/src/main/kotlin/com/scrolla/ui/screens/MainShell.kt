@@ -161,15 +161,20 @@ fun MainShell(
         }
     }
 
-    // Tracking-off banner (P2.12). The health row is kept current by
-    // MainActivity.onResume, which re-checks the accessibility switch on every
-    // foreground return and writes it to Room — so returning from Settings after
-    // re-enabling clears this without a manual refresh. Shown for the explicit
-    // false only: a null row is "not checked yet", which must not flash a
-    // false alarm on a cold start before the first check lands.
-    val serviceHealth by ScrollaGraph.scrollRepository.observeServiceHealth()
-        .collectAsState(initial = null)
-    val trackingOff = serviceHealth?.isAccessibilityServiceEnabled == false
+    // Tracking-off banner (P2.12), asked of the system rather than of Room.
+    //
+    // This read the health row until 2026-09-06, when that row was caught
+    // claiming isServiceRunning = 1 and isAccessibilityServiceEnabled = 1 on a
+    // device that reported accessibility_enabled = 0 and Bound services:{}. A
+    // package replace kills the process without onDestroy, so nothing writes
+    // false, and the only re-check ran on MainActivity resume — leaving the app
+    // silently reassuring between a rebuild and the next foreground.
+    //
+    // A banner that exists to say "nothing is being recorded" must never be
+    // hidden by a stale cache, so it asks AccessibilityManager directly. See
+    // rememberAccessibilityEnabled.
+    val accessibilityEnabled by rememberAccessibilityEnabled()
+    val trackingOff = !accessibilityEnabled
 
     Box(modifier = modifier.fillMaxSize()) {
     AnimatedContent(
