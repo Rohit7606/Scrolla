@@ -9,6 +9,10 @@
          View.performHapticFeedback(), which is gated on the system's
          touch-feedback setting - see ui/components/Haptics.kt. -->
     <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- P2.15: turns the battery-unrestricted step into a single system dialog
+         instead of a multi-level navigation the user has to find. Play-restricted,
+         which does not apply here — Scrolla is sideloaded by decision (P0.5a). -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 
     <!--
         Needed to turn the package ids the accessibility service records into app

@@ -40,6 +40,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -1339,10 +1340,14 @@ private fun BatteryWhitelistPhase(
     val instructions = helper.getInstructions(Build.MANUFACTURER)
     var hasLaunchedSettings by remember { mutableStateOf(false) }
 
-    DisposableEffect(lifecycleOwner) {
+    // Auto-advance only where there is a single thing to do. On an aggressive OEM
+    // this screen now has several steps with a button each, and skipping ahead the
+    // moment the user returns from the first one would hide the rest — including
+    // the Recents lock, which is the step that actually matters (P2.15).
+    val autoAdvanceOnReturn = instructions.steps.count { it.action != null } <= 1
+    DisposableEffect(lifecycleOwner, autoAdvanceOnReturn) {
         val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME && hasLaunchedSettings) {
-                // When they return from settings, auto-advance for smoother UX
+            if (event == Lifecycle.Event.ON_RESUME && hasLaunchedSettings && autoAdvanceOnReturn) {
                 onNext()
             }
         }
@@ -1401,7 +1406,7 @@ private fun BatteryWhitelistPhase(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 4.dp),
+                            .padding(vertical = 6.dp),
                         verticalAlignment = Alignment.Top
                     ) {
                         // Number circle
@@ -1410,7 +1415,10 @@ private fun BatteryWhitelistPhase(
                                 .padding(top = 2.dp, end = 12.dp)
                                 .size(24.dp)
                                 .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
+                                .background(
+                                    if (step.critical) MaterialTheme.colorScheme.primary.copy(alpha = 0.22f)
+                                    else MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                                ),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
@@ -1419,13 +1427,35 @@ private fun BatteryWhitelistPhase(
                                 color = MaterialTheme.colorScheme.primary
                             )
                         }
-                        
-                        Text(
-                            text = step,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(top = 4.dp)
-                        )
+
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = step.text,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = if (step.critical) MaterialTheme.colorScheme.onSurface
+                                else MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(top = 4.dp)
+                            )
+                            // Each reachable step gets its own button, so the user never
+                            // has to find a settings screen themselves. The critical step
+                            // has none on purpose: locking an app in Recents is a gesture
+                            // in the recents UI, not a screen anything can launch.
+                            val action = step.action
+                            if (action != null) {
+                                TextButton(
+                                    onClick = {
+                                        hasLaunchedSettings = true
+                                        helper.launch(context, action)
+                                    },
+                                    contentPadding = PaddingValues(horizontal = 0.dp, vertical = 4.dp)
+                                ) {
+                                    Text(
+                                        text = step.actionLabel ?: ScrollaStrings.BATTERY_OPEN_SETTINGS_BUTTON,
+                                        style = MaterialTheme.typography.labelLarge
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -1433,16 +1463,29 @@ private fun BatteryWhitelistPhase(
             Spacer(modifier = Modifier.height(MaterialTheme.spacing.large))
             }
 
-            ScrollaPrimaryButton(
-                text = ScrollaStrings.BATTERY_OPEN_SETTINGS_BUTTON,
-                onClick = {
-                    hasLaunchedSettings = true
-                    helper.openBatterySettings(context)
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .alpha(alpha3)
-            )
+            // With a button on every reachable step, a second "Open settings" at the
+            // bottom would just be a fifth way to reach the same screens. Where the
+            // steps carry their own actions this becomes the acknowledgement instead.
+            if (autoAdvanceOnReturn) {
+                ScrollaPrimaryButton(
+                    text = ScrollaStrings.BATTERY_OPEN_SETTINGS_BUTTON,
+                    onClick = {
+                        hasLaunchedSettings = true
+                        helper.openBatterySettings(context)
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .alpha(alpha3)
+                )
+            } else {
+                ScrollaPrimaryButton(
+                    text = ScrollaStrings.BATTERY_DONE_BUTTON,
+                    onClick = onNext,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .alpha(alpha3)
+                )
+            }
 
             Spacer(modifier = Modifier.height(MaterialTheme.spacing.extraExtraSmall))
 

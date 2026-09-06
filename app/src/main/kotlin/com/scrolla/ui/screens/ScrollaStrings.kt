@@ -59,6 +59,10 @@ object ScrollaStrings {
     const val BATTERY_MANUFACTURER_PREFIX = "Settings for your"
     const val BATTERY_OPEN_SETTINGS_BUTTON = "Open battery settings"
     const val BATTERY_CONTINUE_BUTTON = "I've done this"
+    // Shown instead of "Open battery settings" where each step carries its own
+    // button, so the primary action becomes acknowledgement rather than a fifth
+    // route to the same screens (P2.15).
+    const val BATTERY_DONE_BUTTON = "Done — keep tracking"
 
     // Phase 5: Join or Create Group
     const val GROUP_HEADLINE = "Join your friends"
