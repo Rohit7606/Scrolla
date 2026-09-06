@@ -1,5 +1,6 @@
 package com.scrolla.ui.screens
 import kotlinx.parcelize.Parcelize
+import kotlin.math.roundToInt
 import android.content.Intent
 import androidx.compose.ui.platform.LocalContext
 import android.provider.Settings
@@ -175,6 +176,26 @@ fun MainShell(
     // rememberAccessibilityEnabled.
     val accessibilityEnabled by rememberAccessibilityEnabled()
     val trackingOff = !accessibilityEnabled
+
+    // The other outage — the switch is on, but the process was killed and
+    // nothing has been recorded since. Room is the right source here, unlike the
+    // banner above: this asks "when did we last record anything", which is a
+    // fact about our own history rather than about current system state.
+    //
+    // Read only for lastEventTimestamp. Note the Flow cannot emit while tracking
+    // is dead, because emissions come from flushes — so this is evaluated at
+    // composition, which is exactly when the user has opened the app to look.
+    val serviceHealth by ScrollaGraph.scrollRepository.observeServiceHealth()
+        .collectAsState(initial = null)
+
+    val gapHours = serviceHealth?.let { health ->
+        val now = System.currentTimeMillis()
+        if (TrackingGap.isSuspicious(accessibilityEnabled, health.lastEventTimestamp, now)) {
+            TrackingGap.wakingHoursSince(health.lastEventTimestamp, now, java.time.ZoneId.systemDefault())
+        } else {
+            null
+        }
+    }
 
     Box(modifier = modifier.fillMaxSize()) {
     AnimatedContent(
@@ -460,6 +481,31 @@ fun MainShell(
                     .align(Alignment.TopCenter)
                     .windowInsetsPadding(WindowInsets.statusBars)
             )
+        } else if (gapHours != null) {
+            // Deliberately `else if`. Both messages explain missing data, and
+            // showing them together would give one problem two different causes
+            // and two different fixes. "Switched off" is the more actionable
+            // explanation, so it wins when both are true.
+            TrackingGapBanner(
+                wakingHours = gapHours,
+                onFixClick = {
+                    // Straight to the OEM screen: the switch is on, so
+                    // Accessibility is not the problem here. Falls back to app
+                    // info when no OEM intent resolves, so the button is never
+                    // inert — the failure mode the health card's button had.
+                    if (!BatteryWhitelistHelper().openBatterySettings(context)) {
+                        context.startActivity(
+                            Intent(
+                                Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                                Uri.fromParts("package", context.packageName, null)
+                            ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        )
+                    }
+                },
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .windowInsetsPadding(WindowInsets.statusBars)
+            )
         }
 
         SnackbarHost(
@@ -478,6 +524,67 @@ fun MainShell(
  * persistent, and a dismissable warning about silent data loss would just be
  * swiped away and forgotten — which is the failure it exists to prevent.
  */
+/**
+ * The switch is on, but nothing has been recorded for hours.
+ *
+ * Same shape as [TrackingOffBanner] on purpose — one visual language for "your
+ * data has a hole in it", whatever caused it. What differs is the headline,
+ * which leads with the measured gap rather than a state: the user has no way to
+ * notice this themselves, since on a reverse leaderboard a dead tracker and a
+ * disciplined day are the same number.
+ */
+@Composable
+private fun TrackingGapBanner(
+    wakingHours: Double,
+    onFixClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val colors = MaterialTheme.scrollaColors
+    // Rounded to whole hours. The underlying figure is a proxy built on assumed
+    // waking hours, and "7 hours" claims about as much precision as it has;
+    // "6.8 hours" would dress a heuristic up as a measurement.
+    val hours = wakingHours.roundToInt().coerceAtLeast(1)
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 8.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(colors.warningContainer)
+            .border(1.dp, colors.warning.copy(alpha = 0.4f), RoundedCornerShape(16.dp))
+            .bounceClick(onClick = onFixClick)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Icon(
+            imageVector = Icons.Filled.Warning,
+            contentDescription = null,
+            tint = colors.warning,
+            modifier = Modifier.size(20.dp)
+        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = String.format(
+                    ScrollaStrings.BANNER_GAP_TITLE_TEMPLATE,
+                    if (hours == 1) "an hour" else "$hours hours"
+                ),
+                style = MaterialTheme.typography.titleSmall,
+                color = colors.onWarningContainer
+            )
+            Text(
+                text = ScrollaStrings.BANNER_GAP_BODY,
+                style = MaterialTheme.typography.bodySmall,
+                color = colors.onWarningContainer.copy(alpha = 0.85f)
+            )
+        }
+        Text(
+            text = ScrollaStrings.BANNER_GAP_ACTION,
+            style = MaterialTheme.typography.labelLarge,
+            color = colors.warning
+        )
+    }
+}
+
 @Composable
 private fun TrackingOffBanner(
     onFixClick: () -> Unit,

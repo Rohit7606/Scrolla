@@ -619,6 +619,24 @@ killing the process is what kills the binding.
       and not on the two reinstalls after. **Gaps in the test data may be
       rebuilds rather than OEM kills**, and any device session should start by
       confirming the toggle rather than assuming it.
+- [x] **P2.12l Gap detection — the outage with no other symptom.** The
+      tracking-off banner cannot see a killed process: the switch is still on, so
+      by that measure everything is fine. Neither can the user, because on a
+      leaderboard where **lower wins**, a dead tracker and a disciplined day are
+      the same number — which is why all three outages were silent.
+      `TrackingGap` counts **waking hours**, not elapsed ones: the naive "no
+      events for six hours" rule fires every single morning (last scroll 22:30,
+      app opened 09:00, eleven hours, nothing wrong). Only the overlap with
+      09:00-22:00 counts, so a normal night scores 0.0 while the real 2026-08-25
+      outage scores 9.4 and fires. Threshold 5 waking hours. Drives an in-app
+      banner, never a notification — it carries the same "tracker died vs
+      genuinely quiet" ambiguity as `RecordEligibility`, so a false alarm must
+      cost a glance and not an interruption. Shown as `else if` after the
+      tracking-off banner: both explain missing data, and two causes for one
+      problem is worse than one. 13 tests.
+- [ ] **P2.12m** Not yet seen firing on a device. The logic is unit-tested
+      against the real 25 August outage's timings, but no one has watched the
+      banner appear after an actual kill — which needs a kill to happen.
 - [ ] **P2.12h** **Not yet proven against a captured stack trace.** The crash
       buffer was 256 KB and had rotated past both outages. Raised to **16 MB** on
       the test device — the same lesson as the S0.7 Logcat truncation, applied to

@@ -243,6 +243,15 @@ object ScrollaStrings {
     // a defensible choice only if the user can undo it, so this is the undo.
     // Worded as "app history" rather than "scroll events" because the user
     // recognises the App Breakdown screen, not the table behind it.
+    // ── Tracking gap (P2.12) ──
+    // Shown when the switch is on but nothing has been recorded for hours. Leads
+    // with the evidence, because the whole reason this is worth interrupting for
+    // is that the user cannot see the problem themselves: on a leaderboard where
+    // lower wins, a dead tracker looks exactly like a good day.
+    const val BANNER_GAP_TITLE_TEMPLATE = "Nothing recorded for %s"
+    const val BANNER_GAP_BODY = "Your phone stopped Scrolla in the background. One setting usually fixes it."
+    const val BANNER_GAP_ACTION = "Fix"
+
     // The permanent home for the OEM background-kill steps, now that they no
     // longer block onboarding. Named for the outcome the user wants rather than
     // the mechanism — nobody opens Settings looking for "autostart".
