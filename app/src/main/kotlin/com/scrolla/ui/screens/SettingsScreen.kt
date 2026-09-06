@@ -116,6 +116,15 @@ fun SettingsScreen(
     onSignOutClick: () -> Unit = {},
     onDeleteAccountClick: () -> Unit = {},
     onExportDataClick: () -> Unit = {},
+    /** Clears per-app history. Scrolla keeps it indefinitely by decision, so
+     *  this is the user's way to undo that. */
+    onClearHistoryClick: () -> Unit = {},
+    /** True while the clear is in flight. */
+    isClearingHistory: Boolean = false,
+    /** Non-null once a clear has finished — the outcome to report, success or
+     *  failure. Silence after a destructive tap reads as "nothing happened". */
+    clearHistoryResult: String? = null,
+    onDismissClearHistoryResult: () -> Unit = {},
     /** True while deletion is in flight — the row must not be tappable twice. */
     isDeleting: Boolean = false,
     /** Non-null when deletion failed. Shown instead of closing silently, because
@@ -130,6 +139,7 @@ fun SettingsScreen(
     var showSignOutConfirm by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
     var showDeleteConfirm by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
     var deleteConfirmText by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf("") }
+    var showClearHistoryConfirm by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
     val ctx = androidx.compose.ui.platform.LocalContext.current
     var hapticsOn by androidx.compose.runtime.remember {
         androidx.compose.runtime.mutableStateOf(ScrollaHaptics.isEnabled(ctx))
@@ -146,6 +156,50 @@ fun SettingsScreen(
             confirmButton = {
                 TextButton(onClick = onDismissDeleteError) {
                     Text(ScrollaStrings.ERROR_DISMISS)
+                }
+            }
+        )
+    }
+
+    // Reports the outcome either way. A destructive action that returns to a
+    // silent screen leaves the user unable to tell success from failure.
+    if (clearHistoryResult != null) {
+        AlertDialog(
+            onDismissRequest = onDismissClearHistoryResult,
+            title = { Text(ScrollaStrings.SETTINGS_CLEAR_HISTORY_TITLE) },
+            text = { Text(clearHistoryResult) },
+            confirmButton = {
+                TextButton(onClick = onDismissClearHistoryResult) {
+                    Text(ScrollaStrings.ERROR_DISMISS)
+                }
+            }
+        )
+    }
+
+    if (showClearHistoryConfirm) {
+        AlertDialog(
+            onDismissRequest = { showClearHistoryConfirm = false },
+            title = { Text(ScrollaStrings.SETTINGS_CLEAR_HISTORY_TITLE) },
+            text = { Text(ScrollaStrings.SETTINGS_CLEAR_HISTORY_BODY) },
+            // No type-to-confirm here, unlike account deletion. This is
+            // recoverable in the sense that matters — the user keeps every
+            // distance figure, their records and their group standing — so
+            // gating it behind typing a word would be friction that teaches
+            // people to ignore the gate on the one action that needs it.
+            confirmButton = {
+                TextButton(onClick = {
+                    showClearHistoryConfirm = false
+                    onClearHistoryClick()
+                }) {
+                    Text(
+                        ScrollaStrings.SETTINGS_CLEAR_HISTORY_CONFIRM,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showClearHistoryConfirm = false }) {
+                    Text(ScrollaStrings.SETTINGS_CLEAR_HISTORY_CANCEL)
                 }
             }
         )
@@ -451,6 +505,26 @@ fun SettingsScreen(
                             // they might want to take their data with them.
                             label = ScrollaStrings.SETTINGS_EXPORT_LABEL,
                             onClick = onExportDataClick
+                        )
+
+                        androidx.compose.material3.HorizontalDivider(
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
+                            modifier = Modifier.padding(horizontal = 16.dp)
+                        )
+
+                        SettingsItem(
+                            // Between Export and Delete deliberately: the three
+                            // rows form a ladder of increasing finality, and a
+                            // user who wants less data held about them should
+                            // meet the smaller option before the nuclear one.
+                            label = if (isClearingHistory) {
+                                ScrollaStrings.SETTINGS_CLEAR_HISTORY_IN_PROGRESS
+                            } else {
+                                ScrollaStrings.SETTINGS_CLEAR_HISTORY_LABEL
+                            },
+                            onClick = { showClearHistoryConfirm = true },
+                            isDestructive = true,
+                            enabled = !isClearingHistory
                         )
 
                         androidx.compose.material3.HorizontalDivider(

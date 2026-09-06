@@ -26,7 +26,10 @@ data class SettingsUiState(
     val isDeleting: Boolean = false,
     /** Non-null when deletion failed. The screen must say so rather than
      *  silently leaving the account intact. */
-    val deleteError: String? = null
+    val deleteError: String? = null,
+    val isClearingHistory: Boolean = false,
+    /** Non-null once a clear finishes — success or failure, both reported. */
+    val clearHistoryResult: String? = null
 )
 
 /**
@@ -174,6 +177,37 @@ class SettingsViewModel(
 
     fun dismissDeleteError() {
         _uiState.value = _uiState.value.copy(deleteError = null)
+    }
+
+    /**
+     * Clears the per-app, per-hour history and reports what happened.
+     *
+     * Scrolla keeps `scroll_events` indefinitely by decision (2026-09-06) —
+     * it is the only table that records *which* apps were scrolled and *when*,
+     * and it is never synced anywhere. Keeping it forever is defensible only if
+     * the user can undo it, so this is that undo.
+     *
+     * The result is reported either way. A destructive tap that returns to an
+     * unchanged screen — App Breakdown still shows today, because today is
+     * deliberately kept — would otherwise look like nothing happened.
+     */
+    fun clearAppHistory() {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isClearingHistory = true, clearHistoryResult = null)
+            val ok = scrollRepository.clearAppHistory()
+            _uiState.value = _uiState.value.copy(
+                isClearingHistory = false,
+                clearHistoryResult = if (ok) {
+                    ScrollaStrings.SETTINGS_CLEAR_HISTORY_DONE
+                } else {
+                    ScrollaStrings.SETTINGS_CLEAR_HISTORY_FAILED
+                }
+            )
+        }
+    }
+
+    fun dismissClearHistoryResult() {
+        _uiState.value = _uiState.value.copy(clearHistoryResult = null)
     }
 
     private companion object {

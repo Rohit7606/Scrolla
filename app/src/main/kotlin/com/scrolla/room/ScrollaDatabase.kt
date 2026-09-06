@@ -11,10 +11,9 @@ import androidx.sqlite.db.SupportSQLiteDatabase
     entities = [
         ScrollEvent::class,
         DailyTotal::class,
-        AppTotal::class,
         ServiceHealthState::class
     ],
-    version = 3
+    version = 4
 )
 abstract class ScrollaDatabase : RoomDatabase() {
     // S1.A2: DAO accessors
@@ -64,6 +63,29 @@ abstract class ScrollaDatabase : RoomDatabase() {
          * TrackingHealthReceiver and ScrollRepositoryImpl, several of which fire
          * together at boot.
          */
+        /**
+         * A5: drop `app_totals`.
+         *
+         * The entity was registered in `@Database` from S1.A2 onward, but
+         * `ScrollaDatabase` never exposed an `appTotalDao()` and no `AppTotalDao`
+         * type was ever written — so no code path could write it, even in
+         * principle. The device confirmed it: zero rows after 1,832 events.
+         * `DATA_CONTRACT.md` §2.1 described it as "recomputed alongside
+         * DailyTotal", which is behaviour that never existed.
+         *
+         * Deleted rather than implemented (decision 2026-09-06). App Breakdown
+         * aggregates from `scroll_events` and is unaffected, and `scroll_events`
+         * is being kept indefinitely, so a precomputed per-app summary would be
+         * a cache for a table that is already there. If App Breakdown ever gets
+         * slow enough to need one, it is a small job to add back — and it would
+         * then be written deliberately rather than inherited.
+         */
+        private val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("DROP TABLE IF EXISTS app_totals")
+            }
+        }
+
         fun getDatabase(context: Context): ScrollaDatabase {
             return INSTANCE ?: synchronized(this) {
                 INSTANCE ?: Room.databaseBuilder(
@@ -71,7 +93,7 @@ abstract class ScrollaDatabase : RoomDatabase() {
                     ScrollaDatabase::class.java,
                     "scrolla_database"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                     .build()
                     .also { INSTANCE = it }
             }

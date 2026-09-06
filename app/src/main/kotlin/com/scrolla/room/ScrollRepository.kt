@@ -77,6 +77,19 @@ interface ScrollRepository {
      *  B calls this when the app comes to foreground and when the 15-minute timer fires.
      *  A handles the actual write logic. B must not write to Firestore directly for daily totals. */
     suspend fun triggerFirestoreSync()
+
+    /**
+     * Deletes the per-app, per-hour history — every `scroll_events` row before
+     * today — and leaves daily distance totals untouched.
+     *
+     * Scrolla keeps `scroll_events` indefinitely by decision (2026-09-06), so
+     * this is the user's way out of that. Deliberately does *not* clear today:
+     * Home's today figure is summed from this table, so wiping the current day
+     * would show 0 m while `daily_totals` still held the real number.
+     *
+     * Returns true on success. Like everything else here it never throws.
+     */
+    suspend fun clearAppHistory(): Boolean
 }
 
 /**
@@ -167,6 +180,17 @@ class ScrollRepositoryImpl(
         } catch (e: Exception) {
             Log.e(tag, "getPersonalBestDay() failed", e)
             null
+        }
+    }
+
+    override suspend fun clearAppHistory(): Boolean {
+        return try {
+            scrollEventDao.deleteOlderThan(today())
+            Log.i(tag, "clearAppHistory() cleared scroll_events before ${today()}")
+            true
+        } catch (e: Exception) {
+            Log.e(tag, "clearAppHistory() failed", e)
+            false
         }
     }
 

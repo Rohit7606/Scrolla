@@ -155,7 +155,7 @@ object ScrollaStrings {
     const val INSIGHTS_SECTION_THIS_WEEK = "this week"
     const val INSIGHTS_SECTION_TOP_APPS = "top apps by distance"
     const val INSIGHTS_SECTION_PEAK_TIME = "peak scroll time"
-    const val INSIGHTS_PRIVACY_NOTE = "App breakdown stays on this device, never shared with your group"
+    const val INSIGHTS_PRIVACY_NOTE = "App breakdown stays on this device and is never shared with your group. It is kept until you clear it in Settings."
     const val INSIGHTS_EMPTY_TOP_APPS = "Keep scrolling to see your top apps"
     const val INSIGHTS_EMPTY_PEAK_TIME = "Your peak time will appear after a few days of data"
     const val INSIGHTS_NO_DATA_DAY = "no data yet"
@@ -239,6 +239,22 @@ object ScrollaStrings {
     const val SETTINGS_SIGN_OUT = "Sign out"
     const val SETTINGS_SIGN_OUT_TITLE = "Sign out of Scrolla?"
     const val SETTINGS_SIGN_OUT_BODY = "You can sign back in anytime with your Google account"
+    // Scrolla keeps per-app history indefinitely (decision 2026-09-06). That is
+    // a defensible choice only if the user can undo it, so this is the undo.
+    // Worded as "app history" rather than "scroll events" because the user
+    // recognises the App Breakdown screen, not the table behind it.
+    const val SETTINGS_CLEAR_HISTORY_LABEL = "Clear app history"
+    const val SETTINGS_CLEAR_HISTORY_TITLE = "Clear your app history?"
+    const val SETTINGS_CLEAR_HISTORY_BODY =
+        "This deletes the record of which apps you scrolled and when, for every day before today.\n\n" +
+            "Your distances are kept — daily totals, your records, your streak and everything in your group are unaffected.\n\n" +
+            "This cannot be undone."
+    const val SETTINGS_CLEAR_HISTORY_CONFIRM = "Clear history"
+    const val SETTINGS_CLEAR_HISTORY_CANCEL = "Keep it"
+    const val SETTINGS_CLEAR_HISTORY_IN_PROGRESS = "Clearing..."
+    const val SETTINGS_CLEAR_HISTORY_DONE = "App history cleared"
+    const val SETTINGS_CLEAR_HISTORY_FAILED = "Could not clear history — nothing was deleted"
+
     const val SETTINGS_DELETE_ACCOUNT = "Delete account"
     const val SETTINGS_HAPTICS_LABEL = "Haptic feedback"
     const val SETTINGS_HAPTICS_ON = "On"
@@ -329,6 +345,6 @@ object ScrollaStrings {
     const val APP_BREAKDOWN_NUDGE_TEMPLATE = "Cutting %s by 20%% would put you in %s"
     const val APP_BREAKDOWN_BIGGEST_TEMPLATE = "%s is your biggest source today"
     const val APP_BREAKDOWN_EMPTY = "No app data yet today — keep scrolling"
-    const val APP_BREAKDOWN_PRIVACY = "App breakdown stays on this device, never shared with your group"
+    const val APP_BREAKDOWN_PRIVACY = "App breakdown stays on this device and is never shared with your group. It is kept until you clear it in Settings."
 }
 

@@ -82,27 +82,55 @@ data class DailyTotal(
 )
 ```
 
-**`AppTotal.kt`** — one row per (day, app), recomputed alongside DailyTotal:
+**`AppTotal.kt`** — ~~one row per (day, app), recomputed alongside DailyTotal~~
+**REMOVED 2026-09-06 (schema v4).**
 
-> ⚠️ **This describes behaviour that has never existed** (audit A5, 2026-09-06).
-> The entity is registered in `@Database(entities = [...])`, but `ScrollaDatabase`
-> exposes no `appTotalDao()` and no `AppTotalDao` type exists anywhere — so
-> nothing writes these rows, and nothing could, even in principle. The device
-> confirms it: **zero rows after 1,832 events**. Nothing is broken by this, since
-> App Breakdown aggregates from `scroll_events` via `getTodayTopApps()`; it is
-> dead weight plus an untrue contract. **A to decide** whether to populate it in
-> `flushBatch` or delete the entity and strike this section.
-```kotlin
-@Entity(
-    tableName = "app_totals",
-    primaryKeys = ["day", "appPackage"]
-)
-data class AppTotal(
-    val day: String,            // "2025-01-15"
-    val appPackage: String,     // "com.instagram.android"
-    val totalCm: Float          // accumulated cm for this app on this day
-)
-```
+> This section described behaviour that never existed (audit A5). The entity was
+> registered in `@Database`, but `ScrollaDatabase` exposed no `appTotalDao()` and
+> no `AppTotalDao` type was ever written — nothing wrote these rows and nothing
+> could, even in principle. The device confirmed it: **zero rows after 1,832
+> events.**
+>
+> Deleted rather than implemented. App Breakdown was never affected — it
+> aggregates live from `scroll_events` via `getTodayTopApps()`. And since
+> `scroll_events` is now kept indefinitely by decision (see §Retention below), a
+> precomputed per-app summary would be a cache for a table that is already
+> present. `MIGRATION_3_4` drops `app_totals`; verified on the device with data
+> in place.
+>
+> If App Breakdown ever grows slow enough to want one, adding it back is a small
+> job — and it would then be written deliberately instead of inherited.
+#### Retention — decided 2026-09-06
+
+**`scroll_events` is kept indefinitely.** It is never deleted on a schedule and
+never expires.
+
+The decision was taken deliberately rather than inherited, after measuring it:
+76 bytes per row, ~255 rows/day, so **6.7–11 MB per year** against a ~32 MB APK.
+Storage is not a reason to delete it. The reason to consider deleting it was
+privacy — it is a timestamped log of which apps are opened and when — and the
+reason to keep it is that deletion is irreversible while a retention policy can
+be added at any time, and no per-app history feature has been designed yet.
+
+Two obligations come with that choice, and both are implemented:
+
+1. **It is stated, not implied.** `INSIGHTS_PRIVACY_NOTE` / `APP_BREAKDOWN_PRIVACY`
+   now read "…and is never shared with your group. It is kept until you clear it
+   in Settings." The previous copy was true but silent on duration.
+2. **The user can undo it.** Settings → *Clear app history* calls
+   `ScrollRepository.clearAppHistory()`, which deletes every `scroll_events` row
+   before today. Today is deliberately kept: Home's today figure is summed from
+   this table, so wiping the current day would read 0 m while `daily_totals`
+   still held the real number.
+
+Note this is the **only** table with a retention question. `daily_totals` is one
+small row per day and is kept forever regardless — it is what every historical
+screen actually reads (Weekly Recap, Insights, Personal Records, the
+leaderboard). Clearing app history costs the user no distance data at all.
+
+**Revisit before there are real users**, not before there are more features.
+
+---
 
 **`ServiceHealthState.kt`** — single-row table, always upserted not inserted:
 ```kotlin
@@ -452,7 +480,10 @@ These are the specific things that would silently break A's data layer, listed h
 
 - **Never query `scroll_events` directly.** Use the repository functions in Section 4.
 - **Never write to `/groups/{groupId}/dailyTotals/` from B's code.** Only A's `triggerFirestoreSync()` writes there.
-- **Never add per-app data to any Firestore document.** `AppTotal` is local-only.
+- **Never add per-app data to any Firestore document.** `scroll_events` — which
+  apps, at which hour — is local-only and never syncs. This is a promise the app
+  makes to the user in `INSIGHTS_PRIVACY_NOTE`, not just an implementation
+  detail, so it survives the removal of `AppTotal`.
 - **Never call `LocalDate.now(ZoneOffset.UTC)` for a date string.** Local time only.
 - **Never add an `onSnapshot()` listener to the leaderboard collection.** Poll on tab-open with the staleness check.
 - **Never assume `getTodayTotalKm()` returns a non-zero value before Sprint 0 is verified** — mock data in the UI is fine during development, but make it visually obvious it's mocked.

@@ -378,7 +378,14 @@ every angle except the one that matters.
       Swapping `RecordEligibility.isPlausiblyComplete()` is the only change
       needed if either lands.
 
-### P2.8 — `app_totals` is a dead table `[A — `room/`]` — ☐ *found 2026-09-04*
+### P2.8 — `app_totals` is a dead table `[A — `room/`]` — ☑ *found 2026-09-04, deleted 2026-09-06*
+
+> **Resolved:** the entity and its table are gone (schema v4, `MIGRATION_3_4`).
+> Deleting won over populating because `scroll_events` is now kept indefinitely
+> (see DATA_CONTRACT §Retention), which makes a precomputed per-app summary a
+> cache for a table that is already there. Verified on the device: `app_totals`
+> absent, `user_version` 4, all 2,069 events and 8 daily totals intact.
+
 
 `AppTotal` is declared in `ScrollaDatabase`, carried through the migrations, and
 specified in `DATA_CONTRACT.md` §2.1 as "one row per (day, app), **recomputed
@@ -619,11 +626,12 @@ the outage's cause — an unguarded line in the hottest path — was unlikely to
 the only one of its kind. Logged as the mandatory **M1 review #8, verdict Changes
 required**. Eleven findings; the first four matter.
 
-**Status 2026-09-06:** nine of eleven fixed and verified (review #9). Two are
-left deliberately open because they are decisions rather than defects, and both
-are A's to make: **P2.14e** (delete `AppTotal` or populate it) and the retention
-half of **P2.14d** (choosing how long `scroll_events` is kept). **All of these
-changes are in A's layer and need A's retro-review**, per AGENTS.md §2.
+**Status 2026-09-06:** **all eleven closed.** Nine were fixed as defects (review
+#9); the remaining two were decisions rather than defects and were taken the same
+day — `scroll_events` is **kept indefinitely** with stated copy and a user-facing
+clear action, and `AppTotal` is **deleted**. See DATA_CONTRACT §Retention for the
+reasoning and the numbers behind it. **All of these changes are in A's layer and
+need A's retro-review**, per AGENTS.md §2.
 
 - [x] **P2.14a 🔴 The RecyclerView reset guard does not guard.** Its `if` body
       contains only a `Log.d`; `computed` is returned unchanged and `pxToCm`
@@ -675,20 +683,27 @@ changes are in A's layer and need A's retro-review**, per AGENTS.md §2.
       went 2 → 3, and the plan for Home's query changed from `SCAN scroll_events`
       to `SEARCH scroll_events USING INDEX index_scroll_events_day (day=?)`.
       **Retention is still open and is a decision, not a defect** — see below.
-- [ ] **P2.14d-retention 🟡 Nothing bounds `scroll_events`.** `deleteOlderThan()`
-      is still uncalled. Deliberately left rather than defaulted: picking a
-      retention period is a privacy commitment, and the app currently tells users
-      "App breakdown stays on this device" without saying for how long, because
-      the answer is "forever". **Needs a decision from A and B**, then wiring plus
-      a copy change. The DAO method now documents that this is why it is kept.
-- [ ] **P2.14e 🟡 `AppTotal` has no DAO at all** — no `appTotalDao()` accessor and
+- [x] **P2.14d-retention 🟡 Nothing bounds `scroll_events`.** **Decided
+      2026-09-06: keep it indefinitely, and say so.** Measured first — 76 bytes a
+      row, ~255 rows/day, **6.7–11 MB/year** against a ~32 MB APK — which rules
+      out storage as a reason either way. Deletion is irreversible and a retention
+      policy can be added at any time, and no per-app history feature has been
+      designed yet, so bounding it now would trade an unrecoverable asset for a
+      few megabytes. Keeping it carries two obligations and **both are shipped**:
+      the privacy copy now states the duration instead of implying it, and
+      Settings → *Clear app history* gives the user the undo (`clearAppHistory()`,
+      which keeps today so Home does not read 0 m against a non-zero daily total).
+      Full reasoning in `DATA_CONTRACT.md` §Retention. **Revisit before real
+      users**, not before more features.
+- [x] **P2.14e 🟡 `AppTotal` has no DAO at all** — no `appTotalDao()` accessor and
       no DAO type, so nothing could write it even in principle. Supersedes P2.8
-      with the stronger finding. **Left open deliberately: this is A's call.**
-      Deleting the entity is smaller and nothing reads it (App Breakdown
-      aggregates from `scroll_events`), but populating it in `flushBatch` is a
-      legitimate alternative, and `DATA_CONTRACT.md` §2.1 currently describes
-      behaviour that has never existed either way. Not a silent decision to make
-      on A's behalf.
+      with the stronger finding. **Deleted 2026-09-06** (schema v4,
+      `MIGRATION_3_4`). Deleting won over populating precisely *because* of the
+      retention decision above: with the raw events kept forever, a per-app
+      summary is a cache for a table that is already present, and the three
+      features it would serve — per-app trends, peak-hour history, year-in-review
+      — are a `GROUP BY` away from `scroll_events` with no new plumbing. Verified
+      on device: table gone, data intact. `DATA_CONTRACT.md` §2.1 corrected.
 - [x] **P2.14f 🟡 A failed UI read marks the *tracking service* degraded**, via
       `markDegraded` → `markSyncFailed`. Conflates "a query failed" with "tracking
       is broken" on the one card whose job is to be trustworthy about that, and

@@ -224,6 +224,10 @@ fun MainShell(
                             context.startActivity(Intent.createChooser(send, null))
                         }
                     },
+                    onClearHistoryClick = { settingsViewModel.clearAppHistory() },
+                    isClearingHistory = settingsState.isClearingHistory,
+                    clearHistoryResult = settingsState.clearHistoryResult,
+                    onDismissClearHistoryResult = { settingsViewModel.dismissClearHistoryResult() },
                     isDeleting = settingsState.isDeleting,
                     deleteError = settingsState.deleteError,
                     onDismissDeleteError = { settingsViewModel.dismissDeleteError() },

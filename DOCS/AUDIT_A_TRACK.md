@@ -33,8 +33,8 @@ eleven fixed and verified; two left open on purpose.**
 | A2 | Broken double-checked lock | **Fixed** |
 | A3 | Personal best includes today | **Fixed**, verified on device data |
 | A4 | No index on `scroll_events.day` | **Fixed**, migration verified on the live DB |
-| A4b | Table unbounded, `deleteOlderThan` uncalled | **Open — decision** |
-| A5 | `AppTotal` has no DAO | **Open — A's call** |
+| A4b | Table unbounded, `deleteOlderThan` uncalled | **Decided** — keep forever, copy + clear action shipped |
+| A5 | `AppTotal` has no DAO | **Deleted** — schema v4 |
 | A6 | Reads mark the service degraded | **Fixed** |
 | A7 | No foreground service below API 30 | **Fixed** by supporting 24–29 |
 | A8 | Dead code | **Fixed** — three methods deleted |
@@ -66,7 +66,14 @@ on real-world accuracy cannot be measured until S0.7 is re-run — see below.
 2. **S0.7 and S0.8 must be re-run.** Every accuracy figure in `SENSOR_PROGRESS.md`
    was measured with A1 present and is biased high for `scrollY`-path apps. The
    numbers in this document's own evidence table are affected too.
-3. **Two decisions** — retention (A4b) and `AppTotal` (A5).
+3. ~~**Two decisions** — retention (A4b) and `AppTotal` (A5).~~ **Both taken
+   2026-09-06.** `scroll_events` is kept indefinitely, with the duration now
+   stated in the privacy copy and a *Clear app history* action in Settings;
+   `AppTotal` is deleted. The two are linked: keeping the raw events is what
+   makes a per-app summary table redundant. Reasoning and the storage
+   measurements behind it are in `DATA_CONTRACT.md` §Retention.
+
+**All eleven findings are now closed.**
 
 ---
 
