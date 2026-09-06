@@ -106,8 +106,27 @@ class SyncViewModel(
      * minutes later, and there is nothing a user could usefully do about it.
      */
     private suspend fun updateGroupRecords() {
-        val user = authRepository.currentUser ?: return
-        val displayName = user.displayName?.takeIf { it.isNotBlank() } ?: return
+        // Every exit below logs. It did not, and on 2026-09-06 that made the
+        // feature's state unreadable from a device: it ran, wrote nothing, and
+        // said nothing, so there was no way to tell whether a record had been
+        // set, refused, or never attempted. Three of the exits were completely
+        // silent — no user, blank display name, and the loop finishing with
+        // nothing written — and `onSuccess` with no `onFailure` meant a rejected
+        // write was silent too. For a feature whose whole output is one number
+        // that can never be raised again once lowered, that is the wrong
+        // trade: this is cheap and the alternative is guessing.
+        val user = authRepository.currentUser ?: run {
+            Log.d(TAG, "Record update skipped — not signed in")
+            return
+        }
+        val displayName = user.displayName?.takeIf { it.isNotBlank() } ?: run {
+            // Not cosmetic. `recordHolder` is a name shown to the whole group,
+            // so there is nothing sensible to write without one — but silently
+            // disabling the entire record feature is a different thing from
+            // declining one write, and it was indistinguishable from working.
+            Log.w(TAG, "Record update skipped — signed-in user has no display name (uid=${user.uid})")
+            return
+        }
 
         // 30 days is well past the point where an older day could still be a
         // record nobody has claimed, without pulling the whole history every
@@ -123,6 +142,13 @@ class SyncViewModel(
             return
         }
 
+        if (groups.isEmpty()) {
+            Log.d(TAG, "Record update skipped — user belongs to no groups")
+            return
+        }
+
+        Log.d(TAG, "Offering ${best.day} (${best.totalKm} km) to ${groups.size} group(s)")
+
         for (group in groups) {
             groupRepository.updateGroupRecordIfBetter(
                 groupId = group.groupId,
@@ -130,7 +156,19 @@ class SyncViewModel(
                 day = best.day,
                 candidateKm = best.totalKm
             ).onSuccess { written ->
-                if (written) Log.d(TAG, "New record in ${group.groupId}: ${best.totalKm} km")
+                if (written) {
+                    Log.i(TAG, "New record in ${group.groupId}: ${best.totalKm} km on ${best.day}")
+                } else {
+                    // The ordinary outcome, and previously invisible — which
+                    // made "the record is already better" look identical to
+                    // "the record code never ran".
+                    Log.d(TAG, "Record in ${group.groupId} not beaten by ${best.totalKm} km")
+                }
+            }.onFailure {
+                // Losing a race or being refused by the rules is expected and
+                // retried in fifteen minutes, so this stays out of the user's
+                // way — but it must not be invisible to us.
+                Log.w(TAG, "Record write failed for ${group.groupId}: ${it.message}")
             }
         }
     }

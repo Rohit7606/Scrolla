@@ -492,7 +492,22 @@ trust over.
       question — a case exists for counting the shade as real scrolling — but
       counting Scrolla itself has no case at all.
 
-### P2.11 — The group record is about to be set by an untracked day `[B]` — ☐ *urgent, found 2026-09-04*
+### P2.11 — The group record ~~is about to be~~ **was** set by an untracked day `[B]` — ☐ *predicted 2026-09-04, confirmed happened 2026-09-06*
+
+> **It happened.** Instrumented logging on 2026-09-06 shows the app offering
+> **2026-09-04 at 21.55 m** to both groups and being told *"not beaten"* by each —
+> so the standing record in `J5X6FU` and `S1RK8Q` is already **≤ 21.55 m**, down
+> from the 104 m this section was written against. The exact value is not
+> readable from the device and needs checking in the Firebase console.
+>
+> This is no longer a prevention job, it is a **correction** job: `isRecordImprovement()`
+> only ever permits equal-or-lower, so no client can raise it back. P2.11a stands
+> but its first option — "decide before the next sync" — has expired.
+>
+> Worth noting how close this came to being invisible: `updateGroupRecords()` had
+> three silent exit paths and no `onFailure`, so from the device it was impossible
+> to tell a set record from a refused one from code that never ran. The logging
+> that revealed this was added the same day.
 
 **P2.6d passed**: Hall of Fame renders a real record — "You · 104 m · 25 Aug" —
 so the write, the eligibility gate and the read path all work end to end on a
