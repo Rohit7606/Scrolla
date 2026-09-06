@@ -110,9 +110,84 @@ private enum class OnboardingPhase {
     QUESTION,   // The user commits to a guess
     REVEAL,     // The truth creates surprise or validation
     INVITATION, // The social mechanic resolves into action
+    RESTRICTED_SETTINGS, // Android 13+ hides the Accessibility switch until unlocked
     PERMISSION, // Trust gate
     BATTERY_WHITELIST, // Ensure device doesn't kill the tracker
     JOIN_GROUP  // Social commitment
+}
+
+/**
+ * Which onboarding phases a new user actually walks through.
+ *
+ * **Nothing here is deleted.** Every phase below still exists, still compiles and
+ * still renders; the flags decide whether a first-run user is marched through it.
+ * Flip one back to `true` and the phase returns to the flow in its original
+ * position, with the progress track adjusting automatically.
+ *
+ * **Why any of them are off (2026-09-06).** A new user on a Xiaomi had to clear
+ * eight gates before the app measured a single centimetre: sign in, allow
+ * notifications, unlock restricted settings, enable Accessibility, MIUI Autostart,
+ * battery saver, background restrictions, and a Recents lock that cannot be
+ * automated at all. Only two of those stop the app from working. The rest are
+ * either social (the group) or reliability (the OEM steps) — real, but not
+ * reasons to block someone from ever seeing their own number.
+ *
+ * The evidence that front-loading them does not work is this project's own
+ * history: B completed all eight, on B's own app, knowing exactly what each was
+ * for, and still lost days of tracking — and it took `adb logcat` with a 16 MB
+ * buffer to find out why. Steps nobody understands do not survive being read
+ * once, in a hurry, before the app has earned any trust.
+ *
+ * So the OEM steps move to Settings and to a prompt that fires **when a gap is
+ * actually detected**, where they come with evidence ("yesterday has a six-hour
+ * gap") instead of being a chore in front of a benefit. Someone on a Pixel never
+ * needs them and now never sees them.
+ */
+object OnboardingFlow {
+
+    /**
+     * The MIUI/OEM background-kill steps (Autostart, battery, Recents lock).
+     *
+     * Off because they are reliability, not function — the app records fine
+     * without them and then gets killed later, which is exactly the moment to
+     * ask. Turn on to restore the original six-phase flow.
+     */
+    const val ASK_OEM_SETTINGS_UP_FRONT = false
+
+    /**
+     * Joining a group during onboarding.
+     *
+     * Off because tracking is entirely local: sign-in exists for the leaderboard
+     * and nothing else, so asking for a Google account before the user has seen
+     * one real number is asking for trust that has not been earned. The Group tab
+     * is where someone who wants the social feature will go.
+     */
+    const val ASK_TO_JOIN_GROUP_UP_FRONT = false
+
+    /**
+     * The Android 13+ restricted-settings unlock.
+     *
+     * On, but only where it applies — see [needsRestrictedSettingsStep]. This one
+     * is a genuine hard gate: while it is armed the Accessibility switch cannot be
+     * turned on at all, so skipping it leaves the user stuck on the next screen
+     * with no way forward and no explanation.
+     */
+    const val EXPLAIN_RESTRICTED_SETTINGS = true
+
+    /**
+     * True when the restricted-settings screen is worth showing.
+     *
+     * Gated on API 33 because the restriction does not exist below it, and on the
+     * service not already being enabled — a returning user, or anyone who unlocked
+     * it already, should never see this screen. Android exposes no supported way
+     * to read the app-op itself, so the copy is phrased conditionally ("if you see
+     * Restricted setting") and the screen offers a skip rather than claiming to
+     * know.
+     */
+    fun needsRestrictedSettingsStep(context: android.content.Context): Boolean =
+        EXPLAIN_RESTRICTED_SETTINGS &&
+            android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU &&
+            !com.scrolla.device.isScrollAccessibilityServiceEnabled(context)
 }
 
 private enum class GuessOption(val label: String) {
@@ -130,11 +205,39 @@ fun OnboardingScreen(
     onFinishOnboarding: () -> Unit = {},
     onGrantPermission: () -> Unit = {}
 ) {
-    var phase by remember { mutableStateOf(OnboardingPhase.QUESTION) }
+    val flowContext = LocalContext.current
+
+    // The phases this run will actually visit, in order. Computed once so the
+    // sequence cannot change underneath the user mid-flow — enabling the
+    // accessibility service on the PERMISSION screen would otherwise retract the
+    // RESTRICTED_SETTINGS step and renumber the progress track behind them.
+    val phases = remember {
+        buildList {
+            add(OnboardingPhase.QUESTION)
+            add(OnboardingPhase.REVEAL)
+            add(OnboardingPhase.INVITATION)
+            if (OnboardingFlow.needsRestrictedSettingsStep(flowContext)) {
+                add(OnboardingPhase.RESTRICTED_SETTINGS)
+            }
+            add(OnboardingPhase.PERMISSION)
+            if (OnboardingFlow.ASK_OEM_SETTINGS_UP_FRONT) add(OnboardingPhase.BATTERY_WHITELIST)
+            if (OnboardingFlow.ASK_TO_JOIN_GROUP_UP_FRONT) add(OnboardingPhase.JOIN_GROUP)
+        }
+    }
+
+    var phase by remember { mutableStateOf(phases.first()) }
     var selectedGuess by remember { mutableStateOf<GuessOption?>(null) }
     val scope = rememberCoroutineScope()
 
-    val phaseIndex = phase.ordinal
+    val phaseIndex = phases.indexOf(phase).coerceAtLeast(0)
+
+    // Advance through [phases] rather than naming the next phase at each call
+    // site. With the flags above, "what comes next" is no longer a constant, and
+    // hardcoding it is how a disabled phase would strand the flow.
+    val goNext: () -> Unit = {
+        val next = phases.getOrNull(phases.indexOf(phase) + 1)
+        if (next != null) phase = next else onFinishOnboarding()
+    }
 
     val isDark = androidx.compose.foundation.isSystemInDarkTheme()
     val primaryColor = MaterialTheme.colorScheme.primary
@@ -155,6 +258,7 @@ fun OnboardingScreen(
             OnboardingPhase.QUESTION -> 0.26f
             OnboardingPhase.REVEAL -> 0.44f
             OnboardingPhase.INVITATION -> 0.72f
+            OnboardingPhase.RESTRICTED_SETTINGS -> 0.50f
             OnboardingPhase.PERMISSION -> 0.50f
             OnboardingPhase.BATTERY_WHITELIST -> 0.35f
             OnboardingPhase.JOIN_GROUP -> 0.50f
@@ -167,6 +271,7 @@ fun OnboardingScreen(
             OnboardingPhase.QUESTION -> 0.72f
             OnboardingPhase.REVEAL -> 0.66f
             OnboardingPhase.INVITATION -> 0.62f
+            OnboardingPhase.RESTRICTED_SETTINGS -> 1.00f
             OnboardingPhase.PERMISSION -> 1.00f
             OnboardingPhase.BATTERY_WHITELIST -> 0.80f
             OnboardingPhase.JOIN_GROUP -> 0.70f
@@ -183,6 +288,7 @@ fun OnboardingScreen(
             OnboardingPhase.QUESTION -> if (isDark) 0.15f else 0.10f
             OnboardingPhase.REVEAL -> if (isDark) 0.24f else 0.14f
             OnboardingPhase.INVITATION -> if (isDark) 0.15f else 0.10f
+            OnboardingPhase.RESTRICTED_SETTINGS -> if (isDark) 0.13f else 0.09f
             OnboardingPhase.PERMISSION -> if (isDark) 0.13f else 0.09f
             OnboardingPhase.BATTERY_WHITELIST -> if (isDark) 0.13f else 0.09f
             OnboardingPhase.JOIN_GROUP -> if (isDark) 0.15f else 0.10f
@@ -195,6 +301,7 @@ fun OnboardingScreen(
             OnboardingPhase.QUESTION -> 0.03f
             OnboardingPhase.REVEAL -> 0.06f
             OnboardingPhase.INVITATION -> 0.03f
+            OnboardingPhase.RESTRICTED_SETTINGS -> 0.02f
             OnboardingPhase.PERMISSION -> 0.02f
             OnboardingPhase.BATTERY_WHITELIST -> 0.03f
             OnboardingPhase.JOIN_GROUP -> 0.04f
@@ -258,7 +365,7 @@ fun OnboardingScreen(
                 // Continuous progress indicator — the one thread that connects all three phases
                 OnboardingProgressTrack(
                     currentPage = phaseIndex,
-                    pageCount = 6,
+                    pageCount = phases.size,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = MaterialTheme.spacing.large)
@@ -282,7 +389,8 @@ fun OnboardingScreen(
                                     fadeIn(tween(500, delayMillis = 200)) togetherWith
                                             fadeOut(tween(250))
 
-                                OnboardingPhase.INVITATION, OnboardingPhase.PERMISSION, 
+                                OnboardingPhase.INVITATION, OnboardingPhase.RESTRICTED_SETTINGS,
+                                OnboardingPhase.PERMISSION,
                                 OnboardingPhase.BATTERY_WHITELIST, OnboardingPhase.JOIN_GROUP ->
                                     (slideInHorizontally { it / 5 } + fadeIn(tween(400))) togetherWith
                                             (slideOutHorizontally { -it / 5 } + fadeOut(tween(300)))
@@ -306,24 +414,28 @@ fun OnboardingScreen(
 
                             OnboardingPhase.REVEAL -> RevealPhase(
                                 selectedGuess = selectedGuess,
-                                onNext = { phase = OnboardingPhase.INVITATION }
+                                onNext = goNext
                             )
 
                             OnboardingPhase.INVITATION -> InvitationPhase(
-                                onNext = { phase = OnboardingPhase.PERMISSION }
+                                onNext = goNext
                             )
-                            
+
+                            OnboardingPhase.RESTRICTED_SETTINGS -> RestrictedSettingsPhase(
+                                onNext = goNext
+                            )
+
                             OnboardingPhase.PERMISSION -> PermissionPhase(
                                 onLaunchSettings = {
                                     onGrantPermission()
                                 },
-                                onNext = { phase = OnboardingPhase.BATTERY_WHITELIST }
+                                onNext = goNext
                             )
 
                             OnboardingPhase.BATTERY_WHITELIST -> BatteryWhitelistPhase(
-                                onNext = { phase = OnboardingPhase.JOIN_GROUP }
+                                onNext = goNext
                             )
-                            
+
                             OnboardingPhase.JOIN_GROUP -> JoinGroupPhase(
                                 onFinish = onFinishOnboarding
                             )
@@ -1097,6 +1209,177 @@ private fun LeaderboardPreviewRow(
 // ─────────────────────────────────────────────
 // Phase 4: Permission
 // ─────────────────────────────────────────────
+
+/**
+ * The Android 13+ restricted-settings unlock.
+ *
+ * Sits before [PermissionPhase] because while this block is armed the
+ * Accessibility switch cannot be turned on at all — tapping it produces a
+ * "Restricted setting" dialog with an OK button and no way forward. Without this
+ * screen the next one is a dead end for every sideloaded user on API 33+,
+ * regardless of manufacturer.
+ *
+ * Auto-advances on return if the service came back enabled, matching
+ * [PermissionPhase]. There is no supported API for reading the app-op, so this
+ * cannot detect success directly — hence the skip, and copy phrased as a
+ * condition ("if you see...") rather than an assertion.
+ */
+@Composable
+private fun RestrictedSettingsPhase(
+    onNext: () -> Unit
+) {
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME &&
+                com.scrolla.device.isScrollAccessibilityServiceEnabled(context)
+            ) {
+                onNext()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    var animationTrigger by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        delay(100)
+        animationTrigger = true
+    }
+    val alpha1 by animateFloatAsState(if (animationTrigger) 1f else 0f, tween(500, delayMillis = 100), label = "r_alpha1")
+    val alpha2 by animateFloatAsState(if (animationTrigger) 1f else 0f, tween(500, delayMillis = 300), label = "r_alpha2")
+    val alpha3 by animateFloatAsState(if (animationTrigger) 1f else 0f, tween(500, delayMillis = 500), label = "r_alpha3")
+
+    var showWhy by remember { mutableStateOf(false) }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = MaterialTheme.spacing.large),
+            horizontalAlignment = Alignment.Start
+        ) {
+            OnboardingBody(alignment = Alignment.TopStart) {
+                Spacer(modifier = Modifier.height(24.dp))
+
+                Text(
+                    text = ScrollaStrings.RESTRICTED_HEADLINE,
+                    style = MaterialTheme.typography.displaySmall,
+                    modifier = Modifier.alpha(alpha1)
+                )
+                Spacer(modifier = Modifier.height(MaterialTheme.spacing.small))
+                Text(
+                    text = ScrollaStrings.RESTRICTED_SUBHEADLINE,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.alpha(alpha1)
+                )
+
+                Spacer(modifier = Modifier.height(MaterialTheme.spacing.large))
+
+                // Numbered rather than bulleted, unlike PermissionCard: these are
+                // a sequence performed in one order, not a set of facts. The
+                // number is the instruction.
+                ScrollaCard(modifier = Modifier.alpha(alpha2)) {
+                    Column(
+                        modifier = Modifier.padding(MaterialTheme.spacing.medium),
+                        verticalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.medium)
+                    ) {
+                        SectionLabel(text = ScrollaStrings.RESTRICTED_STEPS_HEADER)
+                        RestrictedStepRow(1, ScrollaStrings.RESTRICTED_STEP_1)
+                        RestrictedStepRow(2, ScrollaStrings.RESTRICTED_STEP_2)
+                        RestrictedStepRow(3, ScrollaStrings.RESTRICTED_STEP_3)
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(MaterialTheme.spacing.medium))
+
+                TextButton(
+                    onClick = { showWhy = !showWhy },
+                    modifier = Modifier
+                        .align(Alignment.CenterHorizontally)
+                        .alpha(alpha3)
+                ) {
+                    Text(
+                        text = ScrollaStrings.RESTRICTED_WHY_LINK,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                if (showWhy) {
+                    Text(
+                        text = ScrollaStrings.RESTRICTED_WHY_BODY,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.alpha(alpha3)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(MaterialTheme.spacing.large))
+            }
+
+            ScrollaPrimaryButton(
+                text = ScrollaStrings.RESTRICTED_BUTTON,
+                onClick = {
+                    // App info is as deep as Android allows — the "Allow
+                    // restricted settings" item lives in that screen's overflow
+                    // menu and has no intent of its own.
+                    runCatching {
+                        context.startActivity(
+                            android.content.Intent(
+                                android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                                android.net.Uri.fromParts("package", context.packageName, null)
+                            ).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                        )
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .alpha(alpha3)
+            )
+
+            // The skip is deliberate. This screen cannot detect whether the block
+            // is actually armed, so a user whose switch works fine must not be
+            // trapped behind an instruction that does not apply to them.
+            TextButton(
+                onClick = onNext,
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .alpha(alpha3)
+            ) {
+                Text(
+                    text = ScrollaStrings.RESTRICTED_SKIP,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            Spacer(modifier = Modifier.height(MaterialTheme.spacing.small))
+        }
+    }
+}
+
+/** One numbered instruction. The digit carries the order, so it leads. */
+@Composable
+private fun RestrictedStepRow(number: Int, text: String) {
+    Row(
+        verticalAlignment = Alignment.Top,
+        horizontalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.small)
+    ) {
+        Text(
+            text = "$number",
+            style = ScrollaType.FigureSmall.copy(fontSize = 18.sp, lineHeight = 22.sp),
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.width(20.dp)
+        )
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+    }
+}
 
 @Composable
 private fun PermissionPhase(

@@ -243,6 +243,39 @@ object ScrollaStrings {
     // a defensible choice only if the user can undo it, so this is the undo.
     // Worded as "app history" rather than "scroll events" because the user
     // recognises the App Breakdown screen, not the table behind it.
+    // The permanent home for the OEM background-kill steps, now that they no
+    // longer block onboarding. Named for the outcome the user wants rather than
+    // the mechanism — nobody opens Settings looking for "autostart".
+    const val SETTINGS_KEEP_RUNNING_LABEL = "Keep tracking running"
+    const val SETTINGS_KEEP_RUNNING_VALUE_TEMPLATE = "%s settings"
+
+    // ── Restricted settings (Android 13+) ──
+    // Android hides the Accessibility switch for apps installed outside the Play
+    // Store until the user explicitly unlocks it. Scrolla is sideloaded by
+    // decision (P0.5a), so this blocks *every* user on API 33+, on every
+    // manufacturer. Discovered 2026-09-06 when a reinstall re-armed the block and
+    // the switch could not be turned on at all.
+    //
+    // "Restricted setting" is quoted verbatim because that is the exact phrase
+    // the system dialog shows — the user needs to recognise it, not parse a
+    // paraphrase of it.
+    const val RESTRICTED_HEADLINE = "Unlock the switch first"
+    const val RESTRICTED_SUBHEADLINE =
+        "Android hides Accessibility for apps installed outside the Play Store. " +
+            "If you tap the switch and see “Restricted setting”, this is why."
+    const val RESTRICTED_STEPS_HEADER = "Three taps"
+    const val RESTRICTED_STEP_1 = "Tap the button below to open Scrolla's app info"
+    const val RESTRICTED_STEP_2 = "Tap the ⋮ menu, top right"
+    const val RESTRICTED_STEP_3 = "Choose “Allow restricted settings”"
+    const val RESTRICTED_BUTTON = "Open app info"
+    const val RESTRICTED_SKIP = "Mine isn't blocked — skip"
+    const val RESTRICTED_WHY_LINK = "Why does Android do this?"
+    const val RESTRICTED_WHY_BODY =
+        "Accessibility is powerful, so Android makes sideloaded apps ask for it twice — " +
+            "once from you here, and once from the system. It is a real protection against " +
+            "apps that install quietly and then read your screen. Scrolla only reads scroll " +
+            "distance, never content, but the block applies to every app equally."
+
     const val SETTINGS_CLEAR_HISTORY_LABEL = "Clear app history"
     const val SETTINGS_CLEAR_HISTORY_TITLE = "Clear your app history?"
     const val SETTINGS_CLEAR_HISTORY_BODY =

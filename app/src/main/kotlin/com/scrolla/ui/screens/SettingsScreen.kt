@@ -403,6 +403,24 @@ fun SettingsScreen(
                         ).joinToString(" · "),
                         modifier = Modifier.padding(horizontal = spacing.medium)
                     )
+
+                    // Always here, not only when the health card has already gone
+                    // amber. The OEM background-kill steps moved out of onboarding
+                    // (OnboardingFlow.ASK_OEM_SETTINGS_UP_FRONT), and the only
+                    // other way to reach them is the card's button, which appears
+                    // solely in the INTERRUPTED and UNKNOWN states. Without this
+                    // row, deferring them would have half-hidden them: fine for
+                    // someone waiting to be told, useless for someone who wants to
+                    // set their phone up properly on day one.
+                    Spacer(modifier = Modifier.height(spacing.medium))
+                    SettingsItem(
+                        label = ScrollaStrings.SETTINGS_KEEP_RUNNING_LABEL,
+                        value = String.format(
+                            ScrollaStrings.SETTINGS_KEEP_RUNNING_VALUE_TEMPLATE,
+                            deviceOem
+                        ),
+                        onClick = onFixBatteryClick
+                    )
                 }
             }
 
