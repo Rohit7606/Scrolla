@@ -4,6 +4,8 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.scrolla.auth.AuthRepository
+import com.scrolla.firestore.BackupReconcile
+import com.scrolla.firestore.BackupRepository
 import com.scrolla.firestore.GroupRepository
 import com.scrolla.firestore.RecordEligibility
 import com.scrolla.model.ScrollaConstants
@@ -26,15 +28,70 @@ import java.time.LocalDate
 class SyncViewModel(
     private val scrollRepository: ScrollRepository = ScrollaGraph.scrollRepository,
     private val groupRepository: GroupRepository = GroupRepository(),
-    private val authRepository: AuthRepository = AuthRepository()
+    private val authRepository: AuthRepository = AuthRepository(),
+    private val backupRepository: BackupRepository = BackupRepository()
 ) : ViewModel() {
+
+    /** The reconcile is a whole-history read; once a session is enough. */
+    private var hasReconciled = false
 
     /** Called when the app comes to foreground, and on the interval timer. */
     fun syncNow(reason: String) {
         viewModelScope.launch {
             Log.d(TAG, "Firestore sync requested ($reason)")
+            reconcilePersonalBackup()
             scrollRepository.triggerFirestoreSync()
             updateGroupRecords()
+        }
+    }
+
+    /**
+     * Two-way reconcile between the device and the user's own cloud backup.
+     *
+     * Runs **before** the group sync on purpose: a restored day has to be in
+     * Room before `updateGroupRecords()` looks for the best eligible day, or the
+     * first run after a reinstall would offer the group a record chosen from an
+     * almost-empty history.
+     *
+     * Once per session, not every fifteen minutes. It is a full read of the
+     * user's history, and nothing changes between ticks that the ordinary
+     * per-day write does not already cover.
+     *
+     * Failure is silent by design. Backup is not something the user asked for in
+     * the moment, so a failed reconcile should cost them nothing and say
+     * nothing; the next launch tries again. The one thing it must never do is
+     * lose local data, which is why the plan is computed by
+     * [BackupReconcile] with the device winning every disagreement.
+     */
+    private suspend fun reconcilePersonalBackup() {
+        if (hasReconciled) return
+        val userId = authRepository.currentUser?.uid ?: return
+
+        val cloud = backupRepository.fetchAll(userId).getOrElse {
+            Log.d(TAG, "Backup reconcile skipped — could not read backup: ${it.message}")
+            return
+        }
+
+        val local = scrollRepository.getRecentDailyTotals(BACKUP_LOOKBACK_DAYS)
+        val plan = BackupReconcile.plan(local = local, cloud = cloud)
+
+        // Set before the writes, not after: a failure part-way through must not
+        // retry the whole reconcile on every tick for the rest of the session.
+        hasReconciled = true
+
+        if (plan.isEmpty) {
+            Log.d(TAG, "Backup reconcile: already in sync (${local.size} local, ${cloud.size} cloud)")
+            return
+        }
+
+        if (plan.toRestore.isNotEmpty()) {
+            val restored = scrollRepository.restoreDailyTotals(plan.toRestore)
+            Log.i(TAG, "Backup reconcile restored $restored day(s) from the cloud")
+        }
+
+        if (plan.toUpload.isNotEmpty()) {
+            backupRepository.upload(userId, plan.toUpload)
+                .onSuccess { Log.i(TAG, "Backup reconcile uploaded $it day(s)") }
         }
     }
 
@@ -93,5 +150,12 @@ class SyncViewModel(
     private companion object {
         const val TAG = "SyncViewModel"
         const val RECORD_LOOKBACK_DAYS = 30
+
+        /**
+         * How much local history to offer the backup. A year is past anything
+         * Scrolla has ever held, so in practice this is "everything", while
+         * keeping the query bounded — the same figure the CSV export uses.
+         */
+        const val BACKUP_LOOKBACK_DAYS = 365
     }
 }

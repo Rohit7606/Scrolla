@@ -375,7 +375,23 @@ class GroupRepository(
                 }
             }
 
-            // 5. The profile document itself.
+            // 5. The user's own backup of their daily distances.
+            //
+            // Must happen before the profile document goes, and must be counted
+            // as a problem if it fails. Every rule on this collection is gated on
+            // request.auth.uid, so a backup left behind after the account is gone
+            // is unreachable by the user and undeletable by anyone — a permanent
+            // orphan of the most complete record of their history the server
+            // holds, created by the flow whose entire purpose is removal.
+            try {
+                val removed = BackupRepository(firestore).deleteAll(userId).getOrThrow()
+                Log.d(TAG, "Deleted $removed backup day(s) for $userId")
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to delete personal backup for $userId", e)
+                problems += "backup"
+            }
+
+            // 6. The profile document itself.
             firestore.collection("users").document(userId).delete().await()
 
             Result.success(problems.distinct())

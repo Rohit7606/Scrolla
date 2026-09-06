@@ -19,6 +19,37 @@ service cloud.firestore {
       }
     }
 
+    // 1b. The user's own backup of their daily distances.
+    //
+    // Why this exists separately from /groups/{g}/dailyTotals: that collection
+    // is leaderboard data. It is written once per group the user belongs to, so
+    // a user in no group syncs nothing at all, and it is stored under the group
+    // rather than under the person. Nothing ever read it back, so an uninstall
+    // lost everything. This collection is the personal copy — one document per
+    // day, owned by the user, and the thing that makes signing in mean "your
+    // history is yours" rather than only "you can be on a leaderboard".
+    //
+    // Note this needs its own match block: rule 1's `allow read, write` on
+    // /users/{userId} does NOT cascade to subcollections in Firestore. Without
+    // this block every write here is denied, which is exactly what happens today.
+    //
+    // Strictly private — no `allow read` for other signed-in users, unlike the
+    // group copy. Nobody needs to see anyone else's full history.
+    match /users/{userId}/dailyTotals/{day} {
+      allow read, delete: if isOwner(userId);
+
+      allow create, update: if isOwner(userId)
+                    && day.matches('\\d{4}-\\d{2}-\\d{2}')
+                    && request.resource.data.keys().hasOnly(['date', 'totalKm', 'updatedAt'])
+                    && request.resource.data.date == day
+                    && request.resource.data.totalKm is number
+                    && request.resource.data.totalKm >= 0;
+    }
+
+    function isOwner(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+
     // 2. Daily totals: anyone authenticated can read, but you can only write your own
     // The docId must start with your UID (e.g., "uid_2026-08-16")
     match /groups/{groupId}/dailyTotals/{docId} {

@@ -90,6 +90,19 @@ interface ScrollRepository {
      * Returns true on success. Like everything else here it never throws.
      */
     suspend fun clearAppHistory(): Boolean
+
+    /**
+     * Writes daily totals restored from the user's cloud backup into Room.
+     *
+     * Exists so B's backup flow never touches a DAO directly (DATA_CONTRACT §4).
+     * Callers must pass only days the device does not already have — see
+     * [com.scrolla.firestore.BackupReconcile], which decides that. This method
+     * upserts what it is given and does not arbitrate, because the device-wins
+     * rule belongs with the rest of the merge logic where it can be tested.
+     *
+     * Returns the number of rows written. Never throws.
+     */
+    suspend fun restoreDailyTotals(totals: List<DailyTotal>): Int
 }
 
 /**
@@ -180,6 +193,17 @@ class ScrollRepositoryImpl(
         } catch (e: Exception) {
             Log.e(tag, "getPersonalBestDay() failed", e)
             null
+        }
+    }
+
+    override suspend fun restoreDailyTotals(totals: List<DailyTotal>): Int {
+        return try {
+            totals.forEach { dailyTotalDao.upsert(it) }
+            Log.i(tag, "restoreDailyTotals() wrote ${totals.size} day(s) from backup")
+            totals.size
+        } catch (e: Exception) {
+            Log.e(tag, "restoreDailyTotals() failed", e)
+            0
         }
     }
 

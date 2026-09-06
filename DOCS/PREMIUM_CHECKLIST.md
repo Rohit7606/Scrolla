@@ -118,7 +118,7 @@ taken this.
 - [ ] **P0.3c** Confirm no scroll content, package list, or user identity beyond
       the Firebase UID reaches a crash report. See P1.2.
 
-### P0.4 — Delete account is a dead row `[B]` — ◐ **built 2026-08-25, rules not deployed**
+### P0.4 — Delete account is a dead row `[B]` — ☑ **built 2026-08-25, rules confirmed live 2026-09-06**
 
 `SettingsScreen.kt:300-304` renders a "Delete" row with `enabled = false`. It has
 never done anything.
@@ -149,7 +149,7 @@ and then offer no exit.
       so after `arrayRemove` the write is denied forever. The record value
       survives — the rule permits an equal `recordKm` — so the group keeps its
       history and loses only the name.*
-- [◐] **P0.4b** Firestore rules for self-deletion. ***Reviewed and approved by A 2026-08-25 (REVIEW_LOG #5). Still needs publishing to Firebase — reviewed is not deployed, and the delete button fails at `isSelfLeave` on a real device until it is.***
+- [x] **P0.4b** Firestore rules for self-deletion. Reviewed and approved by A 2026-08-25 (REVIEW_LOG #5). **Deployment confirmed 2026-09-06:** the live rules were pasted out of the Firebase console and diffed against the committed file — byte-identical, including `isSelfLeave`, `isGroupRename` and the split `create, update` / `delete` on `dailyTotals`. **This checklist claimed "not deployed" for eleven days and was wrong**; delete account, leave group and rename group have not been blocked at the server for some time. Nobody had checked, on either side — the doc was treated as the source of truth about a system it does not control. Verify against the console, not against this file.
       Two changes:
       `isSelfLeave()` (subset + exactly-one-shorter + caller absent, so a member
       cannot remove someone else and add an impostor while keeping the size
@@ -377,6 +377,46 @@ every angle except the one that matters.
       current-state row with no history. Both would need `room/` work from A.
       Swapping `RecordEligibility.isPlausiblyComplete()` is the only change
       needed if either lands.
+
+### P2.16 — Signing in did not protect anything `[B]` — ◐ *built 2026-09-06, rules not yet deployed*
+
+Sign-in bought the user groups and a leaderboard. It did not protect their data,
+and nothing said so.
+
+Their totals did reach Firestore, but only as a side effect of group membership:
+`triggerFirestoreSync()` writes inside `for (groupDoc in userGroups)`, so a user
+in **no group synced nothing at all**, and the documents lived under the group
+rather than the person. **Nothing ever read them back** — there was no restore
+path anywhere in the app. An uninstall, including an accidental one, took
+everything.
+
+- [x] **P2.16a** `users/{uid}/dailyTotals/{day}` — the personal copy, one small
+      document per day, written regardless of group membership. Strictly private:
+      unlike the group copy there is no `allow read` for other signed-in users.
+- [x] **P2.16b** Two-way reconcile on launch (`BackupReconcile`, 8 tests).
+      **The device wins every disagreement.** That is not a coin toss: this is a
+      lowest-wins leaderboard, so restoring a stale smaller value over a real day
+      hands the user a record they did not earn, and `isRecordImprovement()` only
+      permits equal-or-lower — no client could ever raise it back. Float
+      comparison uses a tolerance, or the Float→double→Float round trip would
+      re-upload the whole history on every launch.
+- [x] **P2.16c** Account deletion covers the new store. A backup outliving its
+      account would be unreachable *and* undeletable, since every rule here is
+      gated on `request.auth.uid` — an orphan created by the flow whose purpose
+      is removal.
+- [ ] **P2.16d** **Deploy the new rule block.** Until then every write to this
+      collection is denied and the feature is inert — rule 1's `allow write` on
+      `/users/{userId}` does **not** cascade to subcollections in Firestore.
+      Needs A's review first (AGENTS.md §2), logged as REVIEW_LOG #10.
+- [ ] **P2.16e** Untested against a real reinstall. The write and reconcile paths
+      are unit-tested and build-verified; nobody has yet wiped a device and
+      watched the history come back.
+
+**Not backed up, deliberately:** `scroll_events` — which apps, at which hour.
+This adds no new category of data to the server, only a personal copy of what the
+leaderboard already published. Android Auto Backup covers per-app history
+separately, into the user's own Drive quota; verified capturing 445 KB
+successfully on 2026-09-06, restore half not yet tested.
 
 ### P2.8 — `app_totals` is a dead table `[A — `room/`]` — ☑ *found 2026-09-04, deleted 2026-09-06*
 
