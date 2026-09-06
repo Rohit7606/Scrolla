@@ -6,7 +6,45 @@
 
 ---
 
-> ## ⚠️ EVERY ACCURACY FIGURE IN THIS FILE IS SUSPECT — added by B, 2026-09-06
+> ## ✅ RE-MEASURED 2026-09-06 — the inflation was **31 %**, and it is gone
+>
+> S0.7 was re-run after the A1 fix, on the position path this time (Reddit and
+> Chrome, not Instagram). The service's own reset log makes the magnitude exact
+> rather than inferred, because every discarded jump is printed:
+>
+> | | |
+> |---|---|
+> | actually recorded | **1,790.9 cm** |
+> | phantom distance discarded by the fix | **560.7 cm** across 75 resets |
+> | what the old code would have reported | **2,351.6 cm** |
+> | **inflation removed** | **31 %** |
+>
+> Reddit, which produced 932 position-path events, is conclusive:
+> **max batch 512.3 cm → 50.1 cm**, and **batches over 100 cm 9 % → 0 %**. The
+> worst single discarded jump was **−22,105 px — about 137 cm, nine screen-heights
+> from one view recycle**, in a single event.
+>
+> **The old figures in this file were roughly 31 % high on the `scrollY` path.**
+> Instagram and other fallback-path measurements are unaffected.
+>
+> **S0.7 passes on the re-run**: 1,790.9 cm against its 1,500–3,000 cm band.
+>
+> ### The uncomfortable part
+>
+> **2,351.6 cm — the buggy figure — is also inside that band.** S0.7's pass
+> condition is "within 2× of a manual estimate", and a 31 % error fits
+> comfortably inside a 2× tolerance. So the original S0.7 did not fail to catch
+> A1 through carelessness; **as written it could never have caught it.** A test
+> whose tolerance is wider than the error class it is meant to detect passes
+> either way. If accuracy matters, the protocol needs tightening — the
+> before/after reset accounting used here is a far sharper instrument than the
+> estimate comparison.
+>
+> **S0.8 is still outstanding** — it needs a second device, and there is only one.
+
+---
+
+> ## ⚠️ SUPERSEDED — original warning, kept for the record (B, 2026-09-06)
 >
 > The S0.5 RecyclerView reset guard **never discarded anything.** Its `if` body
 > contained only a `Log.d`, so the delta was returned unchanged, `pxToCm`'s

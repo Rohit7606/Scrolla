@@ -731,7 +731,14 @@ need A's retro-review**, per AGENTS.md §2.
       The arithmetic moved into `service/ScrollDelta.kt` as a pure function with
       no Android types, and `ScrollDeltaTest` (15 tests) asserts on the
       **returned delta** rather than on a log line — which is the specific thing
-      that let this pass review twice. S0.7/S0.8 re-run still outstanding.
+      that let this pass review twice. **S0.7 re-run 2026-09-06 and it passes:**
+      1,790.9 cm recorded against a 1,500-3,000 cm band, with the bug's magnitude
+      now exact rather than inferred - 560.7 cm of phantom distance discarded
+      across 75 resets, so the old code would have reported 2,351.6 cm, a **31 %
+      inflation**. Reddit max batch 512.3 -> 50.1 cm, over-100 cm batches
+      9 % -> 0 %. **The pass condition could never have caught the bug**: 2,351.6 cm
+      is also inside that band, because a 31 % error fits inside a 2x tolerance.
+      S0.8 still outstanding - needs a second device.
 - [x] **P2.14b 🟠 `getDatabase()`'s double-checked lock is missing its second
       check**, so two threads can each build a Room instance over the same file —
       two connection pools, one database. Called concurrently from the service

@@ -130,6 +130,23 @@ having 8× the volume.
 **Honest limit:** Chrome legitimately has long pages, so some of that spread is
 real. The *mechanism* is proven by reading the code; the *magnitude* is not.
 
+> **Magnitude measured 2026-09-06, after the fix.** The limit above no longer
+> applies: the fix logs every jump it discards, so the bug's size is now exact
+> rather than correlational. Over a 5-minute position-path run — **1,790.9 cm
+> recorded, 560.7 cm discarded across 75 resets** — the pre-fix code would have
+> reported **2,351.6 cm, a 31 % inflation**. Reddit: max batch **512.3 → 50.1 cm**,
+> over-100 cm batches **9 % → 0 %**. Worst single discarded jump **−22,105 px**,
+> about **137 cm — nine screen-heights — from one event**.
+>
+> One correction to the reasoning above, not the conclusion: this section argues
+> Instagram is cleanest because it is "documented as reporting `scrollY = 0` and
+> using the `scrollDeltaY` branch". Live logging shows **Instagram uses both
+> paths** (24 position-path against 32 fallback events in one sample, and it
+> produced a reset of its own). The path-split explanation for the table is
+> therefore weaker than written. The finding itself never depended on it — it was
+> proven by reading the code — and the measurement above settles the magnitude
+> independently.
+
 **Fix:** on reset, update the baseline and contribute **zero**:
 ```kotlin
 if (computed < -ScrollaConstants.RECYCLE_RESET_THRESHOLD_PX) {
