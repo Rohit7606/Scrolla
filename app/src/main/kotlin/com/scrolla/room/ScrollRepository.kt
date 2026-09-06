@@ -103,6 +103,15 @@ interface ScrollRepository {
      * Returns the number of rows written. Never throws.
      */
     suspend fun restoreDailyTotals(totals: List<DailyTotal>): Int
+
+    /**
+     * How many distinct hours of [date] recorded any scrolling, 0–24.
+     *
+     * Exists so `RecordEligibility` can tell a full day from a short burst
+     * before letting one set a permanent group record. Returns 0 on failure,
+     * which fails closed — an unknown day is not offered as a record.
+     */
+    suspend fun getActiveHourCount(date: String): Int
 }
 
 /**
@@ -193,6 +202,15 @@ class ScrollRepositoryImpl(
         } catch (e: Exception) {
             Log.e(tag, "getPersonalBestDay() failed", e)
             null
+        }
+    }
+
+    override suspend fun getActiveHourCount(date: String): Int {
+        return try {
+            scrollEventDao.getActiveHourCountForDay(date)
+        } catch (e: Exception) {
+            Log.e(tag, "getActiveHourCount() failed for day=$date", e)
+            0
         }
     }
 

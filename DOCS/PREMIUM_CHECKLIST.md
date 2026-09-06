@@ -531,7 +531,24 @@ This is not a new defect — it is exactly the limitation P2.6e already describe
 arriving on a specific date with real numbers. It is filed separately because
 P2.6e is a design note and this is a thing that happens tomorrow.
 
-- [ ] **P2.11a** Decide before the next sync: hand-correct the record in
+- [x] **P2.11c The rule that let it in is fixed (2026-09-06).** `RecordEligibility`
+      now requires a day to have recorded across **at least 6 distinct hours**
+      (`MIN_ACTIVE_HOURS`), via `ScrollRepository.getActiveHourCount()` — the exact
+      swap this object's KDoc said it was waiting for a `room/` query to enable.
+      `LAST_SCROLL_CUTOFF_HOUR` alone was passed just as easily by a two-hour
+      evening burst as by a full day, which is precisely how 2026-09-04 (17:00–18:59,
+      21.5 m, last event 18:xx) qualified. **This had to land before any console
+      correction**, or the next sync would simply write 21.5 m back.
+      With it, the best eligible day becomes **2026-08-25 at 104.1 m** — which is
+      what the record held before. 5 new tests, including one pinning the
+      known limitation below.
+- [ ] **P2.11d Known limitation, deliberately not fixed.** Counting hours sees
+      coverage, not contiguity, so 2026-08-25 — nine and a half hours missing
+      from the *middle* after the 09:34 crash — still qualifies, and its 104.1 m
+      undercounts a real day. Catching it needs gap detection within a day, and
+      it is worth about 2 m against 106.3 m. Not a good trade; the real answer
+      stays P2.6e.
+- [ ] **P2.11a** ~~Decide before the next sync~~ **expired — it already happened.** Hand-correct the record in
       Firestore, accept it while the group is still just a test group, or hold the
       record write until P2.6e's better signal exists.
 - [ ] **P2.11b** The real fix stays P2.6e — per-day tracking health, which needs

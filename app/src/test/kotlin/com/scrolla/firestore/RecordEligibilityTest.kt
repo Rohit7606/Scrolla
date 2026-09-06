@@ -20,6 +20,136 @@ import java.time.ZoneId
  */
 class RecordEligibilityTest {
 
+    // ── The active-hours gate (added 2026-09-06) ──
+    // These pin the fix for the day that actually took the group record.
+
+    @Test
+    fun `a two-hour evening burst cannot set a record`() {
+        // 2026-09-04 exactly: service dead until 17:47, recorded 17:00-18:59,
+        // 21.5 m, last event past the 18:00 cutoff. It passed every other rule
+        // and took the record from 104 m permanently.
+        val burst = DailyTotal(
+            day = "2026-09-04",
+            totalCm = 2154.9f,
+            totalKm = 0.021549f,
+            lastUpdated = java.time.LocalDateTime.of(2026, 9, 4, 18, 55)
+                .atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
+        )
+        val eligible = RecordEligibility.isEligible(
+            burst,
+            java.time.LocalDate.of(2026, 9, 6),
+            java.time.ZoneId.systemDefault(),
+            activeHours = 2
+        )
+        assertFalse("a day tracked for two hours is missing, not low", eligible)
+    }
+
+    @Test
+    fun `the same day would have been accepted on the old rule`() {
+        // Proves the new gate is what rejects it, not some pre-existing rule --
+        // otherwise this test could pass for the wrong reason forever.
+        val burst = DailyTotal(
+            day = "2026-09-04",
+            totalCm = 2154.9f,
+            totalKm = 0.021549f,
+            lastUpdated = java.time.LocalDateTime.of(2026, 9, 4, 18, 55)
+                .atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
+        )
+        assertTrue(
+            RecordEligibility.isEligible(
+                burst,
+                java.time.LocalDate.of(2026, 9, 6),
+                java.time.ZoneId.systemDefault(),
+                activeHours = RecordEligibility.MIN_ACTIVE_HOURS
+            )
+        )
+    }
+
+    @Test
+    fun `a full day still qualifies`() {
+        // 2026-08-24: 00:00-23:59, 106.3 m. The honest record.
+        val fullDay = DailyTotal(
+            day = "2026-08-24",
+            totalCm = 10629.8f,
+            totalKm = 0.106298f,
+            lastUpdated = java.time.LocalDateTime.of(2026, 8, 24, 23, 40)
+                .atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
+        )
+        assertTrue(
+            RecordEligibility.isEligible(
+                fullDay,
+                java.time.LocalDate.of(2026, 9, 6),
+                java.time.ZoneId.systemDefault(),
+                activeHours = 24
+            )
+        )
+    }
+
+    @Test
+    fun `the device history picks the full day over the burst`() {
+        // The whole point, end to end: given the real rows off the phone, the
+        // best eligible day must be 24 Aug at 106.3 m, not 4 Sep at 21.5 m.
+        fun day(d: String, km: Float, hour: Int) = DailyTotal(
+            day = d, totalCm = km * 100_000f, totalKm = km,
+            lastUpdated = java.time.LocalDate.parse(d).atTime(hour, 30)
+                .atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
+        )
+        val history = listOf(
+            day("2026-08-23", 0.151604f, 23),
+            day("2026-08-24", 0.106298f, 23),
+            day("2026-08-25", 0.104064f, 23),
+            day("2026-08-26", 0.205179f, 23),
+            day("2026-08-27", 0.026329f, 16),
+            day("2026-09-04", 0.021549f, 18),
+            day("2026-09-05", 0.068410f, 17)
+        )
+        val hours = mapOf(
+            "2026-08-23" to 9, "2026-08-24" to 24, "2026-08-25" to 24,
+            "2026-08-26" to 24, "2026-08-27" to 12, "2026-09-04" to 2,
+            "2026-09-05" to 6
+        )
+        val best = RecordEligibility.bestEligibleDay(
+            totals = history,
+            today = java.time.LocalDate.of(2026, 9, 6),
+            activeHoursFor = { hours[it] ?: 0 }
+        )
+        // 25 Aug (104.1 m) rather than 24 Aug (106.3 m) — it is genuinely the
+        // lower of the two full days, and it is what the record held before the
+        // two-hour day took it.
+        assertEquals("2026-08-25", best?.day)
+        assertFalse("the two-hour day must not win", best?.day == "2026-09-04")
+    }
+
+    @Test
+    fun `known limitation - a hole in the middle of a day still passes`() {
+        // 2026-08-25 is the day the service crashed at 09:34 and only resumed
+        // that evening: nine and a half hours missing from the middle. It still
+        // recorded across ~15 distinct hours, so counting hours cannot see the
+        // hole, and its 104.1 m is an undercount of a real day.
+        //
+        // Deliberately not fixed here. Catching it needs contiguity, not
+        // coverage, and it is worth ~2 m against 106.3 m — not a good trade for
+        // the complexity. The real answer is per-day tracking health
+        // (PREMIUM_CHECKLIST P2.6e). Pinned so the limitation is recorded
+        // rather than discovered again.
+        val holed = DailyTotal(
+            day = "2026-08-25",
+            totalCm = 10406.4f,
+            totalKm = 0.104064f,
+            lastUpdated = java.time.LocalDateTime.of(2026, 8, 25, 23, 40)
+                .atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
+        )
+        assertTrue(
+            RecordEligibility.isEligible(
+                holed,
+                java.time.LocalDate.of(2026, 9, 6),
+                java.time.ZoneId.systemDefault(),
+                activeHours = 15
+            )
+        )
+    }
+
+
     private val zone: ZoneId = ZoneId.of("Asia/Kolkata")
     private val today = LocalDate.of(2026, 8, 26)
 

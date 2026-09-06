@@ -132,7 +132,17 @@ class SyncViewModel(
         // record nobody has claimed, without pulling the whole history every
         // fifteen minutes.
         val history = scrollRepository.getRecentDailyTotals(RECORD_LOOKBACK_DAYS)
-        val best = RecordEligibility.bestEligibleDay(history, LocalDate.now()) ?: run {
+
+        // Pre-fetch the hour counts rather than querying inside the filter:
+        // bestEligibleDay is a pure function and must stay one, so it takes a
+        // plain lookup rather than a suspending call it cannot make.
+        val activeHours = history.associate { it.day to scrollRepository.getActiveHourCount(it.day) }
+
+        val best = RecordEligibility.bestEligibleDay(
+            totals = history,
+            today = LocalDate.now(),
+            activeHoursFor = { day -> activeHours[day] ?: 0 }
+        ) ?: run {
             Log.d(TAG, "No record-eligible day yet")
             return
         }

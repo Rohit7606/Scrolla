@@ -18,6 +18,22 @@ interface ScrollEventDao {
     @Query("SELECT hourBucket, SUM(scrollCm) as totalCm FROM scroll_events WHERE day = :day GROUP BY hourBucket ORDER BY totalCm DESC LIMIT 1")
     suspend fun getPeakHourForDay(day: String): HourBucketCm?
 
+    /**
+     * How many distinct hours of the day recorded any scrolling.
+     *
+     * The signal `RecordEligibility` was designed around and could not reach —
+     * see its KDoc, which names this exact query as the swap it was waiting for.
+     * A day is a plausible record candidate only if the tracker was alive across
+     * a real span of it, and "how many hours did we hear from" says that far
+     * better than "when was the last event", which a two-hour evening burst
+     * passes just as easily as a full day.
+     *
+     * Measured on the device 2026-09-06: 2026-09-04 recorded 17:00–18:59, two
+     * distinct hours, and took the group record permanently at 21.5 m.
+     */
+    @Query("SELECT COUNT(DISTINCT hourBucket) FROM scroll_events WHERE day = :day")
+    suspend fun getActiveHourCountForDay(day: String): Int
+
     // A8: `getTotalCmBetweenDays()` was removed — zero callers. Range totals are
     // built from daily_totals (see WeeklyWindow), which is the cheaper source.
 

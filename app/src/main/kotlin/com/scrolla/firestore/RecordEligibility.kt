@@ -58,16 +58,43 @@ object RecordEligibility {
      * [today] is passed in rather than read from the clock so this is testable
      * without a fake clock.
      */
+    /**
+     * The minimum number of distinct hours a day must have recorded in.
+     *
+     * Six, the figure this object's KDoc named as the better proxy it could not
+     * reach. It can now: `ScrollRepository.getActiveHourCount()` landed
+     * 2026-09-06 for exactly this.
+     *
+     * It matters because [LAST_SCROLL_CUTOFF_HOUR] alone is passed just as
+     * easily by a two-hour evening burst as by a full day. On 2026-09-04 the
+     * service was dead until 17:47, recorded 17:00-18:59 — two hours, 21.5 m —
+     * and its last event at 18:xx cleared the 18:00 cutoff. That day took the
+     * group record from 104 m and, because `isRecordImprovement()` permits only
+     * equal-or-lower, no client could ever raise it back.
+     */
+    const val MIN_ACTIVE_HOURS = 6
+
+    /**
+     * @param activeHoursFor how many distinct hours the given day recorded in.
+     *   Defaults to a value that always passes, so existing callers and tests
+     *   keep the pre-2026-09-06 behaviour rather than silently tightening.
+     */
     fun bestEligibleDay(
         totals: List<DailyTotal>,
         today: LocalDate,
-        zone: ZoneId = ZoneId.systemDefault()
+        zone: ZoneId = ZoneId.systemDefault(),
+        activeHoursFor: (String) -> Int = { MIN_ACTIVE_HOURS }
     ): DailyTotal? = totals
-        .filter { isEligible(it, today, zone) }
+        .filter { isEligible(it, today, zone, activeHoursFor(it.day)) }
         .minByOrNull { it.totalKm }
 
     /** Visible for testing and for the KDoc above to be checkable. */
-    fun isEligible(total: DailyTotal, today: LocalDate, zone: ZoneId): Boolean {
+    fun isEligible(
+        total: DailyTotal,
+        today: LocalDate,
+        zone: ZoneId,
+        activeHours: Int = MIN_ACTIVE_HOURS
+    ): Boolean {
         val day = runCatching { LocalDate.parse(total.day) }.getOrNull() ?: return false
 
         // A day still in progress always wins on a minimum, because it has
@@ -76,6 +103,10 @@ object RecordEligibility {
 
         // A day with nothing recorded is an absence, not an achievement.
         if (total.totalKm <= 0f) return false
+
+        // A day the tracker only saw a slice of is not a low day, it is a
+        // missing day. This is the check that would have kept 2026-09-04 out.
+        if (activeHours < MIN_ACTIVE_HOURS) return false
 
         return isPlausiblyComplete(total, day, zone)
     }
