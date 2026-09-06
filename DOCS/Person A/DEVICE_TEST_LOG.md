@@ -369,6 +369,93 @@ P2.13; it needs a product decision, not a patch.
 
 ---
 
+### 2026-09-06 — CORRECTION: it is not a crash. MIUI is killing a live foreground service.
+
+**This supersedes the root-cause section of the 2026-09-05 entry above, which was
+wrong.** That entry concluded "not a battery kill" and attributed the outages to a
+code crash. It reached that conclusion from a 256 KB log buffer that had already
+rotated past the event — i.e. from absence of evidence. With the buffer raised to
+16 MB, a full **22-hour window** was recoverable on 2026-09-06, and it says
+something different.
+
+**There is no Scrolla crash. There never was one.**
+
+```
+adb logcat -b all -d | grep -iE "AndroidRuntime|FATAL" | grep -i scrolla
+  ->  (nothing)
+```
+
+The only `FATAL EXCEPTION` in the whole buffer belongs to **WhatsApp**
+(`SQLiteException: Unable to open writable db`) — informative about device state,
+but not ours.
+
+**What actually happened, 2026-09-05:**
+
+```
+15:19:26  Start proc 24098:com.scrolla for service {ScrollAccessibilityService}
+   …      tracking works normally; last scroll event recorded 17:30:01
+18:01:37  ProcessSceneCleaner: OneKeyClean: kill procName=com.scrolla info=AS:504
+18:01:37  ActivityManager: Killing 24098:com.scrolla/u0a315 (adj 50): OneKeyClean
+18:01:37  ActivityManager: Cancel FGS notification … ChannelId:scrolla_tracking
+   …      never rebound. Every later start is "for broadcast {TrackingHealthReceiver}"
+```
+
+Three details make this conclusive:
+
+- **`ProcessSceneCleaner: OneKeyClean`** names Scrolla explicitly. This is MIUI's
+  one-tap "clean/boost", not AOSP.
+- **`adj 50`** — a *foreground-service* priority process, not a cached one. MIUI
+  killed a live FGS.
+- **`Cancel FGS notification … scrolla_tracking`** — the persistent notification was
+  torn down *as a consequence*, proving the foreground service was alive up to the
+  moment it was killed.
+
+**The full set of MIUI killers observed in 22 hours**, all naming Scrolla:
+
+| Reason | Occurrences | Notes |
+|---|---|---|
+| `LockScreenClean` | 6 | **MIUI kills the app when the screen locks.** |
+| `camera boost` | 5 | Memory freed when the camera opens. |
+| `OneKeyClean` | 2 | One-tap boost. One killed a live FGS at `adj 50`. |
+| `lowmemorykiller` | 3 | incl. "device is in direct reclaim and low on memory" |
+
+**Being battery-whitelisted does not help.** Scrolla is on the idle whitelist and in
+standby bucket 5 (EXEMPTED) — those govern AOSP's Doze/App Standby, and MIUI's
+cleaners operate entirely outside that framework. This is precisely the behaviour
+§3.2 of this document pre-recorded as MIUI's "very high" aggressiveness, now
+observed with log lines rather than cited from research.
+
+**Why it never comes back.** Android rebound the service after the 15:04
+`OneKeyClean` kill, but not after 18:01. Once it stops rebinding, the framework
+marks the service crashed and drops the accessibility master switch to 0 — which is
+the "Not working / This service is malfunctioning" screen with the toggle still on.
+§3.2 names the likely reason: **MIUI's Autostart permission is OFF by default for
+third-party apps, and without it the service cannot be restarted after a kill.**
+
+**What this means for the code fixes in `54ac926`.** They fixed three genuine latent
+bugs — an unguarded `getDatabase()` on the hot path, a scope with no
+`CoroutineExceptionHandler`, and an unguarded `startForeground`. **They were not the
+cause of these outages and should not be recorded as the fix.** They remain worth
+having: had the DB failure that took WhatsApp down at 18:39 hit Scrolla, the old
+code would have died from it.
+
+**The actual mitigations are device settings, per device, per user:**
+
+1. **Autostart → Enable** (Settings → Apps → Manage apps → Scrolla → Autostart).
+   Without it nothing can restart the service after a kill.
+2. **Lock the app in Recents** — the padlock on Scrolla's card. This is what makes
+   `OneKeyClean` and `LockScreenClean` skip it, and it is the single highest-value
+   step on MIUI.
+3. Battery saver → **No restrictions**.
+4. Security app → Background restrictions → **No restrictions**.
+
+**This is a distribution problem, not only a device problem.** Every friend on a
+Xiaomi/Redmi/POCO device needs all four, none are discoverable, and the app
+currently never asks for them. The OEM screen built in S1.A7 shows generic
+instructions on this device — see §7, still unpopulated for Xiaomi.
+
+---
+
 ## 3. OEM BATTERY BEHAVIOR — PRE-FILLED KNOWN QUIRKS
 
 This section is pre-filled with known OEM battery-killing behavior from documented Android fragmentation research. **These are not guesses** — they are well-documented patterns. Update with actual observed behavior as testing happens; add a ✅ next to findings that are confirmed on a real device, a ❌ next to ones that didn't reproduce.

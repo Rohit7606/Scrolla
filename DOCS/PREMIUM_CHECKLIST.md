@@ -537,6 +537,53 @@ killing the process is what kills the binding.
       outages, both unrecoverable, on the one device we physically hold. On a
       friend's phone there would have been nothing at all.
 
+### P2.15 — MIUI kills the foreground service, and nothing restarts it `[Both]` — 🔴 *root cause, confirmed 2026-09-06*
+
+**Supersedes P2.12's root-cause half.** P2.12e–g fixed three real latent bugs but
+**they were not the cause** of the outages, and must not be recorded as the fix.
+
+With the crash buffer raised to 16 MB, a 22-hour window was recoverable and shows
+**no Scrolla crash at all** — the only `FATAL EXCEPTION` in it belongs to WhatsApp.
+What it shows instead:
+
+```
+18:01:37  ProcessSceneCleaner: OneKeyClean: kill procName=com.scrolla info=AS:504
+18:01:37  ActivityManager: Killing 24098:com.scrolla/u0a315 (adj 50): OneKeyClean
+18:01:37  ActivityManager: Cancel FGS notification … ChannelId:scrolla_tracking
+```
+
+`adj 50` is a **foreground-service** process, and the FGS notification was torn
+down as a consequence — so MIUI killed a live, healthy foreground service by name.
+Observed killers in 22 hours: `LockScreenClean` ×6 (**the app dies when the screen
+locks**), `camera boost` ×5, `OneKeyClean` ×2, `lowmemorykiller` ×3.
+
+**Battery whitelisting is irrelevant here.** Scrolla is whitelisted and in standby
+bucket 5 (EXEMPTED); those govern AOSP Doze/App Standby, and MIUI's cleaners sit
+outside that framework entirely.
+
+Android rebound the service after one kill but not the next — and once it stops
+rebinding, the master switch drops to 0 and you get "This service is malfunctioning"
+above an enabled toggle. `DEVICE_TEST_LOG` §3.2 names the likely reason: **MIUI's
+Autostart is off by default for third-party apps, and without it nothing can restart
+the service after a kill.**
+
+- [ ] **P2.15a** Make the app **ask for the four MIUI settings**, not just describe
+      them generically: Autostart on, **lock the app in Recents** (the highest-value
+      one — it is what makes OneKeyClean and LockScreenClean skip a process),
+      battery saver unrestricted, Security-app background restriction off. S1.A7's
+      screen currently shows generic instructions on this device; §7 of the device
+      log is still unpopulated for Xiaomi.
+- [ ] **P2.15b** Detect the OEM and gate the copy on it. `Build.MANUFACTURER` is
+      already read for the health card, so the plumbing exists.
+- [ ] **P2.15c** **Re-frame what the app can promise.** On MIUI, tracking is
+      best-effort no matter what the code does. The honest options are to say so, or
+      to treat gaps as expected and stop presenting a day's total as complete when
+      the service was dead for part of it — which also feeds P2.11 and P2.6e, since
+      a killed day produces a low number that looks like a winning score.
+- [ ] **P2.15d** This is a **distribution** problem: four undiscoverable settings,
+      per device, per friend, none of which the app currently asks for. It belongs
+      in the sideload gate in `DEVICE_TEST_LOG` §1, not only in a checklist.
+
 ### P2.13 — UPI apps refuse to run while Scrolla is enabled `[Both]` — ☐ *no code fix exists*
 
 **supermoney blocks payments and names Scrolla explicitly:** *"Turn off
