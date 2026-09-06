@@ -16,8 +16,11 @@ import org.junit.Test
  */
 class BackupReconcileTest {
 
-    private fun row(day: String, km: Float) =
-        DailyTotal(day = day, totalCm = km * 100_000f, totalKm = km, lastUpdated = 0L)
+    private fun row(day: String, km: Float, lastUpdated: Long = 0L) =
+        DailyTotal(day = day, totalCm = km * 100_000f, totalKm = km, lastUpdated = lastUpdated)
+
+    /** 2026-09-04 at 21:30 local — a day that finished after the 18:00 cutoff. */
+    private val eveningStamp = 1_788_000_000_000L
 
     // ---- the reinstall case, which is the whole point ----
 
@@ -109,5 +112,47 @@ class BackupReconcileTest {
     @Test
     fun `two identical empty sides produce no work`() {
         assertTrue(BackupReconcile.plan(emptyList(), emptyList()).isEmpty)
+    }
+
+    // ---- lastUpdated, which decides whether a restored day can ever win ----
+
+    @Test
+    fun `a cloud row missing lastUpdated is re-uploaded even when the distance matches`() {
+        // The repair path for documents written before that field was carried.
+        // Without it the distances match forever, the row is never fixed, and
+        // RecordEligibility silently rejects the day after every restore.
+        val local = listOf(row("2026-09-04", 0.021f, lastUpdated = eveningStamp))
+        val cloud = listOf(row("2026-09-04", 0.021f, lastUpdated = 0L))
+
+        val plan = BackupReconcile.plan(local = local, cloud = cloud)
+
+        assertEquals(1, plan.toUpload.size)
+        assertEquals(eveningStamp, plan.toUpload.single().lastUpdated)
+    }
+
+    @Test
+    fun `a restored day keeps the timestamp that makes it record-eligible`() {
+        val cloud = listOf(row("2026-09-04", 0.021f, lastUpdated = eveningStamp))
+        val plan = BackupReconcile.plan(local = emptyList(), cloud = cloud)
+
+        assertEquals(eveningStamp, plan.toRestore.single().lastUpdated)
+    }
+
+    @Test
+    fun `matching rows with matching timestamps stay silent`() {
+        val local = listOf(row("2026-09-04", 0.021f, lastUpdated = eveningStamp))
+        val cloud = listOf(row("2026-09-04", 0.021f, lastUpdated = eveningStamp))
+
+        assertTrue(BackupReconcile.plan(local = local, cloud = cloud).isEmpty)
+    }
+
+    @Test
+    fun `a local row with no timestamp does not trigger endless re-upload`() {
+        // Local 0 vs cloud 0 is equal anyway; local 0 vs a cloud value must not
+        // loop, since uploading a 0 would not change what the cloud holds.
+        val local = listOf(row("2026-09-04", 0.021f, lastUpdated = 0L))
+        val cloud = listOf(row("2026-09-04", 0.021f, lastUpdated = eveningStamp))
+
+        assertTrue(BackupReconcile.plan(local = local, cloud = cloud).isEmpty)
     }
 }

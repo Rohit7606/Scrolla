@@ -38,12 +38,19 @@ service cloud.firestore {
     match /users/{userId}/dailyTotals/{day} {
       allow read, delete: if isOwner(userId);
 
+      // `lastUpdated` is carried, and it is load-bearing rather than incidental.
+      // RecordEligibility.isPlausiblyComplete() opens with
+      // `if (total.lastUpdated <= 0L) return false`, so a restored row without
+      // it is permanently barred from ever setting a group record — the user
+      // would get their history back and silently find none of it could win.
       allow create, update: if isOwner(userId)
                     && day.matches('\\d{4}-\\d{2}-\\d{2}')
-                    && request.resource.data.keys().hasOnly(['date', 'totalKm', 'updatedAt'])
+                    && request.resource.data.keys().hasOnly(['date', 'totalKm', 'lastUpdated', 'updatedAt'])
                     && request.resource.data.date == day
                     && request.resource.data.totalKm is number
-                    && request.resource.data.totalKm >= 0;
+                    && request.resource.data.totalKm >= 0
+                    && request.resource.data.lastUpdated is int
+                    && request.resource.data.lastUpdated >= 0;
     }
 
     function isOwner(userId) {

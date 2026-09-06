@@ -47,10 +47,19 @@ class BackupRepository(
                     day = day,
                     totalCm = (km * CM_PER_KM).toFloat(),
                     totalKm = km.toFloat(),
-                    // The backup does not carry lastUpdated. It is a local
-                    // health signal — "when did this device last flush" — and
-                    // restoring another moment's value would be a fabrication.
-                    lastUpdated = 0L
+                    // Carried, not defaulted. An earlier version dropped this to
+                    // 0L on the reasoning that it is a device-local health
+                    // signal and inventing one would be a fabrication. True, but
+                    // it traced no further: RecordEligibility.isPlausiblyComplete
+                    // starts `if (total.lastUpdated <= 0L) return false`, so every
+                    // restored day would have been permanently barred from setting
+                    // a group record. The user gets their history back and quietly
+                    // finds none of it can ever win.
+                    //
+                    // Defaults to 0 when absent, which keeps that fail-closed
+                    // behaviour for any document written before this field
+                    // existed, and the reconcile re-uploads such rows.
+                    lastUpdated = doc.getLong("lastUpdated") ?: 0L
                 )
             }
         }
@@ -75,6 +84,9 @@ class BackupRepository(
                         mapOf(
                             "date" to row.day,
                             "totalKm" to row.totalKm,
+                            // Needed for RecordEligibility to accept the day
+                            // after a restore — see fetchAll.
+                            "lastUpdated" to row.lastUpdated,
                             "updatedAt" to FieldValue.serverTimestamp()
                         ),
                         SetOptions.merge()

@@ -51,7 +51,15 @@ object BackupReconcile {
 
         val toUpload = local.filter { row ->
             val remote = cloudByDay[row.day]
-            remote == null || !sameDistance(remote.totalKm, row.totalKm)
+            remote == null ||
+                !sameDistance(remote.totalKm, row.totalKm) ||
+                // A cloud row that lost `lastUpdated` is not equivalent to the
+                // local one even when the distance matches. Without this, a
+                // document written before that field was carried would keep its
+                // matching distance forever and never be repaired — and a
+                // restored day with lastUpdated = 0 can never set a group
+                // record, because RecordEligibility fails closed on it.
+                (remote.lastUpdated != row.lastUpdated && row.lastUpdated > 0L)
         }
 
         return Plan(toRestore = toRestore, toUpload = toUpload)
