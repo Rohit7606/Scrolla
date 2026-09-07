@@ -123,6 +123,96 @@ class RecordEligibilityTest {
         assertFalse("the two-hour day must not win", best?.day == "2026-09-04")
     }
 
+    // ── The join-date bound (added 2026-09-07) ──
+    // A group record is earned inside the group, not carried into it.
+
+    @Test
+    fun `a day from before you joined cannot set the group record`() {
+        // The real case: GUW4YE was created 7 Sep at 14:41 and was immediately
+        // handed a record from 25 Aug — two weeks before it existed, and before
+        // any other member could have competed for it.
+        val beforeJoining = DailyTotal(
+            day = "2026-08-25",
+            totalCm = 10406.4f,
+            totalKm = 0.104064f,
+            lastUpdated = java.time.LocalDateTime.of(2026, 8, 25, 23, 40)
+                .atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
+        )
+        assertFalse(
+            RecordEligibility.isEligible(
+                beforeJoining,
+                java.time.LocalDate.of(2026, 9, 8),
+                java.time.ZoneId.systemDefault(),
+                activeSpanHours = 24,
+                notBefore = java.time.LocalDate.of(2026, 9, 7)
+            )
+        )
+    }
+
+    @Test
+    fun `the join day itself counts`() {
+        // Inclusive: you were in the group for that day, so it is the group's.
+        val joinDay = DailyTotal(
+            day = "2026-09-07",
+            totalCm = 9830f,
+            totalKm = 0.0983f,
+            lastUpdated = java.time.LocalDateTime.of(2026, 9, 7, 19, 3)
+                .atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
+        )
+        assertTrue(
+            RecordEligibility.isEligible(
+                joinDay,
+                java.time.LocalDate.of(2026, 9, 8),
+                java.time.ZoneId.systemDefault(),
+                activeSpanHours = 20,
+                notBefore = java.time.LocalDate.of(2026, 9, 7)
+            )
+        )
+    }
+
+    @Test
+    fun `a fresh group has no record rather than an inherited one`() {
+        // The right answer for a brand-new group is "no record yet", not
+        // somebody's back catalogue. Hall of Fame renders null as an empty
+        // state, so this reads as a prize nobody has claimed — which is true.
+        fun day(d: String, km: Float) = DailyTotal(
+            day = d, totalCm = km * 100_000f, totalKm = km,
+            lastUpdated = java.time.LocalDate.parse(d).atTime(23, 30)
+                .atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
+        )
+        val history = listOf(
+            day("2026-08-24", 0.106298f),
+            day("2026-08-25", 0.104064f),
+            day("2026-08-26", 0.205179f)
+        )
+        val best = RecordEligibility.bestEligibleDay(
+            totals = history,
+            today = java.time.LocalDate.of(2026, 9, 8),
+            activeSpanFor = { 24 },
+            notBefore = java.time.LocalDate.of(2026, 9, 7)
+        )
+        assertNull("nothing from before the group existed may count", best)
+    }
+
+    @Test
+    fun `no bound still considers the whole history`() {
+        // Null notBefore keeps the previous behaviour, so the bound is opt-in
+        // and a caller that cannot determine a join date does not silently get
+        // a different rule.
+        fun day(d: String, km: Float) = DailyTotal(
+            day = d, totalCm = km * 100_000f, totalKm = km,
+            lastUpdated = java.time.LocalDate.parse(d).atTime(23, 30)
+                .atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
+        )
+        val best = RecordEligibility.bestEligibleDay(
+            totals = listOf(day("2026-08-25", 0.104064f)),
+            today = java.time.LocalDate.of(2026, 9, 8),
+            activeSpanFor = { 24 },
+            notBefore = null
+        )
+        assertEquals("2026-08-25", best?.day)
+    }
+
     @Test
     fun `known limitation - a hole in the middle of a day still passes`() {
         // 2026-08-25 is the day the service crashed at 09:34 and only resumed

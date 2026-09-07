@@ -15,7 +15,16 @@ data class GroupMembership(
     val groupName: String,
     val displayName: String,
     val isPrimary: Boolean,
-    val memberCount: Int
+    val memberCount: Int,
+    /**
+     * When this user joined this group, epoch millis, or null for a membership
+     * written before it was read back.
+     *
+     * Both `joinGroup` and `createGroup` have always written `joinedAt`, and
+     * until 2026-09-07 nothing ever read it — so a group record could be set by
+     * a day from before the group existed. See `RecordEligibility.notBefore`.
+     */
+    val joinedAt: Long? = null
 )
 
 /** One member's total for a single day, as stored under /groups/{id}/dailyTotals. */
@@ -174,7 +183,8 @@ class GroupRepository(
                     groupName = groupDoc.getString("groupName") ?: groupId,
                     displayName = membership.getString("displayName") ?: "Unknown",
                     isPrimary = membership.getBoolean("isPrimary") ?: false,
-                    memberCount = (groupDoc.get("members") as? List<*>)?.size ?: 0
+                    memberCount = (groupDoc.get("members") as? List<*>)?.size ?: 0,
+                    joinedAt = membership.getTimestamp("joinedAt")?.toDate()?.time
                 )
             }
             Result.success(groups)

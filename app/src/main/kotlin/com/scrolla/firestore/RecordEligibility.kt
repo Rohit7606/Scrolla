@@ -86,13 +86,26 @@ object RecordEligibility {
      *   Defaults to a value that always passes, so existing callers and tests
      *   keep the pre-2026-09-06 behaviour rather than silently tightening.
      */
+    /**
+     * @param notBefore the earliest day that may count, normally the date the
+     *   user joined this group. Null means no lower bound.
+     *
+     *   A group record is something earned **inside** the group. Without this
+     *   bound, joining a group hands it your best day from any point in your
+     *   own history — on 2026-09-07 a group created that afternoon was given a
+     *   record from 25 August, two weeks before it existed and before anyone in
+     *   it could have competed. On a leaderboard where lowest wins, that sets a
+     *   bar nobody else was ever in the room for, and `isRecordImprovement()`
+     *   makes it permanent.
+     */
     fun bestEligibleDay(
         totals: List<DailyTotal>,
         today: LocalDate,
         zone: ZoneId = ZoneId.systemDefault(),
-        activeSpanFor: (String) -> Int = { MIN_ACTIVE_SPAN_HOURS }
+        activeSpanFor: (String) -> Int = { MIN_ACTIVE_SPAN_HOURS },
+        notBefore: LocalDate? = null
     ): DailyTotal? = totals
-        .filter { isEligible(it, today, zone, activeSpanFor(it.day)) }
+        .filter { isEligible(it, today, zone, activeSpanFor(it.day), notBefore) }
         .minByOrNull { it.totalKm }
 
     /** Visible for testing and for the KDoc above to be checkable. */
@@ -100,9 +113,14 @@ object RecordEligibility {
         total: DailyTotal,
         today: LocalDate,
         zone: ZoneId,
-        activeSpanHours: Int = MIN_ACTIVE_SPAN_HOURS
+        activeSpanHours: Int = MIN_ACTIVE_SPAN_HOURS,
+        notBefore: LocalDate? = null
     ): Boolean {
         val day = runCatching { LocalDate.parse(total.day) }.getOrNull() ?: return false
+
+        // Days from before the user joined this group are their own history,
+        // not the group's. See notBefore.
+        if (notBefore != null && day.isBefore(notBefore)) return false
 
         // A day still in progress always wins on a minimum, because it has
         // barely started. Today is never eligible.

@@ -13,7 +13,9 @@ import com.scrolla.room.ScrollRepository
 import com.scrolla.ui.ScrollaGraph
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneId
 
 /**
  * Drives the Firestore sync cadence (SPRINT_LOG S2.3), and the group record
@@ -138,15 +140,6 @@ class SyncViewModel(
         // plain lookup rather than a suspending call it cannot make.
         val activeSpans = history.associate { it.day to scrollRepository.getActiveHourSpan(it.day) }
 
-        val best = RecordEligibility.bestEligibleDay(
-            totals = history,
-            today = LocalDate.now(),
-            activeSpanFor = { day -> activeSpans[day] ?: 0 }
-        ) ?: run {
-            Log.d(TAG, "No record-eligible day yet")
-            return
-        }
-
         val groups = groupRepository.getUserGroups(user.uid).getOrElse {
             Log.d(TAG, "Skipping record update — could not read groups: ${it.message}")
             return
@@ -157,9 +150,38 @@ class SyncViewModel(
             return
         }
 
-        Log.d(TAG, "Offering ${best.day} (${best.totalKm} km) to ${groups.size} group(s)")
-
+        // Evaluated per group, not once for all of them. A group record is
+        // earned inside the group, so each one is bounded by the date this user
+        // joined *that* group — and those dates differ. Computing one "best day"
+        // and offering it everywhere is what let a group created on 7 September
+        // inherit a record from 25 August.
         for (group in groups) {
+            val joinedDay = group.joinedAt
+                ?.let { Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate() }
+
+            if (joinedDay == null) {
+                // Every membership written by joinGroup/createGroup carries
+                // joinedAt, so this means a hand-edited or very old document.
+                // Log rather than silently falling back to the whole history,
+                // which is the behaviour this bound exists to remove.
+                Log.w(TAG, "No joinedAt for ${group.groupId} — record offer skipped")
+                continue
+            }
+
+            val best = RecordEligibility.bestEligibleDay(
+                totals = history,
+                today = LocalDate.now(),
+                activeSpanFor = { day -> activeSpans[day] ?: 0 },
+                notBefore = joinedDay
+            )
+
+            if (best == null) {
+                Log.d(TAG, "No record-eligible day for ${group.groupId} since joining $joinedDay")
+                continue
+            }
+
+            Log.d(TAG, "Offering ${best.day} (${best.totalKm} km) to ${group.groupId}, joined $joinedDay")
+
             groupRepository.updateGroupRecordIfBetter(
                 groupId = group.groupId,
                 displayName = displayName,
