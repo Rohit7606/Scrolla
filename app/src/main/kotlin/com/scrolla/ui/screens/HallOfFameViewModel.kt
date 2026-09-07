@@ -87,7 +87,9 @@ class HallOfFameViewModel(
                 return@launch
             }
 
-            val myBest = scrollRepository.getPersonalBestDay()?.totalKm
+            // Must use the same rule as the record it is compared against,
+            // or the screen can claim the user holds a record they do not.
+            val myBest = PersonalBest.of(scrollRepository)?.totalKm
             val holdsRecord = myBest != null && myBest <= record.recordKm
 
             _uiState.value = HallOfFameUiState(

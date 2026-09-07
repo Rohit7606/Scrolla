@@ -551,6 +551,26 @@ P2.6e is a design note and this is a thing that happens tomorrow.
       inverting the entire point of a reverse leaderboard.
       With span, the app now offers **2026-08-25 at 104.1 m**, confirmed in the
       device log — what the record held before this happened.
+- [x] **P2.11e The *personal* record had no eligibility at all** — found on
+      device 2026-09-07 when Profile displayed **22 m** as the user's lowest day
+      ever. That is 2026-09-04: service dead until 17:47, recorded across two
+      hours. Audit A3 fixed `getPersonalBestDay()` excluding today, which was the
+      loudest symptom, and stopped there — so it still knew whether a day was
+      *low*, never whether it was *trackable*. Meanwhile the group record had
+      just been given a full eligibility gate, so the two answered differently
+      about one history: the group refused that day while Profile celebrated it.
+      Exactly the divergence A3 itself named, and the same shape as Weekly Recap
+      inheriting a window bug Personal Records had already fixed (P2.9).
+      **Fixed**: `ui/screens/PersonalBest` routes all four screens (Profile,
+      Personal Records, Home, Hall of Fame) through the same
+      `RecordEligibility` call the group record uses, so they cannot disagree by
+      construction. Verified against the device: the figure moves from **22 m to
+      104 m (2026-08-25)**, matching the group record.
+- [ ] **P2.11f** `getPersonalBestKm()` / `getPersonalBestDay()` now have **zero
+      callers**. They are the documented A/B contract (DATA_CONTRACT §4) so
+      removing them is A's call, but a raw minimum with no plausibility check is
+      a loaded gun on a leaderboard where lowest wins. KDoc warns; **A to decide**
+      delete or keep.
 - [ ] **P2.11d Known limitation, deliberately not fixed.** Counting hours sees
       coverage, not contiguity, so 2026-08-25 — nine and a half hours missing
       from the *middle* after the 09:34 crash — still qualifies, and its 104.1 m

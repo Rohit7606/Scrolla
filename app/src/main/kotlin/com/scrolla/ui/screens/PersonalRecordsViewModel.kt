@@ -39,7 +39,8 @@ class PersonalRecordsViewModel(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
 
-            val bestDay = scrollRepository.getPersonalBestDay()
+            // Same rules as the group record — see PersonalBest.
+            val bestDay = PersonalBest.of(scrollRepository)
             // There is no "all daily totals" call on the contract, so ask for a
             // year and work from that — comfortably more history than this app
             // has, and it keeps the query bounded.

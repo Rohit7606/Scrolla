@@ -62,7 +62,8 @@ class HomeViewModel(
             } else {
                 null
             }
-            val personalBestKm = scrollRepository.getPersonalBestKm()
+            // Same rules as the group record — see PersonalBest.
+            val personalBestKm = PersonalBest.of(scrollRepository)?.totalKm
 
             _uiState.value = HomeUiState(
                 isLoading = false,

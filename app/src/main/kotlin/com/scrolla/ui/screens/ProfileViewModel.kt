@@ -48,7 +48,9 @@ class ProfileViewModel(
             _uiState.value = _uiState.value.copy(isLoading = true)
 
             val user = authRepository.currentUser
-            val bestDay = scrollRepository.getPersonalBestDay()
+            // Same rules as the group record — see PersonalBest. This screen
+            // showed 22 m from a two-hour day before that was true.
+            val bestDay = PersonalBest.of(scrollRepository)
 
             // 14 days, split into this week and the one before, so the profile can
             // say "down from" without a second query.

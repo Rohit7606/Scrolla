@@ -53,11 +53,25 @@ interface ScrollRepository {
      *  Today is excluded — it is always the lowest while it is still running,
      *  which used to make every morning a new record (audit A3). So this is
      *  null until the user has one finished day with scrolling on it, not just
-     *  until they have "1 day of data". Used on the Personal Records screen. */
+     *  until they have "1 day of data".
+     *
+     *  ⚠️ **Raw minimum — no plausibility check, and no longer called by any
+     *  screen (2026-09-07).** It knows whether a day was *low*, not whether it
+     *  was *trackable*, so it returned 2026-09-04 at 21.5 m — a day the service
+     *  spent dead until 17:47 and recorded across two hours — and Profile
+     *  displayed it as the user's best ever. Every screen now goes through
+     *  `ui/screens/PersonalBest`, which applies the same `RecordEligibility`
+     *  rules as the group record so the two cannot disagree about one history.
+     *
+     *  Left in place rather than deleted because these two are the documented
+     *  A/B contract (DATA_CONTRACT §4) and removing them is A's call — but they
+     *  currently have **zero callers**, and a raw minimum is a loaded gun on a
+     *  leaderboard where lowest wins. */
     suspend fun getPersonalBestKm(): Float?
 
     /** The full DailyTotal behind [getPersonalBestKm] — includes the date
-     *  string for display. Same exclusions; null until a completed day exists. */
+     *  string for display. Same exclusions, and the same warning: raw minimum,
+     *  no eligibility, zero callers. Use `PersonalBest.of()`. */
     suspend fun getPersonalBestDay(): DailyTotal?
 
     /** Total km for a specific calendar date string ("2025-01-15").
