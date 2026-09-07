@@ -769,3 +769,44 @@ Updated by A after every round of testing. This is the single line B (and the fr
 | **Overall: safe to sideload?** | **❌ No** | 2026-07-11 |
 
 > When all rows above show ✅, update the bottom row to "✅ Yes — [date]" and notify the friend group that installation can begin.
+
+---
+
+## 2026-09-07 — the 30-hour observation, and it held
+
+**Device:** Redmi Note 10 (M2101K7BI), Android 13, MIUI.
+**Change under test:** MIUI Autostart ON for Scrolla + locked in Recents. Nothing
+else; no code change to the service between 6 Sep 12:15 and this reading.
+
+**Result: tracking ran unbroken for ~32 hours.** 1,153 batches from 6 Sep 10:40
+to 7 Sep 19:03, spanning a full night.
+
+| day | metres | events | active hours |
+|---|---|---|---|
+| 2026-09-04 | 21.5 | 94 | **2** — 17:00–18:59 |
+| 2026-09-05 | 68.4 | 203 | **6** — 12:00–17:59 |
+| 2026-09-06 | 197.5 | 753 | **14** — 10:00–23:59 |
+| 2026-09-07 | 98.3 | 400 | **16** — 00:00, 05:00–19:00 |
+
+`dumpsys accessibility` reads `Crashed services:{}` and the service is bound. The
+only silence in the window is 01:00–04:00, which is sleep, and 09-07 opens at
+hour 0 — scrolling that ran past midnight, so the process survived the boundary
+rather than being restarted into it.
+
+**What this settles.** Three outages were attributed in turn to a crash, then to
+a code defect, then finally to MIUI. The last answer was right, and this is the
+proof: *no code changed*, two OEM settings did, and the failure stopped. The
+crash theory (corrected on 2026-09-06) stays retracted.
+
+**What it does not settle.** One device, one user, one OEM. It says the settings
+fix MIUI on this phone; it says nothing about whether a user who never finds
+those settings is tracked at all — which is the actual product problem, and why
+they moved out of onboarding and behind gap detection rather than staying as
+step five of eight.
+
+**`TrackingGap` replayed against the real window: 0 false alarms.** Largest
+waking-hour gap 1.03 h against a 5 h threshold. The overnight stretch —
+07 Sep 00:13 → 05:55 — is **5.71 elapsed hours but 0.00 waking hours**, so a
+naive elapsed-time rule would have fired a false alarm at 05:55 and this one
+correctly stayed silent. First validation of that logic against real data rather
+than constructed timestamps.

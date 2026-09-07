@@ -663,7 +663,34 @@ killing the process is what kills the binding.
       outages, both unrecoverable, on the one device we physically hold. On a
       friend's phone there would have been nothing at all.
 
-### P2.15 — MIUI kills the foreground service, and nothing restarts it `[Both]` — 🔴 *root cause, confirmed 2026-09-06*
+### P2.15 — MIUI kills the foreground service, and nothing restarts it `[Both]` — ☑ *root cause confirmed 2026-09-06, **fix verified over 30 hours 2026-09-07***
+
+> **The settings work.** With MIUI Autostart on and Scrolla locked in Recents,
+> tracking ran unbroken from 6 Sep 10:40 to 7 Sep 19:03 — **1,153 batches across
+> ~32 hours, including a full night.**
+>
+> | day | metres | active hours | |
+> |---|---|---|---|
+> | 09-04 | 21.5 | **2** | before |
+> | 09-05 | 68.4 | **6** | before |
+> | 09-06 | 197.5 | **14** (10:00–23:59) | after |
+> | 09-07 | 98.3 | **16** (00:00, 05:00–19:00) | after |
+>
+> Largest gap during waking hours: **1.03 h**. `Crashed services:{}` throughout.
+> The only silence is 01:00–04:00, which is sleep.
+>
+> This closes the question that produced three outages: **it was never a crash,
+> and the code was never the problem** — it was two undiscoverable OEM settings.
+> Which is exactly why the onboarding restructure moved them out of the way and
+> behind a detector rather than leaving them as step five of eight.
+
+> **`TrackingGap` validated against this window.** Replaying the real timestamps:
+> **0 false alarms**, largest waking gap 1.03 h against a 5 h threshold. The
+> overnight stretch is the case the design exists for — 07 Sep 00:13→05:55 is
+> **5.71 elapsed hours**, which a naive "no events for five hours" rule would
+> have fired on, against **0.00 waking hours**, which is what it actually counts.
+> The detector would have woken the user with a false alarm at 05:55 this
+> morning had it used elapsed time.
 
 **Supersedes P2.12's root-cause half.** P2.12e–g fixed three real latent bugs but
 **they were not the cause** of the outages, and must not be recorded as the fix.
