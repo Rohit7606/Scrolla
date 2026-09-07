@@ -291,6 +291,16 @@ fun MainShell(
                 val recordsViewModel: PersonalRecordsViewModel = viewModel()
                 val recordsState by recordsViewModel.uiState.collectAsState()
 
+                // These ViewModels are activity-scoped: `viewModel()` here resolves
+                // to the Activity, because this router is a `when (currentRoute)`
+                // rather than a NavHost with per-destination stores. So `init` runs
+                // once per process and navigating away and back reuses the same
+                // instance — the screen would keep showing whatever it loaded the
+                // first time it was ever opened. Found 2026-09-07 when the group
+                // record was corrected in Firestore and Hall of Fame went on
+                // displaying the old figure until the app was force-stopped.
+                LaunchedEffect(Unit) { recordsViewModel.refresh() }
+
                 PersonalRecordsScreen(
                     hasData = recordsState.hasData,
                     bestDayKm = recordsState.bestDayKm,
@@ -303,6 +313,16 @@ fun MainShell(
             is ScreenRoute.HallOfFame -> {
                 val fameViewModel: HallOfFameViewModel = viewModel()
                 val fameState by fameViewModel.uiState.collectAsState()
+
+                // These ViewModels are activity-scoped: `viewModel()` here resolves
+                // to the Activity, because this router is a `when (currentRoute)`
+                // rather than a NavHost with per-destination stores. So `init` runs
+                // once per process and navigating away and back reuses the same
+                // instance — the screen would keep showing whatever it loaded the
+                // first time it was ever opened. Found 2026-09-07 when the group
+                // record was corrected in Firestore and Hall of Fame went on
+                // displaying the old figure until the app was force-stopped.
+                LaunchedEffect(Unit) { fameViewModel.refresh() }
 
                 HallOfFameScreen(
                     hasRecord = fameState.hasRecord,
@@ -432,6 +452,16 @@ fun MainShell(
                 val recapViewModel: WeeklyRecapViewModel = viewModel()
                 val recapState by recapViewModel.uiState.collectAsState()
 
+                // These ViewModels are activity-scoped: `viewModel()` here resolves
+                // to the Activity, because this router is a `when (currentRoute)`
+                // rather than a NavHost with per-destination stores. So `init` runs
+                // once per process and navigating away and back reuses the same
+                // instance — the screen would keep showing whatever it loaded the
+                // first time it was ever opened. Found 2026-09-07 when the group
+                // record was corrected in Firestore and Hall of Fame went on
+                // displaying the old figure until the app was force-stopped.
+                LaunchedEffect(Unit) { recapViewModel.refresh() }
+
                 WeeklyRecapScreen(
                     weeklyDistanceKm = recapState.weeklyDistanceKm,
                     landmarkText = recapState.landmarkText,
@@ -456,6 +486,16 @@ fun MainShell(
             is ScreenRoute.AppBreakdown -> {
                 val breakdownViewModel: AppBreakdownViewModel = viewModel()
                 val breakdownState by breakdownViewModel.uiState.collectAsState()
+
+                // These ViewModels are activity-scoped: `viewModel()` here resolves
+                // to the Activity, because this router is a `when (currentRoute)`
+                // rather than a NavHost with per-destination stores. So `init` runs
+                // once per process and navigating away and back reuses the same
+                // instance — the screen would keep showing whatever it loaded the
+                // first time it was ever opened. Found 2026-09-07 when the group
+                // record was corrected in Firestore and Hall of Fame went on
+                // displaying the old figure until the app was force-stopped.
+                LaunchedEffect(Unit) { breakdownViewModel.refresh() }
 
                 AppBreakdownScreen(
                     hasData = breakdownState.hasData,
