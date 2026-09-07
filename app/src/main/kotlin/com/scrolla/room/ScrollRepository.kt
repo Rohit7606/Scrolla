@@ -105,13 +105,17 @@ interface ScrollRepository {
     suspend fun restoreDailyTotals(totals: List<DailyTotal>): Int
 
     /**
-     * How many distinct hours of [date] recorded any scrolling, 0–24.
+     * Hours from [date]'s first recorded scroll to its last, inclusive; 0 if none.
      *
-     * Exists so `RecordEligibility` can tell a full day from a short burst
-     * before letting one set a permanent group record. Returns 0 on failure,
-     * which fails closed — an unknown day is not offered as a record.
+     * Exists so `RecordEligibility` can tell a day the tracker lived through
+     * from one it only caught the end of, before letting either set a permanent
+     * group record. Span rather than count, because count measures how much the
+     * user scrolled and span measures how long the tracker was alive — and a
+     * light user is precisely who this product is meant to reward.
+     *
+     * Returns 0 on failure, which fails closed: an unknown day sets no record.
      */
-    suspend fun getActiveHourCount(date: String): Int
+    suspend fun getActiveHourSpan(date: String): Int
 }
 
 /**
@@ -205,11 +209,11 @@ class ScrollRepositoryImpl(
         }
     }
 
-    override suspend fun getActiveHourCount(date: String): Int {
+    override suspend fun getActiveHourSpan(date: String): Int {
         return try {
-            scrollEventDao.getActiveHourCountForDay(date)
+            scrollEventDao.getActiveHourSpanForDay(date) ?: 0
         } catch (e: Exception) {
-            Log.e(tag, "getActiveHourCount() failed for day=$date", e)
+            Log.e(tag, "getActiveHourSpan() failed for day=$date", e)
             0
         }
     }

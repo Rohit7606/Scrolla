@@ -539,9 +539,18 @@ P2.6e is a design note and this is a thing that happens tomorrow.
       evening burst as by a full day, which is precisely how 2026-09-04 (17:00–18:59,
       21.5 m, last event 18:xx) qualified. **This had to land before any console
       correction**, or the next sync would simply write 21.5 m back.
-      With it, the best eligible day becomes **2026-08-25 at 104.1 m** — which is
-      what the record held before. 5 new tests, including one pinning the
-      known limitation below.
+      **Corrected 2026-09-07: the gate is now hour *span*, not hour count**
+      (`MIN_ACTIVE_SPAN_HOURS = 10`). Verified on device that counting was not
+      enough — with a count of 6 the app stopped offering 09-04 and immediately
+      began offering **2026-09-05 at 68.4 m**, a day that recorded 12:00–17:59
+      with the whole morning dead and cleared a six-hour count *exactly*.
+      Span measures how long the **tracker was alive**; count measures how much
+      the **user scrolled**. That difference is not academic: someone who scrolls
+      at 08:00 and again at 22:00 has two active hours and a fourteen-hour span,
+      and a count threshold would disqualify the lightest user in the group —
+      inverting the entire point of a reverse leaderboard.
+      With span, the app now offers **2026-08-25 at 104.1 m**, confirmed in the
+      device log — what the record held before this happened.
 - [ ] **P2.11d Known limitation, deliberately not fixed.** Counting hours sees
       coverage, not contiguity, so 2026-08-25 — nine and a half hours missing
       from the *middle* after the 09:34 crash — still qualifies, and its 104.1 m

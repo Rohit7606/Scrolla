@@ -59,23 +59,30 @@ object RecordEligibility {
      * without a fake clock.
      */
     /**
-     * The minimum number of distinct hours a day must have recorded in.
+     * The minimum hours a day's recording must **span**, first scroll to last.
      *
-     * Six, the figure this object's KDoc named as the better proxy it could not
-     * reach. It can now: `ScrollRepository.getActiveHourCount()` landed
-     * 2026-09-06 for exactly this.
+     * Span, not count, and the distinction is what makes the rule fair. Counting
+     * active hours measures how much the *user* scrolled; span measures how long
+     * the *tracker was alive*. Someone who scrolls at 08:00 and again at 22:00
+     * has two active hours and a fourteen-hour span, and they are precisely the
+     * person a reverse leaderboard exists to reward — a count threshold would
+     * disqualify them for being light, which inverts the product.
      *
-     * It matters because [LAST_SCROLL_CUTOFF_HOUR] alone is passed just as
-     * easily by a two-hour evening burst as by a full day. On 2026-09-04 the
-     * service was dead until 17:47, recorded 17:00-18:59 — two hours, 21.5 m —
-     * and its last event at 18:xx cleared the 18:00 cutoff. That day took the
-     * group record from 104 m and, because `isRecordImprovement()` permits only
-     * equal-or-lower, no client could ever raise it back.
+     * Ten, because it is comfortably longer than any burst the tracker has
+     * produced after a restart, and comfortably shorter than a real day. Both
+     * bad records this rule was written for fall well outside it:
+     *
+     * - 2026-09-04 recorded 17:00-18:59 — **span 2**, 21.5 m. It took the group
+     *   record from 104 m, and `isRecordImprovement()` meant no client could
+     *   ever raise it back.
+     * - 2026-09-05 recorded 12:00-17:59 — **span 6**, 68.4 m, the whole morning
+     *   dead. It cleared an earlier six-hour *count* threshold exactly, which is
+     *   how counting was found wanting.
      */
-    const val MIN_ACTIVE_HOURS = 6
+    const val MIN_ACTIVE_SPAN_HOURS = 10
 
     /**
-     * @param activeHoursFor how many distinct hours the given day recorded in.
+     * @param activeSpanFor hours from the day's first recorded scroll to its last.
      *   Defaults to a value that always passes, so existing callers and tests
      *   keep the pre-2026-09-06 behaviour rather than silently tightening.
      */
@@ -83,9 +90,9 @@ object RecordEligibility {
         totals: List<DailyTotal>,
         today: LocalDate,
         zone: ZoneId = ZoneId.systemDefault(),
-        activeHoursFor: (String) -> Int = { MIN_ACTIVE_HOURS }
+        activeSpanFor: (String) -> Int = { MIN_ACTIVE_SPAN_HOURS }
     ): DailyTotal? = totals
-        .filter { isEligible(it, today, zone, activeHoursFor(it.day)) }
+        .filter { isEligible(it, today, zone, activeSpanFor(it.day)) }
         .minByOrNull { it.totalKm }
 
     /** Visible for testing and for the KDoc above to be checkable. */
@@ -93,7 +100,7 @@ object RecordEligibility {
         total: DailyTotal,
         today: LocalDate,
         zone: ZoneId,
-        activeHours: Int = MIN_ACTIVE_HOURS
+        activeSpanHours: Int = MIN_ACTIVE_SPAN_HOURS
     ): Boolean {
         val day = runCatching { LocalDate.parse(total.day) }.getOrNull() ?: return false
 
@@ -105,8 +112,9 @@ object RecordEligibility {
         if (total.totalKm <= 0f) return false
 
         // A day the tracker only saw a slice of is not a low day, it is a
-        // missing day. This is the check that would have kept 2026-09-04 out.
-        if (activeHours < MIN_ACTIVE_HOURS) return false
+        // missing day. Keeps out 2026-09-04 (17:00-18:59, span 2) and
+        // 2026-09-05 (12:00-17:59, span 6, morning dead).
+        if (activeSpanHours < MIN_ACTIVE_SPAN_HOURS) return false
 
         return isPlausiblyComplete(total, day, zone)
     }

@@ -34,6 +34,26 @@ interface ScrollEventDao {
     @Query("SELECT COUNT(DISTINCT hourBucket) FROM scroll_events WHERE day = :day")
     suspend fun getActiveHourCountForDay(day: String): Int
 
+    /**
+     * Hours from the day's first recorded scroll to its last, inclusive.
+     *
+     * **Span, not count** — and the difference decides whether the rule is fair.
+     * Counting active hours measures how much the *user* scrolled; span measures
+     * how long the *tracker was alive*. Someone who scrolls at 08:00 and again at
+     * 22:00 has two active hours and a fourteen-hour span, and they are exactly
+     * the person a reverse leaderboard should reward. A count threshold would
+     * disqualify them for being light users, which inverts the entire point of
+     * the product.
+     *
+     * Measured 2026-09-07: 2026-09-05 recorded 12:00–17:59 — six active hours,
+     * so it cleared a count of six, but a span of six on a day whose morning the
+     * service spent dead. Span sees that; count could not.
+     *
+     * Null when the day has no rows at all.
+     */
+    @Query("SELECT MAX(hourBucket) - MIN(hourBucket) + 1 FROM scroll_events WHERE day = :day")
+    suspend fun getActiveHourSpanForDay(day: String): Int?
+
     // A8: `getTotalCmBetweenDays()` was removed — zero callers. Range totals are
     // built from daily_totals (see WeeklyWindow), which is the cheaper source.
 

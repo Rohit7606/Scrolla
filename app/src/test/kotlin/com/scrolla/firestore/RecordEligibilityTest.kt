@@ -39,7 +39,7 @@ class RecordEligibilityTest {
             burst,
             java.time.LocalDate.of(2026, 9, 6),
             java.time.ZoneId.systemDefault(),
-            activeHours = 2
+            activeSpanHours = 2
         )
         assertFalse("a day tracked for two hours is missing, not low", eligible)
     }
@@ -60,7 +60,7 @@ class RecordEligibilityTest {
                 burst,
                 java.time.LocalDate.of(2026, 9, 6),
                 java.time.ZoneId.systemDefault(),
-                activeHours = RecordEligibility.MIN_ACTIVE_HOURS
+                activeSpanHours = RecordEligibility.MIN_ACTIVE_SPAN_HOURS
             )
         )
     }
@@ -80,7 +80,7 @@ class RecordEligibilityTest {
                 fullDay,
                 java.time.LocalDate.of(2026, 9, 6),
                 java.time.ZoneId.systemDefault(),
-                activeHours = 24
+                activeSpanHours = 24
             )
         )
     }
@@ -103,15 +103,18 @@ class RecordEligibilityTest {
             day("2026-09-04", 0.021549f, 18),
             day("2026-09-05", 0.068410f, 17)
         )
-        val hours = mapOf(
-            "2026-08-23" to 9, "2026-08-24" to 24, "2026-08-25" to 24,
-            "2026-08-26" to 24, "2026-08-27" to 12, "2026-09-04" to 2,
-            "2026-09-05" to 6
+        // Real spans measured off the device 2026-09-07.
+        val spans = mapOf(
+            "2026-08-23" to 9,   // 15:00-23:59, install day
+            "2026-08-24" to 24, "2026-08-25" to 24, "2026-08-26" to 24,
+            "2026-08-27" to 12,  // 05:00-16:59
+            "2026-09-04" to 2,   // 17:00-18:59
+            "2026-09-05" to 6    // 12:00-17:59, morning dead
         )
         val best = RecordEligibility.bestEligibleDay(
             totals = history,
             today = java.time.LocalDate.of(2026, 9, 6),
-            activeHoursFor = { hours[it] ?: 0 }
+            activeSpanFor = { spans[it] ?: 0 }
         )
         // 25 Aug (104.1 m) rather than 24 Aug (106.3 m) — it is genuinely the
         // lower of the two full days, and it is what the record held before the
@@ -144,7 +147,7 @@ class RecordEligibilityTest {
                 holed,
                 java.time.LocalDate.of(2026, 9, 6),
                 java.time.ZoneId.systemDefault(),
-                activeHours = 15
+                activeSpanHours = 24
             )
         )
     }
