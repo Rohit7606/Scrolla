@@ -1,5 +1,13 @@
 # PREMIUM CHECKLIST
 
+> ### ⚠️ This is no longer the priority list
+>
+> **`DOCS/BUILD_PLAN.md` decides what happens next** (created 2026-09-14). This
+> file remains the *evidence*: measurements, device output, and the reasoning
+> behind each finding. When the two disagree about what to do first, BUILD_PLAN
+> wins. Do not work straight off this file — it is ordered by when things were
+> discovered, not by what ships the app.
+
 What stands between Scrolla as it is today and Scrolla as a secure, reliable,
 good-looking app someone would not be able to tell from a funded one.
 
@@ -88,15 +96,15 @@ No shrinking, no obfuscation, no ProGuard rules file, no signing config,
 `versionCode = 1`, `versionName = "1.0"`. There is no meaningful difference
 between the debug and release APKs today.
 
-- [ ] **P0.2a** `isMinifyEnabled = true` + `isShrinkResources = true` for release.
-- [ ] **P0.2b** Add `proguard-rules.pro` and keep rules for the Room entities and
+- [x] **P0.2a** `isMinifyEnabled = true` + `isShrinkResources = true` for release.
+- [x] **P0.2b** Add `proguard-rules.pro` and keep rules for the Room entities and
       any Firestore-serialised model class. **Test the minified build on a
       device** — R8 breaking reflective Firestore deserialisation is the classic
       way a release APK dies where the debug one worked.
-- [ ] **P0.2c** Real signing config, keystore kept out of the repo
+- [x] **P0.2c** Real signing config, keystore kept out of the repo
       (`.gitignore` already covers `*.jks`/`*.keystore` — verify before the first
       release build, not after).
-- [ ] **P0.2d** A versioning rule. `versionCode` must increment per build handed
+- [x] **P0.2d** A versioning rule. `versionCode` must increment per build handed
       to anyone, or you cannot tell which APK a bug report came from.
 
 ### P0.3 — Nothing reports crashes `[A — taken 2026-08-25]`
@@ -404,7 +412,7 @@ everything.
       account would be unreachable *and* undeletable, since every rule here is
       gated on `request.auth.uid` — an orphan created by the flow whose purpose
       is removal.
-- [ ] **P2.16d** **Deploy the new rule block.** Until then every write to this
+- [x] **P2.16d** **Deploy the new rule block.** Until then every write to this
       collection is denied and the feature is inert — rule 1's `allow write` on
       `/users/{userId}` does **not** cascade to subcollections in Firestore.
       Needs A's review first (AGENTS.md §2), logged as REVIEW_LOG #10.
@@ -442,7 +450,7 @@ code was discarded by `MainShell`; `hasData` was computed and never accepted;
 fake preview defaults survived their own sweep). Each was found by grepping for
 the writer rather than reading the prose.
 
-- [ ] **P2.8a** Either populate it in `flushBatch()` alongside the `DailyTotal`
+- [x] **P2.8a** Either populate it in `flushBatch()` alongside the `DailyTotal`
       recompute, or delete the entity and correct `DATA_CONTRACT.md` §2.1. Deleting
       is the smaller change and nothing needs the table today; populating is right
       only if a per-app historical view is actually wanted. **A's call** — it is
@@ -577,7 +585,7 @@ P2.6e is a design note and this is a thing that happens tomorrow.
       undercounts a real day. Catching it needs gap detection within a day, and
       it is worth about 2 m against 106.3 m. Not a good trade; the real answer
       stays P2.6e.
-- [ ] **P2.11a** ~~Decide before the next sync~~ **expired — it already happened.** Hand-correct the record in
+- [x] **P2.11a** ~~Decide before the next sync~~ **expired — it already happened.** Hand-correct the record in
       Firestore, accept it while the group is still just a test group, or hold the
       record write until P2.6e's better signal exists.
 - [ ] **P2.11b** The real fix stays P2.6e — per-day tracking health, which needs

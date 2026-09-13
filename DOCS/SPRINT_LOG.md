@@ -1,4 +1,12 @@
 # SPRINT_LOG.md — Scrolla
+
+> ### ⚠️ This is no longer the priority list
+>
+> **`DOCS/BUILD_PLAN.md` decides what happens next** (created 2026-09-14). This
+> file remains the *evidence*: measurements, device output, and the reasoning
+> behind each finding. When the two disagree about what to do first, BUILD_PLAN
+> wins. Do not work straight off this file — it is ordered by when things were
+> discovered, not by what ships the app.
 **Purpose:** Tracks Sprint 0–3 milestones. A milestone is only checked off once it is verified — not when the code is written, not when it compiles, not when it works in the emulator. See the verification requirement on each item.
 **Updated by:** Whoever completes, not when compiles, not when works in emulator. See verification requirement.
 **Updated by:** Whoever completes milestone. Write date and initial next to each check.
