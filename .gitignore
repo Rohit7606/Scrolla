@@ -27,6 +27,10 @@ render.experimental.xml
 *.jks
 *.keystore
 
+# Signing credentials (P0.2c). Contains the keystore password in plain text.
+# keystore.properties.example is committed instead, to document the shape.
+keystore.properties
+
 # Google Services (e.g. APIs or Firebase)
 
 # Android Profiling
