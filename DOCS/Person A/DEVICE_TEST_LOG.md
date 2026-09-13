@@ -810,3 +810,77 @@ waking-hour gap 1.03 h against a 5 h threshold. The overnight stretch —
 naive elapsed-time rule would have fired a false alarm at 05:55 and this one
 correctly stayed silent. First validation of that logic against real data rather
 than constructed timestamps.
+
+---
+
+## 2026-09-14 — sync no longer runs twice, Crashlytics files nothing yet
+
+Device: Redmi Note 10 (M2101K7BI), Android 13, MIUI. Debug build, versionCode
+177. Installed over versionCode 1 with `adb install -r`.
+
+**BUILD_PLAN 1.3 — verified.** The launch double-pass is gone. Same device, same
+launch path, before and after:
+
+| line | before (01:02) | after (01:49) |
+|---|---|---|
+| `Firestore sync requested` | 2 | **1** |
+| `Backup reconcile uploaded` | 2 | **1** |
+| `Offering …` | 4 (2 groups × 2) | **2** |
+| `Record in …` | 4 | **2** |
+
+The dropped pass says so rather than vanishing:
+
+```
+01:49:13.997 D SyncViewModel: Firestore sync skipped (periodic) — a pass started 8142 ms ago
+```
+
+**8142 ms is the number to keep.** The redundant trigger fires ~400 ms after the
+first, but the mutex makes it wait for the first pass to finish before it asks
+whether to run — so it arrives eight seconds late. A spacing window chosen
+against the 400 ms gap would have let it straight through. The 60 s figure is
+load-bearing, not padding.
+
+**BUILD_PLAN 1.2 — initialises, but has not yet filed a report.** Crashlytics
+19.0.3 registers a session (`Notified CRASHLYTICS of new session`), and
+`CrashReporter` resolved the instance without hitting its fallback. `reports/`
+is empty, which is correct — nothing failed. **The round trip from a caught
+exception to the console is still unproven.** Forcing one needs the network
+off, which cannot be done from adb on MIUI.
+
+**1.2c — checked on the device rather than asserted.** The session's `user-data`
+is exactly:
+
+```json
+{"userId":"dkipXn9ma4WJHKY0qiToSRpMrR42"}
+```
+
+One field. No display name, no email, though both are in hand at the call site.
+The report metadata carries SDK version, app id, install uuid, build version,
+OS and device (model, cores, RAM, disk, manufacturer) — no scroll distances and
+no package names. The uid was attached on a launch that *restored* an existing
+session, which is the case a per-call-site wiring would have missed.
+
+### The reinstall did NOT clear the accessibility grant
+
+Against the gotcha that has been "confirmed repeatedly". After
+`adb install -r`:
+
+```
+settings get secure accessibility_enabled       -> 1
+dumpsys accessibility  Bound services:{Service[label=Scrolla, …]}
+```
+
+Bound, not merely enabled — checked separately, because this project has
+already been caught reading `isAccessibilityServiceEnabled = 1` on a device
+whose real state was `Bound services:{}`.
+
+**One observation, and not enough to rewrite the rule.** What was different is
+unknown: same debug signing key, streamed install, an update rather than an
+uninstall. It may be that the grant only ever died on installs that changed the
+signing key, or on a different Android version. Worth two deliberate re-tests,
+because it decides how bad BUILD_PLAN 2.1 is — "every one of 50 people
+re-enables Accessibility after every update" and "nobody does" are very
+different operational problems.
+
+Also of note: `versionCode` went 1 → 177 on this install, so the commit-count
+derivation (P0.2d) is working on a real device for the first time.

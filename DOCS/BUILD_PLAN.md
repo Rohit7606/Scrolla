@@ -25,10 +25,10 @@ each stage is defined by what it unblocks, not by how interesting it is.
 | Accuracy | **Verified.** S0.7 re-run passed; the 31 % inflation is fixed and measured |
 | Battery | **0.36 %** (14.1 mAh) — and 82 % of that is network, not tracking |
 | Storage | 686 rows/day → **18.2 MB/year** |
-| Tests | **131 unit, 0 instrumented** |
+| Tests | **136 unit, 0 instrumented** |
 | Release build | Signed, minified, 4.6 MB, **runs** — verified on an emulator |
 | Devices ever tested | **1** |
-| Crash visibility | **None** |
+| Crash visibility | Crashlytics wired; **no report has reached the console yet** (1.2d) |
 
 Closed since 6 Sep and not yet ticked in the old docs: the full 11-finding
 A-track audit, the accuracy re-run, the MIUI root cause, personal-record and
@@ -55,19 +55,40 @@ you open the app to see is broken by not opening the app.
 Needs a periodic `WorkManager` job that calls the same sync. Not config — real
 work. **This is the single largest gap and it appears in none of the old docs.**
 
-### 1.2 — Crashlytics 🔴
+### 1.2 — Crashlytics 🟡 *(built 2026-09-14; one end-to-end check left)*
 
 *(was P0.3a/b/c)* Every failure this project has had was found with a USB cable
 and 16 MB of logcat. That does not scale past the person holding the phone.
 With 50 users, a crash you cannot see is a user who silently stops using it.
 
-- [ ] **1.2a** Add Crashlytics.
-- [ ] **1.2b** Non-fatal reports on the paths that currently swallow errors —
-      every `catch` in `ScrollRepository`, the flush path, the sync path.
-- [ ] **1.2c** Confirm no scroll content, package list or identity beyond the
-      uid is attached. *(was P0.3c/P1.2b)*
+And Scrolla barely crashes — it *degrades*. A read throws, the catch returns
+0f, and the screen renders a confident zero. That is what these report.
 
-### 1.3 — Everything runs twice ✅ *(fixed 2026-09-14, not yet seen on a device)*
+- [x] **1.2a** Crashlytics 19.0.3 via the Firebase BoM. Release uploads its
+      mapping file, so reports from a minified build are readable. APK 4.56 MB,
+      unchanged. Initialises on device and registers a session.
+- [x] **1.2b** Sixteen non-fatals: all twelve Room reads/writes in
+      `ScrollRepository`, both sync failures, the batch flush, and the flush
+      whose *failure to record the failure* also fails — that last one means
+      the health card will not show the outage either.
+- [x] **1.2c** Checked on the device, not asserted. The session's `user-data`
+      is one field, `{"userId":"…"}` — no display name or email, though both
+      are at the call site. Metadata is SDK/app/OS/device only: no distances,
+      no package names. `firebase-analytics` is not a dependency, so there are
+      no automatic screen-view breadcrumbs or advertising id. Enforced by
+      shape: `Where` is an enum, so `nonFatal()` has nowhere to put a package
+      name, and a test fails if someone adds a `String` overload.
+- [ ] **1.2d** **Watch one report reach the console.** Everything above says
+      Crashlytics is *configured*; nothing yet says a caught exception makes
+      the round trip. `reports/` is empty because nothing has failed, which is
+      correct and also unhelpful. Forcing one needs the network off, which adb
+      cannot do on MIUI — it needs two taps: aeroplane mode on, open Scrolla,
+      wait ~15 s for the sync timeout, aeroplane mode off.
+
+      This is exactly the gap that shipped the reset-guard bug: configured,
+      logging, and never once checked at the point where it produces a value.
+
+### 1.3 — Everything runs twice ✅ *(fixed and verified on device 2026-09-14)*
 
 Confirmed on device 2026-09-14: one launch produces **two** `Firestore sync
 requested` passes and every record line twice. Harmless at one user; at 50 it
@@ -91,8 +112,15 @@ Fixed in `SingleFlightSync` (mutex, so passes cannot overlap) plus
 `SyncCadence.shouldRun()` (pure, tested, drops a pass starting within 60 s of
 the last). Tests 114 → 131.
 
-- [ ] **1.3a** See one `Firestore sync requested` at launch on a device.
-      Needs a reinstall, which clears the accessibility grant.
+- [x] **1.3a** Verified on device, versionCode 177: one `Firestore sync
+      requested` at launch, one reconcile upload, one record line per group —
+      each of them previously two. The dropped pass logs
+      `skipped (periodic) — a pass started 8142 ms ago`. See DEVICE_TEST_LOG.
+
+      Worth keeping: the duplicate trigger fires ~400 ms after the first, but
+      the mutex makes it wait for the first pass to *finish* before asking, so
+      it arrives 8 s late. A window sized against the 400 ms gap would not have
+      caught it.
 
 ### 1.4 — The install path, on a phone that isn't Rohit's 🔴
 
@@ -127,10 +155,17 @@ settings caption.
 
 ### 2.1 — How do 50 people get updates?
 
-No Play Store, no auto-update. Every fix means 50 manual sideloads, **and each
-reinstall clears the accessibility grant** (confirmed twice) so each person must
-re-enable it. This is unsolved and it is a bigger operational problem than any
-single bug on this list.
+No Play Store, no auto-update. Every fix means 50 manual sideloads. This is
+unsolved and it is a bigger operational problem than any single bug on this
+list.
+
+**The accessibility-grant half of this may be wrong.** It has been recorded as
+"each reinstall clears the grant, confirmed twice". On 2026-09-14 an
+`adb install -r` over the existing debug build left it intact — and *bound*,
+checked with `dumpsys accessibility` rather than trusting the settings flag.
+One observation against two, so the rule stands until re-tested, but it is
+worth two deliberate tries: "all 50 people re-enable Accessibility after every
+update" and "nobody has to" are different problems with different answers.
 
 - [ ] **2.1a** Decide the channel: hosted APK + in-app "update available", or
       Play internal testing, or accept manual distribution and write it down.
