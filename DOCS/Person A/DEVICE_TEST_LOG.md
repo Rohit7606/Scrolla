@@ -884,3 +884,66 @@ different operational problems.
 
 Also of note: `versionCode` went 1 → 177 on this install, so the commit-count
 derivation (P0.2d) is working on a real device for the first time.
+
+### 2026-09-14, 01:58–02:10 — aeroplane-mode test of the Crashlytics path
+
+Forced a real failure by taking the network away, because nothing had failed on
+its own and "configured" is not "working".
+
+**The non-fatal is created correctly.** Aeroplane mode on at 01:58:35
+(`Active default network: none`), app launched 01:58:46, `triggerFirestoreSync()`
+timed out at 01:59:18, and the event landed on disk:
+
+```
+open-sessions/<id>/keys      {"scrolla_where":"SYNC_FIRESTORE_TIMEOUT"}
+open-sessions/<id>/event0000000001
+  type: error   (non-fatal)
+  kotlinx.coroutines.TimeoutCancellationException: Timed out waiting for 15000 ms
+  full frames with file names and line numbers
+  customAttributes: [{scrolla_where: SYNC_FIRESTORE_TIMEOUT}]
+```
+
+Three events in total, all `SYNC_FIRESTORE_TIMEOUT`: **01:55:50**, 01:59:18,
+02:01:34. The first one predates the test — the network was already failing, so
+Crashlytics caught a genuine failure before it was asked to. Sync recovered at
+02:03:16 once the network came back, records offered normally.
+
+**1.2c, audited against the real payloads rather than asserted.** Took the 43
+distinct `appPackage` values out of the device database and searched the event
+JSON for each:
+
+| checked | result |
+|---|---|
+| 42 other-app packages (Instagram, WhatsApp, …) | **0 present** |
+| `com.scrolla` | present — our own app, unavoidable and fine |
+| daily `totalKm` values | **0 present** |
+| `user-data` | `{"userId":"…"}` — one field, no name, no email |
+
+### The finding that matters more than the test
+
+**Non-fatals are not delivered while the process lives, and Scrolla's process
+is built not to die.**
+
+Seven minutes after the network returned: 3 events pending, 0 finalised, 0
+uploaded. Crashlytics finalises a session and uploads at the *next process
+start*. `am kill` refused to kill it:
+
+```
+Proc # 3: prcp  F/S/FGS  LCMN  14631:com.scrolla/u0a315 (fg-service)
+oom: curRaw=200  /proc/14631/oom_score_adj = 200
+```
+
+adj 200 is perceptible-with-foreground-service. `am kill` only reclaims cached
+processes (adj ≥ 900), so the very thing that makes tracking survive — the
+foreground service — is what keeps the crash reports on the phone.
+
+This does not make 1.2 worthless: reports still arrive on reboot, on an OEM
+kill, on an app update, or on a real crash, and MIUI is aggressive enough that
+in practice this is probably a day, not a week. But "a crash you cannot see is
+a user who silently stops using it" was the argument for 1.2, and a report that
+arrives after the user has already given up does not answer it. **It is a
+decision to take, not a bug to fix** — see BUILD_PLAN 1.2d.
+
+Not force-stopped to prove the upload. A force-stop sets the stopped flag and
+would have cost a manual Accessibility re-enable on MIUI; the events will go up
+on their own at the next process start.

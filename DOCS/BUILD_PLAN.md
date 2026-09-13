@@ -28,7 +28,7 @@ each stage is defined by what it unblocks, not by how interesting it is.
 | Tests | **136 unit, 0 instrumented** |
 | Release build | Signed, minified, 4.6 MB, **runs** — verified on an emulator |
 | Devices ever tested | **1** |
-| Crash visibility | Crashlytics wired; **no report has reached the console yet** (1.2d) |
+| Crash visibility | Crashlytics files correct non-fatals, verified on device. **Delivery waits for a process restart** (1.2e) |
 
 Closed since 6 Sep and not yet ticked in the old docs: the full 11-finding
 A-track audit, the accuracy re-run, the MIUI root cause, personal-record and
@@ -55,7 +55,7 @@ you open the app to see is broken by not opening the app.
 Needs a periodic `WorkManager` job that calls the same sync. Not config — real
 work. **This is the single largest gap and it appears in none of the old docs.**
 
-### 1.2 — Crashlytics 🟡 *(built 2026-09-14; one end-to-end check left)*
+### 1.2 — Crashlytics 🟡 *(built and proven 2026-09-14; delivery lag open)*
 
 *(was P0.3a/b/c)* Every failure this project has had was found with a USB cable
 and 16 MB of logcat. That does not scale past the person holding the phone.
@@ -78,15 +78,38 @@ And Scrolla barely crashes — it *degrades*. A read throws, the catch returns
       no automatic screen-view breadcrumbs or advertising id. Enforced by
       shape: `Where` is an enum, so `nonFatal()` has nowhere to put a package
       name, and a test fails if someone adds a `String` overload.
-- [ ] **1.2d** **Watch one report reach the console.** Everything above says
-      Crashlytics is *configured*; nothing yet says a caught exception makes
-      the round trip. `reports/` is empty because nothing has failed, which is
-      correct and also unhelpful. Forcing one needs the network off, which adb
-      cannot do on MIUI — it needs two taps: aeroplane mode on, open Scrolla,
-      wait ~15 s for the sync timeout, aeroplane mode off.
+- [x] **1.2d** **A caught exception does become a report.** Forced one with
+      aeroplane mode on 2026-09-14. `triggerFirestoreSync()` timed out and
+      wrote a non-fatal carrying the right label, the full stack with line
+      numbers, and nothing else — audited against the device's own data: 0 of
+      the 42 other-app package names, 0 daily totals. Three fired in all, and
+      the first predates the test: the network was already failing, so it
+      caught a real one unprompted.
 
-      This is exactly the gap that shipped the reset-guard bug: configured,
-      logging, and never once checked at the point where it produces a value.
+      That was exactly the gap that shipped the reset-guard bug: configured,
+      logging, never once checked where it produces a value. Worth the ten
+      minutes — it found the item below, which reading the code would not have.
+
+- [ ] **1.2e** **Decide what to do about delivery lag.** 🔴 *(new, 2026-09-14)*
+
+      Reports are written immediately and uploaded only at the **next process
+      start**. Scrolla's process is built not to restart: its foreground
+      service holds it at `oom_score_adj` 200 (`prcp F/S/FGS`), and `am kill`
+      refuses it, since that only reclaims cached processes at adj ≥ 900.
+      Measured: seven minutes after the network returned, 3 events pending, 0
+      finalised, 0 uploaded.
+
+      So the thing that makes tracking survive is the thing that keeps the
+      crash reports on the phone. The argument for 1.2 was "a crash you cannot
+      see is a user who silently stops using it" — and a report that arrives
+      after they have already given up does not answer it.
+
+      Not fatal: reports still go up on reboot, an OEM kill, an update, or a
+      real crash, and MIUI is aggressive enough that in practice this is
+      probably a day rather than a week. **But it should be a decision with a
+      measurement behind it, not an assumption.** The cheapest next step is to
+      find out how often a real process actually restarts over a week before
+      building anything.
 
 ### 1.3 — Everything runs twice ✅ *(fixed and verified on device 2026-09-14)*
 
