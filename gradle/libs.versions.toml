@@ -14,6 +14,7 @@ firebaseBom = "33.2.0"
 firebaseAuth = "22.3.0"
 firebaseFirestore = "24.10.1"
 googleGmsGoogleServices = "4.4.4"
+firebaseCrashlyticsPlugin = "3.0.2"
 room = "2.7.1"
 desugarJdkLibs = "2.1.5"
 
@@ -44,6 +45,8 @@ androidx-core-splashscreen = { group = "androidx.core", name = "core-splashscree
 firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebaseBom" }
 firebase-auth = { group = "com.google.firebase", name = "firebase-auth", version.ref = "firebaseAuth" }
 firebase-firestore = { group = "com.google.firebase", name = "firebase-firestore", version.ref = "firebaseFirestore" }
+# Version comes from the Firebase BoM, like auth and firestore above.
+firebase-crashlytics = { group = "com.google.firebase", name = "firebase-crashlytics" }
 play-services-auth = { group = "com.google.android.gms", name = "play-services-auth", version = "20.7.0" }
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version = "1.6.1" }
 
@@ -52,4 +55,5 @@ android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 google-gms-google-services = { id = "com.google.gms.google-services", version.ref = "googleGmsGoogleServices" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+firebase-crashlytics = { id = "com.google.firebase.crashlytics", version.ref = "firebaseCrashlyticsPlugin" }
 ksp = { id = "com.google.devtools.ksp", version = "2.2.10-2.0.2" }

@@ -10,6 +10,7 @@ import com.scrolla.model.ScrollaConstants
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.flow.Flow
+import com.scrolla.diagnostics.CrashReporter
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withTimeout
@@ -157,6 +158,7 @@ class ScrollRepositoryImpl(
             DistanceFormatter.cmToKm(rawTodayCm())
         } catch (e: Exception) {
             Log.e(tag, "getTodayTotalKm() failed for day=${today()}", e)
+            CrashReporter.nonFatal(CrashReporter.Where.READ_TODAY_TOTAL, e)
             0f
         }
     }
@@ -166,6 +168,7 @@ class ScrollRepositoryImpl(
             rawTodayCm()
         } catch (e: Exception) {
             Log.e(tag, "getTodayTotalCm() failed for day=${today()}", e)
+            CrashReporter.nonFatal(CrashReporter.Where.READ_TODAY_TOTAL, e)
             0f
         }
     }
@@ -181,6 +184,7 @@ class ScrollRepositoryImpl(
             scrollEventDao.getTopAppsByDay(today())
         } catch (e: Exception) {
             Log.e(tag, "getTodayTopApps() failed for day=${today()}", e)
+            CrashReporter.nonFatal(CrashReporter.Where.READ_TODAY_TOP_APPS, e)
             emptyList()
         }
     }
@@ -190,6 +194,7 @@ class ScrollRepositoryImpl(
             scrollEventDao.getPeakHourForDay(today())?.hourBucket
         } catch (e: Exception) {
             Log.e(tag, "getTodayPeakHour() failed for day=${today()}", e)
+            CrashReporter.nonFatal(CrashReporter.Where.READ_TODAY_PEAK_HOUR, e)
             null
         }
     }
@@ -199,6 +204,7 @@ class ScrollRepositoryImpl(
             dailyTotalDao.getRecentDays(days)
         } catch (e: Exception) {
             Log.e(tag, "getRecentDailyTotals() failed for days=$days", e)
+            CrashReporter.nonFatal(CrashReporter.Where.READ_RECENT_DAILY_TOTALS, e)
             emptyList()
         }
     }
@@ -210,6 +216,7 @@ class ScrollRepositoryImpl(
             dailyTotalDao.getPersonalBest(LocalDate.now().toString())
         } catch (e: Exception) {
             Log.e(tag, "getPersonalBestKm() failed", e)
+            CrashReporter.nonFatal(CrashReporter.Where.READ_PERSONAL_BEST, e)
             null
         }
     }
@@ -219,6 +226,7 @@ class ScrollRepositoryImpl(
             dailyTotalDao.getPersonalBestDay(LocalDate.now().toString())
         } catch (e: Exception) {
             Log.e(tag, "getPersonalBestDay() failed", e)
+            CrashReporter.nonFatal(CrashReporter.Where.READ_PERSONAL_BEST, e)
             null
         }
     }
@@ -228,6 +236,7 @@ class ScrollRepositoryImpl(
             scrollEventDao.getActiveHourSpanForDay(date) ?: 0
         } catch (e: Exception) {
             Log.e(tag, "getActiveHourSpan() failed for day=$date", e)
+            CrashReporter.nonFatal(CrashReporter.Where.READ_ACTIVE_HOUR_SPAN, e)
             0
         }
     }
@@ -239,6 +248,7 @@ class ScrollRepositoryImpl(
             totals.size
         } catch (e: Exception) {
             Log.e(tag, "restoreDailyTotals() failed", e)
+            CrashReporter.nonFatal(CrashReporter.Where.RESTORE_DAILY_TOTALS, e)
             0
         }
     }
@@ -250,6 +260,7 @@ class ScrollRepositoryImpl(
             true
         } catch (e: Exception) {
             Log.e(tag, "clearAppHistory() failed", e)
+            CrashReporter.nonFatal(CrashReporter.Where.CLEAR_APP_HISTORY, e)
             false
         }
     }
@@ -259,6 +270,7 @@ class ScrollRepositoryImpl(
             dailyTotalDao.getForDay(date)?.totalKm ?: 0f
         } catch (e: Exception) {
             Log.e(tag, "getTotalKmForDate() failed for date=$date", e)
+            CrashReporter.nonFatal(CrashReporter.Where.READ_TOTAL_FOR_DATE, e)
             0f
         }
     }
@@ -269,6 +281,7 @@ class ScrollRepositoryImpl(
         return serviceHealthDao.observe()
             .catch { e ->
                 Log.e(tag, "observeServiceHealth() flow emitted error", e)
+                CrashReporter.nonFatal(CrashReporter.Where.OBSERVE_SERVICE_HEALTH, e)
                 emit(null)
             }
     }
@@ -323,12 +336,14 @@ class ScrollRepositoryImpl(
             serviceHealthDao.markSyncSuccess(System.currentTimeMillis())
         } catch (e: TimeoutCancellationException) {
             Log.e(tag, "triggerFirestoreSync() timed out after 15s for user=$userId, date=$date", e)
+            CrashReporter.nonFatal(CrashReporter.Where.SYNC_FIRESTORE_TIMEOUT, e)
             try { serviceHealthDao.markSyncFailed("triggerFirestoreSync timed out") } catch (_: Exception) {}
         } catch (e: CancellationException) {
             // Rethrow standard coroutine cancellations so cooperative cancellation isn't swallowed
             throw e
         } catch (e: Exception) {
             Log.e(tag, "triggerFirestoreSync() failed for user=$userId, date=$date", e)
+            CrashReporter.nonFatal(CrashReporter.Where.SYNC_FIRESTORE, e)
             try { serviceHealthDao.markSyncFailed("triggerFirestoreSync: ${e.message}") } catch (_: Exception) {}
         }
     }

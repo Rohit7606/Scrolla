@@ -22,6 +22,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.google.gms.google.services)
+    alias(libs.plugins.firebase.crashlytics)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.ksp)
     id("kotlin-parcelize")
@@ -75,6 +76,21 @@ android {
         }
     }
 
+    testOptions {
+        unitTests {
+            // android.util.Log throws "not mocked" by default, which makes any
+            // class that logs untestable on the JVM. CrashReporter logs inside
+            // the catch blocks that are its own safety net, so without this the
+            // test proving it survives a missing Firebase fails on the Log call
+            // rather than on anything it is testing.
+            //
+            // Returning defaults rather than adding a mocking framework: the
+            // 131 tests here assert on returned values from pure functions, and
+            // none of them wants Android behaviour, only Android silence.
+            isReturnDefaultValues = true
+        }
+    }
+
     buildTypes {
         release {
             // P0.2a. Off until 2026-09-07, which meant the release build was
@@ -86,6 +102,14 @@ android {
                 "proguard-rules.pro"
             )
             signingConfig = signingConfigs.findByName("release")
+
+            // The release build is minified, so without the mapping file every
+            // report from it is an unreadable stack of a.b.c(). Uploading it is
+            // what makes BUILD_PLAN 1.2 worth anything on the build users
+            // actually get. Needs network at build time.
+            configure<com.google.firebase.crashlytics.buildtools.gradle.CrashlyticsExtension> {
+                mappingFileUploadEnabled = true
+            }
         }
         // NOTE: no `applicationIdSuffix` on debug, deliberately. Suffixing it
         // would let debug and release sit side by side, but `google-services.json`
@@ -131,6 +155,7 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.firebase.auth)
     implementation(libs.firebase.firestore)
+    implementation(libs.firebase.crashlytics)
 
     implementation(libs.play.services.auth)
     testImplementation(libs.junit)

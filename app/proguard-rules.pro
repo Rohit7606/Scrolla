@@ -22,7 +22,10 @@
 # ---- Crash reports have to name real methods ----
 # Without this, every stack trace in a release build is obfuscated, which
 # matters more here than usual: this project has spent days diagnosing silent
-# tracking failures from logs, and P0.3 adds Crashlytics next.
+# tracking failures from logs. Load-bearing as of BUILD_PLAN 1.2 — Crashlytics
+# is wired up, and the release build uploads its mapping file
+# (`mappingFileUploadEnabled`), so these two lines plus that upload are what
+# stand between a non-fatal report and an unreadable stack of a.b.c().
 -keepattributes SourceFile,LineNumberTable
 -renamesourcefileattribute SourceFile
 

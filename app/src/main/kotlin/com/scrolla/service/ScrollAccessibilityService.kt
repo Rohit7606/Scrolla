@@ -10,6 +10,7 @@ import android.os.Build
 import android.util.Log
 import android.view.accessibility.AccessibilityEvent
 import androidx.core.app.NotificationCompat
+import com.scrolla.diagnostics.CrashReporter
 import com.scrolla.model.DistanceFormatter
 import com.scrolla.model.ScrollaConstants
 import com.scrolla.room.DailyTotal
@@ -351,6 +352,11 @@ class ScrollAccessibilityService : AccessibilityService() {
                 // Fix 2: Targeted update — still stamps lastEventTimestamp so staleness
                 // detection knows events were arriving even though writes failed.
                 Log.e("BatchFlush", "Batch flush failed", e)
+                // The only place in Scrolla where tracking data is actually
+                // lost: these events are already out of the buffer and are not
+                // retried. A count, never the packages — see CrashReporter.
+                CrashReporter.breadcrumb("batch flush of ${snapshot.size} buffered entries failed")
+                CrashReporter.nonFatal(CrashReporter.Where.BATCH_FLUSH, e)
                 try {
                     // Re-acquired rather than reused: opening the database is now
                     // inside the try above, so if that is what failed there is no
@@ -361,8 +367,13 @@ class ScrollAccessibilityService : AccessibilityService() {
                             reason = "${e::class.simpleName}: ${e.message?.take(100)}",
                             eventTs = eventTs
                         )
-                } catch (_: Exception) {
-                    // If the DB itself is broken, we can't mark degraded either.
+                } catch (inner: Exception) {
+                    // If the DB itself is broken we cannot mark degraded either,
+                    // so the health card will not show this outage and the local
+                    // log is the only other record. Worth its own report: it
+                    // means both the write path and the way we record write
+                    // failures are down at once.
+                    CrashReporter.nonFatal(CrashReporter.Where.BATCH_FLUSH_DEGRADED_MARK, inner)
                 }
             }
         }
@@ -395,6 +406,7 @@ class ScrollAccessibilityService : AccessibilityService() {
                 db.serviceHealthDao().updateServiceRunning(false)
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to mark service stopped on unbind", e)
+                CrashReporter.nonFatal(CrashReporter.Where.SERVICE_MARK_STOPPED, e)
             }
         }
         return super.onUnbind(intent)
@@ -412,6 +424,7 @@ class ScrollAccessibilityService : AccessibilityService() {
                 db.serviceHealthDao().updateServiceRunning(false)
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to mark service stopped on destroy", e)
+                CrashReporter.nonFatal(CrashReporter.Where.SERVICE_MARK_STOPPED, e)
             }
         }
         super.onDestroy()
