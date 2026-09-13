@@ -8,6 +8,7 @@ import com.scrolla.firestore.BackupReconcile
 import com.scrolla.firestore.BackupRepository
 import com.scrolla.firestore.GroupRepository
 import com.scrolla.firestore.RecordEligibility
+import com.scrolla.firestore.SingleFlightSync
 import com.scrolla.model.ScrollaConstants
 import com.scrolla.room.ScrollRepository
 import com.scrolla.ui.ScrollaGraph
@@ -34,16 +35,54 @@ class SyncViewModel(
     private val backupRepository: BackupRepository = BackupRepository()
 ) : ViewModel() {
 
-    /** The reconcile is a whole-history read; once a session is enough. */
+    /**
+     * The reconcile is a whole-history read; once a session is enough.
+     *
+     * Only safe as a plain flag because [syncMutex] serialises passes. It is a
+     * check-then-set with a suspending read between the two halves, so with
+     * passes running concurrently both cleared it and both uploaded — visible
+     * on device 2026-09-14 as `Backup reconcile uploaded 2 day(s)` twice,
+     * 103 ms apart.
+     */
     private var hasReconciled = false
+
+    /**
+     * One sync pass at a time, and no redundant pass right after one.
+     *
+     * Not only an efficiency measure. Two passes running concurrently raced the
+     * [hasReconciled] guard above, and would equally race any other
+     * once-per-session state added later. See [SingleFlightSync].
+     */
+    private val singleFlight = SingleFlightSync()
 
     /** Called when the app comes to foreground, and on the interval timer. */
     fun syncNow(reason: String) {
-        viewModelScope.launch {
+        viewModelScope.launch { runSync(reason) }
+    }
+
+    /**
+     * Both triggers fire at launch — see `SyncCadence` for the measurement — so
+     * the redundant one is dropped here rather than at either call site.
+     * Dropping it in `MainShell` would fix the launch case only, and leave a
+     * resume that lands on a timer tick doing everything twice.
+     */
+    private suspend fun runSync(reason: String) {
+        val ran = singleFlight.run {
             Log.d(TAG, "Firestore sync requested ($reason)")
             reconcilePersonalBackup()
             scrollRepository.triggerFirestoreSync()
             updateGroupRecords()
+        }
+
+        if (!ran) {
+            // Logged, not silent. A dropped pass and a pass that never fired
+            // look identical from outside, and this file has already paid for
+            // that distinction once.
+            Log.d(
+                TAG,
+                "Firestore sync skipped ($reason) — a pass started " +
+                    "${singleFlight.millisSinceLastStart()} ms ago"
+            )
         }
     }
 
