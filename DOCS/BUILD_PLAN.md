@@ -25,7 +25,7 @@ each stage is defined by what it unblocks, not by how interesting it is.
 | Accuracy | **Verified.** S0.7 re-run passed; the 31 % inflation is fixed and measured |
 | Battery | **0.36 %** (14.1 mAh) — and 82 % of that is network, not tracking |
 | Storage | 686 rows/day → **18.2 MB/year** |
-| Tests | **114 unit, 0 instrumented** |
+| Tests | **131 unit, 0 instrumented** |
 | Release build | Signed, minified, 4.6 MB, **runs** — verified on an emulator |
 | Devices ever tested | **1** |
 | Crash visibility | **None** |
@@ -67,12 +67,32 @@ With 50 users, a crash you cannot see is a user who silently stops using it.
 - [ ] **1.2c** Confirm no scroll content, package list or identity beyond the
       uid is attached. *(was P0.3c/P1.2b)*
 
-### 1.3 — Everything runs twice 🔴
+### 1.3 — Everything runs twice ✅ *(fixed 2026-09-14, not yet seen on a device)*
 
 Confirmed on device 2026-09-14: one launch produces **two** `Firestore sync
-requested` passes and every record line twice. Two `SyncViewModel` instances are
-alive. Harmless at one user; at 50 it doubles every read, write and the 82 % of
-battery that is already network.
+requested` passes and every record line twice. Harmless at one user; at 50 it
+doubles every read, write and the 82 % of battery that is already network.
+
+**The cause was not what this file first recorded.** It said "two
+`SyncViewModel` instances are alive". There is one. `MainShell` starts
+`runPeriodicSync()`, whose first pass fires immediately, *and* registers
+`RefreshOnResume` — and adding a lifecycle observer to an already-RESUMED owner
+dispatches `ON_RESUME` at once. Both triggers fire on every launch, ~400 ms
+apart, from one instance. The proof is the quiet ticks after it: 01:17:50 and
+01:18:06 each produced exactly one pass, and a second ViewModel would have been
+running its own fifteen-minute timer.
+
+The same log showed a second bug underneath: `Backup reconcile uploaded 2
+day(s)` **twice**, 103 ms apart. `hasReconciled` is a check-then-set across a
+suspending read, so two concurrent passes both cleared it and both uploaded the
+whole history.
+
+Fixed in `SingleFlightSync` (mutex, so passes cannot overlap) plus
+`SyncCadence.shouldRun()` (pure, tested, drops a pass starting within 60 s of
+the last). Tests 114 → 131.
+
+- [ ] **1.3a** See one `Firestore sync requested` at launch on a device.
+      Needs a reinstall, which clears the accessibility grant.
 
 ### 1.4 — The install path, on a phone that isn't Rohit's 🔴
 
