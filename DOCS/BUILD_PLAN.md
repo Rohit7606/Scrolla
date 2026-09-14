@@ -336,12 +336,22 @@ been done.
       managed path that tells you who has what, Obtainium is the one that keeps
       working if that ever changes.
 
-      - [ ] **2.1a-i** Wire the App Distribution Gradle plugin and a tester
-            group. Needs a Firebase CLI login or service account to upload.
-      - [ ] **2.1a-ii** Create the public release repo and publish the first
-            tagged APK.
-      - [ ] **2.1a-iii** Write the one-page install note (1.4c) covering both
-            routes and the restricted-settings step.
+      - [x] **2.1a-i** App Distribution wired and provisioned. Group
+            `scrolla-testers` exists with Rohit and Monish in it.
+      - [x] **2.1a-ii** `Rohit7606/scrolla-releases` created (public, APK only)
+            and **v1.0.203 shipped to both channels on 2026-09-14**.
+      - [ ] **2.1a-iii** The one-page install note (1.4c), covering both routes
+            and the restricted-settings step.
+
+      **First release verified three ways**, because "the script said it worked"
+      is not evidence: App Distribution reports release count 1 against 2
+      testers; the GitHub release is published, not a draft, with a 4.64 MB
+      asset; and the SHA-256 of the local build, the GitHub download and the
+      binary hash in Firebase's own URL are all `c6138ebe…`. The same bytes are
+      on both channels.
+
+      Setup is in `DOCS/RUNBOOK_DISTRIBUTION.md`; releasing is
+      `./scripts/release.sh`.
 
 - [x] **2.1b Dropped.** An update does not need Accessibility re-enabled —
       see above. Shipping that warning would have been a false alarm in the
