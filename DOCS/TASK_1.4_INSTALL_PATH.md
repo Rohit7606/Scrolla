@@ -23,14 +23,33 @@ a more valuable result than if it works. Do not fix the app; record what broke.
 
 ## Build and install
 
+**Build from `b/background-sync`.** Not `main`, and not whatever you have
+checked out — `main` is 37 commits behind and the onboarding flow on it no
+longer exists in that form, so testing it would tell us nothing about what a
+new user actually meets today.
+
 ```bash
+git fetch origin
+git checkout b/background-sync
+git pull
+
 ./gradlew :app:assembleDebug
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 ```
 
-Use the **debug** build. Debug and release are signed with different keys, so
-Android refuses to install one over the other — switching requires an
-uninstall, which deletes all scroll history.
+Confirm you got the right build before going further — `versionName` is
+derived from the commit count, so it should read **1.0.181 or higher**:
+
+```bash
+adb shell dumpsys package com.scrolla | grep versionName
+```
+
+If you already have an old Scrolla on the phone, `install -r` updates it in
+place and keeps its data, **provided the old one was also a debug build**.
+Debug and release are signed with different keys and Android refuses to install
+one over the other; switching needs an uninstall, which deletes all scroll
+history. If your existing copy is a release build, back up first (command at
+the bottom of this file) and expect to uninstall.
 
 ## The one thing that will probably block you
 
