@@ -245,29 +245,47 @@ No Play Store, no auto-update. Every fix means 50 manual sideloads. This is
 unsolved and it is a bigger operational problem than any single bug on this
 list.
 
-**The accessibility-grant half of this may be wrong.** It has been recorded as
-"each reinstall clears the grant, confirmed twice". On 2026-09-14 an
-`adb install -r` over the existing debug build left it intact — and *bound*,
-checked with `dumpsys accessibility` rather than trusting the settings flag.
-It kept happening — **four consecutive reinstalls on 2026-09-14 left the grant
-intact and the service bound**.
+**The accessibility-grant half of this was wrong, and is now settled.**
+"Each reinstall clears the grant, confirmed twice" does not reproduce. Tested
+deliberately on 2026-09-14 by polling once a second through a same-key debug
+update:
 
-**There is now a candidate explanation for the original rule.** Read
-`accessibility_enabled` immediately after `adb install -r` and it returns `0`;
-read it fifteen seconds later and it is `1`, with the service bound. The
-package replace takes the process down and the system re-registers the service
-shortly after. A check run straight after an install would report the grant
-gone every time, and that is exactly how anyone would check it. Unproven, but
-it fits four failures to reproduce, and it is cheap to test deliberately. Both were
-same-key debug updates, which may be the distinguishing factor — neither
-changed the signing key nor uninstalled first, and that is the obvious thing to
-test next. But it is no longer a single anomaly, and this item is priced on the
-old assumption: "all 50 people re-enable Accessibility after every update" and
-"nobody has to" are different problems with different answers.
+```
+BEFORE          enabled=1  bound=1
+adb install -r  Success
+t+1s .. t+5s    enabled=0  bound=0
+t+6s            enabled=1  bound=0
+t+8s onward     enabled=1  bound=1
+```
+
+The grant is never cleared. There is a ~5 second window where it reads 0 and
+~8 seconds before the service rebinds. **Checking immediately after an install
+— which is what anyone does — reports the grant gone on a device where it was
+never gone.** That window is the entire origin of the rule. Five consecutive
+reinstalls plus this trace, against a note saying "confirmed twice".
+
+**So an ordinary update costs the user nothing**: no re-enabling, no data loss,
+~8 seconds of interruption. This item was priced on the opposite and is much
+cheaper than it looked.
+
+**The exception is a signing-key change**, which forces an uninstall and takes
+everything. Monish hit exactly that on the OPPO device —
+`INSTALL_FAILED_UPDATE_INCOMPATIBLE`, and no backup possible because `run-as`
+does not work on the release build already installed. That is the real risk,
+and it is narrower and sharper than "every update".
+
+Scope: same key, debug over debug, one device. Release-over-release has never
+been done.
 
 - [ ] **2.1a** Decide the channel: hosted APK + in-app "update available", or
       Play internal testing, or accept manual distribution and write it down.
-- [ ] **2.1b** Warn in-app that an update needs Accessibility re-enabled.
+- [x] **2.1b Dropped.** An update does not need Accessibility re-enabled —
+      see above. Shipping that warning would have been a false alarm in the
+      app, teaching people to ignore a message that is wrong.
+- [ ] **2.1c** **Warn before a signing-key change instead**, which is the case
+      that genuinely destroys data. Anyone holding a build signed with a
+      different key must export before updating, and `run-as` cannot rescue
+      them afterwards. This has already happened once, to Monish.
 
 ### 2.2 — Firebase budget alert
 

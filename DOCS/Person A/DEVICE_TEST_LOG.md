@@ -1156,3 +1156,116 @@ exactly what BUILD_PLAN 2.3 says has never been done:
 `7KwwYGXqZ0eiSAEeZHFKXVe6hNG3` still exist in Firestore. They are the second
 and third orphans of the kind 3.6 already tracks, and are safe to delete
 whenever that item is picked up.
+
+---
+
+## 2026-09-14 — second device, second OEM (BUILD_PLAN 1.4)
+
+Tester: Monish. **OPPO CPH2565, Android 15 (API 35), ColorOS 15.0.0.1900.**
+Debug build from `b/background-sync` (`085889b`), versionName 1.0.185.
+
+The first non-Xiaomi device Scrolla has ever run on, and the first time anyone
+who did not build it has been through onboarding.
+
+### Onboarding got a stranger to a working tracker, unaided
+
+No source reading, no adb workarounds, no questions. That is the answer 1.4
+was asking for, and it is a better result than expected.
+
+- **The restricted-settings screen worked on ColorOS 15.** The three-tap
+  instructions — app info → ⋮ → "Allow restricted settings" — matched the OEM
+  exactly. This is the step that has been the biggest unknown in the whole
+  plan: written for one OEM, never seen by anyone but its author, and blocking
+  every sideloaded install on Android 13+. It held on a different vendor and a
+  different Android version.
+- **The battery instructions, written for MIUI, also matched ColorOS.**
+- The "Mine isn't blocked — skip" escape hatch was noted as well placed.
+
+### Tracking verified on the device
+
+```
+accessibility_enabled = 1
+Bound services:{Service[label=Scrolla, …]}   Crashed services:{}
+```
+
+Enabled *and* bound, with no discrepancy — the second device to be checked for
+the "switched on but not running" state this project has been caught by, and
+it is clean here too.
+
+12 events, all dated 2026-09-14, correctly separated by app:
+
+| app | cm |
+|---|---|
+| `com.reddit.frontpage` | 304.32 |
+| `com.linkedin.android` | 219.97 |
+| `com.instagram.android` | 159.68 |
+
+683.96 cm total. Distances are plausible, the day boundary is right, and
+per-app attribution works on hardware that is not the reference phone.
+
+**No app bugs found.**
+
+### Three tooling findings, all real
+
+1. **The backup command corrupts the file on Windows.** Reproduced and
+   measured here — see the table in `TASK_1.4_INSTALL_PATH.md`. PowerShell's
+   `>` added 112,700 bytes of CRLF translation and produced
+   `file is not a database (26)`. Git Bash is byte-exact. **Doc fixed.**
+2. **`run-as` only works on debug builds**, so a phone carrying a release build
+   cannot be backed up at all. Monish hit exactly this: an older build with a
+   different signing key was already installed, `install -r` refused with
+   `INSTALL_FAILED_UPDATE_INCOMPATIBLE`, and the data could not be saved before
+   the uninstall. Nothing was lost because it was a test install — but this is
+   the real shape of the risk in BUILD_PLAN 2.1.
+3. **No `sqlite3` on device**, so queries have to run locally on a pulled copy.
+
+### What it does not settle
+
+The Today screen was not screenshotted, so the *number reaching the UI* on this
+device is still unconfirmed — the database is proven, the screen is not. Two
+OEMs is also still two; nothing here says anything about Samsung, which is the
+most likely OEM among fifty people.
+
+---
+
+## 2026-09-14, 13:03 — "reinstalling clears the accessibility grant" is false
+
+Deliberate test, since four accidental failures to reproduce were not proof.
+Same-key debug update over debug on the Redmi Note 10, polling
+`accessibility_enabled` and `dumpsys accessibility` once a second:
+
+```
+BEFORE          enabled=1  bound=1
+adb install -r  Success
+t+1s .. t+5s    enabled=0  bound=0
+t+6s            enabled=1  bound=0
+t+8s onward     enabled=1  bound=1
+```
+
+**The grant is never cleared.** There is a ~5 second window where the setting
+reads 0 and a ~8 second window before the service rebinds, and then everything
+is exactly as it was. The package replace takes the process down; the system
+puts it back.
+
+**That window is the whole origin of the rule.** Checking immediately after an
+install — which is what anyone does — reports the grant gone, every time, on a
+device where it was never gone. Five consecutive reinstalls today, plus this
+second-by-second trace, against a note that said "confirmed twice".
+
+### What it changes
+
+- **An ordinary update costs the user nothing.** No re-enabling, no data loss,
+  no interruption beyond ~8 seconds. BUILD_PLAN 2.1 was priced on the opposite.
+- **2.1b as written is not needed.** Warning about a re-enable that does not
+  happen would be a false alarm in the app.
+- **The exception is a signing-key change**, which forces an uninstall and does
+  take everything. Monish hit exactly that on the OPPO device:
+  `INSTALL_FAILED_UPDATE_INCOMPATIBLE`, no backup possible because `run-as`
+  does not work on the release build that was installed. That is the real
+  version of this risk, and it is narrower and sharper than "every update".
+
+### Scope of the claim
+
+Same signing key, debug over debug, one device, one OEM. It says nothing about
+release-over-release updates, which nobody has performed, and the OPPO result
+confirms a key *change* behaves completely differently.
