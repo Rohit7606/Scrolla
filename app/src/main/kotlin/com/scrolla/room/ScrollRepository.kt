@@ -334,17 +334,40 @@ class ScrollRepositoryImpl(
             // UPDATE affects 0 rows, which is the correct behavior — sync should
             // not author the row.
             serviceHealthDao.markSyncSuccess(System.currentTimeMillis())
+        // Neither failure path writes `degradedReason` any more (BUILD_PLAN 2.7).
+        //
+        // It used to, and the result was that **being on a train told the user
+        // their tracking was broken**. A sync timeout set degradedReason, the
+        // Settings health card turns any non-null degradedReason into DEGRADED,
+        // and DEGRADED renders "Tracking may be limited / Scrolla is enabled but
+        // hasn't received recent scroll events — this may be a battery
+        // restriction" with a button to Check battery settings.
+        //
+        // Every part of that is wrong for a network failure. Tracking was fine,
+        // scroll events were arriving, and battery settings are not the problem.
+        //
+        // This is finding A6 exactly, with a different caller: that fix stopped
+        // *reads* reporting a read failure as a tracking failure, and its note
+        // says a second kind of failure "needs its own column rather than a
+        // third writer sharing degradedReason". A network failure is a third
+        // writer. Until that column exists, the honest thing is to not claim
+        // anything about tracking.
+        //
+        // Nothing is lost by removing it. `lastFirestoreSyncTimestamp` is not
+        // advanced on failure, and the health card already renders it as
+        // "Last synced ..." — a stale timestamp is the accurate signal, and the
+        // one the user can act on. The failure itself now reaches Crashlytics,
+        // which is where a developer should learn about it rather than by
+        // mislabelling a card the user relies on.
         } catch (e: TimeoutCancellationException) {
             Log.e(tag, "triggerFirestoreSync() timed out after 15s for user=$userId, date=$date", e)
             CrashReporter.nonFatal(CrashReporter.Where.SYNC_FIRESTORE_TIMEOUT, e)
-            try { serviceHealthDao.markSyncFailed("triggerFirestoreSync timed out") } catch (_: Exception) {}
         } catch (e: CancellationException) {
             // Rethrow standard coroutine cancellations so cooperative cancellation isn't swallowed
             throw e
         } catch (e: Exception) {
             Log.e(tag, "triggerFirestoreSync() failed for user=$userId, date=$date", e)
             CrashReporter.nonFatal(CrashReporter.Where.SYNC_FIRESTORE, e)
-            try { serviceHealthDao.markSyncFailed("triggerFirestoreSync: ${e.message}") } catch (_: Exception) {}
         }
     }
 

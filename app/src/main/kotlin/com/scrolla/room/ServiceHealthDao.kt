@@ -67,7 +67,22 @@ interface ServiceHealthDao {
     @Query("UPDATE service_health SET lastFirestoreSyncTimestamp = :timestamp, degradedReason = null WHERE id = 1")
     suspend fun markSyncSuccess(timestamp: Long)
 
-    /** Failed Firestore sync: records the reason without touching any timestamp. */
-    @Query("UPDATE service_health SET degradedReason = :reason WHERE id = 1")
-    suspend fun markSyncFailed(reason: String)
+    /**
+     * Deleted, not deprecated (BUILD_PLAN 2.7).
+     *
+     * `markSyncFailed` wrote a *network* failure into `degradedReason`, which
+     * the Settings health card reads as a *tracking* failure — so a user with
+     * no signal was told "Tracking may be limited ... this may be a battery
+     * restriction" and pointed at battery settings, while tracking was working
+     * perfectly. That is finding A6 with a different caller; see the comment in
+     * `ScrollRepository.triggerFirestoreSync()`.
+     *
+     * Removed rather than left unused, because an unused DAO method that writes
+     * the wrong field is an invitation. A failed sync is visible in the two
+     * places it should be: `lastFirestoreSyncTimestamp` stops advancing, which
+     * the card renders as "Last synced ...", and Crashlytics gets a non-fatal.
+     *
+     * If sync health ever needs its own user-facing state, it needs its own
+     * column — P2.4e — not this one back.
+     */
 }
