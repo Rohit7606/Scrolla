@@ -419,11 +419,41 @@ limit when you do.
       code, a sync pass costs **4 reads and 1 write per group the user is in**,
       so fifty people in two groups each at hourly background sync is ~9,600
       reads and ~2,400 writes a day, plus leaderboard views. Roughly 29 % of
-      reads and 12 % of writes.
-- [ ] **2.2c** *(new)* `users/{uid}/groups` is **read twice per sync pass** —
-      once in `triggerFirestoreSync`, once in `getUserGroups` inside
-      `updateGroupRecords`. That is a quarter of the sync read load for
-      nothing. Not urgent at this headroom, but it is free to fix.
+      reads and 12 % of writes. **Superseded by 2.2c (2026-09-14): a pass now
+      costs 2 reads per group, so the same fifty people cost ~4,800 reads a day
+      — about 15 %.**
+- [x] **2.2c** ✅ *(2026-09-14)* Fixed, and it was **half** the sync read load,
+      not a quarter.
+
+      `SyncEngine.sync()` now reads `users/{uid}/groups` **once** and hands the
+      result to both halves. Reading it there rather than inside either half is
+      what stops a third step quietly adding a third read.
+
+      The second saving was not in the item. `updateGroupRecords` called
+      `getUserGroups`, which reads the memberships **and then reads
+      `groups/{id}` for every one of them** to join on a `groupName` and a
+      `memberCount` — neither of which that function ever touches. It needs a
+      group id and a `joinedAt`, and both are on the membership. So
+      `getMemberships()` returns `GroupMembershipRef` with no group documents
+      read at all; `getUserGroups()` is unchanged and still what the *screens*
+      call, because they do need the name and the count.
+
+      **Per group, per pass: 4 reads → 2** (the membership, and the record
+      document `updateGroupRecordIfBetter` compares against). At the 2.2b
+      sizing, fifty people in two groups each drops from ~9,600 reads a day to
+      ~4,800 — roughly 29 % of the free tier to 15 %.
+
+      `getMemberships` returns `Result`, and `SyncEngine` treats a failure as a
+      skipped pass rather than an empty list. An empty list would have uploaded
+      today's total to no groups, logged "synced 0 group(s)" and marked the pass
+      a success — leaving the user silently off every board, which is the exact
+      bug `SyncWorker` was built to prevent.
+
+      Verified on device: `triggerFirestoreSync() successfully synced 2
+      group(s)`, then both record offers evaluated against the right join dates
+      — `Offering 2026-09-09 to GUW4YE, joined 2026-09-07` and `to S1RK8Q,
+      joined 2026-08-23`. The per-group `joinedAt` bound is the thing this
+      refactor could most easily have broken, and it did not.
 
 ### 2.3 — The screens nobody has ever run 🟡 *(empty states covered 2026-09-14)*
 

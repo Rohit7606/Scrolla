@@ -27,6 +27,22 @@ data class GroupMembership(
     val joinedAt: Long? = null
 )
 
+/**
+ * A membership row exactly as it is stored under `users/{uid}/groups`, with no
+ * group metadata joined onto it (BUILD_PLAN 2.2c).
+ *
+ * [GroupMembership] is this plus a read of `groups/{id}` for the name and member
+ * count, which is what a *screen* needs. A sync pass needs neither: it writes
+ * totals keyed by group id and it bounds records by `joinedAt`, both of which
+ * live on the membership itself. Reading the group document to get them cost a
+ * read per group per pass for two fields nobody looked at.
+ */
+data class GroupMembershipRef(
+    val groupId: String,
+    val displayName: String,
+    val joinedAt: Long?
+)
+
 /** One member's total for a single day, as stored under /groups/{id}/dailyTotals. */
 data class MemberDailyTotal(
     val userId: String,
@@ -210,6 +226,38 @@ class GroupRepository(
             Result.success(groups)
         } catch (e: Exception) {
             Log.e(TAG, "Failed to load groups for user: $userId", e)
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Which groups this user belongs to — **one read**, no group documents
+     * (BUILD_PLAN 2.2c).
+     *
+     * This is what a sync pass wants. [getUserGroups] answers the same question
+     * and then reads `groups/{id}` for each one to get a name and a member
+     * count, which a screen needs and a sync does not.
+     *
+     * A failure here is a failure, not an empty list. The distinction matters:
+     * the caller must not read "no groups" out of "could not tell", mark the
+     * pass a success and leave the user off every board for the day.
+     */
+    suspend fun getMemberships(userId: String): Result<List<GroupMembershipRef>> {
+        return try {
+            val memberships = firestore.collection("users").document(userId)
+                .collection("groups").get().await()
+
+            Result.success(
+                memberships.documents.map { doc ->
+                    GroupMembershipRef(
+                        groupId = doc.id,
+                        displayName = doc.getString("displayName") ?: "Unknown",
+                        joinedAt = doc.getTimestamp("joinedAt")?.toDate()?.time
+                    )
+                }
+            )
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to load memberships for user: $userId", e)
             Result.failure(e)
         }
     }

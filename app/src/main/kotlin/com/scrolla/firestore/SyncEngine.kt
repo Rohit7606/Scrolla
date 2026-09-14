@@ -60,8 +60,17 @@ class SyncEngine(
         val ran = singleFlight.run {
             Log.d(TAG, "Firestore sync requested ($reason)")
             reconcilePersonalBackup()
-            scrollRepository.triggerFirestoreSync()
-            updateGroupRecords()
+
+            // One read of users/{uid}/groups for the whole pass (BUILD_PLAN
+            // 2.2c). Both halves below used to fetch it separately, which was a
+            // quarter of the sync read load spent asking the same question
+            // twice. Reading it here rather than inside either half is what
+            // makes it impossible for a third step to add a third read without
+            // noticing.
+            val memberships = readMemberships() ?: return@run
+
+            scrollRepository.triggerFirestoreSync(memberships)
+            updateGroupRecords(memberships)
         }
 
         if (!ran) {
@@ -75,6 +84,27 @@ class SyncEngine(
             )
         }
         return ran
+    }
+
+    /**
+     * The user's group memberships, or null if we could not find out.
+     *
+     * **Null and empty are different and the difference is the whole point.**
+     * A failed read returning an empty list would upload today's total to no
+     * groups, log "synced 0 group(s)", and mark the pass a success -- leaving
+     * the user silently off every board until something else happened to work.
+     * That is the exact shape of the bug SyncWorker exists to prevent, which
+     * left anyone who did not open the app off the leaderboard for the day.
+     */
+    private suspend fun readMemberships(): List<GroupMembershipRef>? {
+        val userId = authRepository.currentUser?.uid ?: run {
+            Log.d(TAG, "Sync skipped — not signed in")
+            return null
+        }
+        return groupRepository.getMemberships(userId).getOrElse {
+            Log.w(TAG, "Sync skipped — could not read groups: ${it.message}")
+            return null
+        }
     }
 
     /**
@@ -137,7 +167,7 @@ class SyncEngine(
      * refused by the rules, is ordinary — the next sync tries again fifteen
      * minutes later, and there is nothing a user could usefully do about it.
      */
-    private suspend fun updateGroupRecords() {
+    private suspend fun updateGroupRecords(memberships: List<GroupMembershipRef>) {
         // Every exit below logs. It did not, and on 2026-09-06 that made the
         // feature's state unreadable from a device: it ran, wrote nothing, and
         // said nothing, so there was no way to tell whether a record had been
@@ -170,10 +200,11 @@ class SyncEngine(
         // plain lookup rather than a suspending call it cannot make.
         val activeSpans = history.associate { it.day to scrollRepository.getActiveHourSpan(it.day) }
 
-        val groups = groupRepository.getUserGroups(user.uid).getOrElse {
-            Log.d(TAG, "Skipping record update — could not read groups: ${it.message}")
-            return
-        }
+        // Was getUserGroups(user.uid) — a second read of users/{uid}/groups
+        // plus a read of groups/{id} per group, for a groupName and a
+        // memberCount this function never touches. It needs an id and a
+        // joinedAt, and both are on the membership.
+        val groups = memberships
 
         if (groups.isEmpty()) {
             Log.d(TAG, "Record update skipped — user belongs to no groups")

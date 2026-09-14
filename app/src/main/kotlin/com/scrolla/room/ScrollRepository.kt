@@ -1,6 +1,7 @@
 package com.scrolla.room
 
 import android.util.Log
+import com.scrolla.firestore.GroupMembershipRef
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
@@ -91,7 +92,7 @@ interface ScrollRepository {
     /** Triggers an immediate Firestore sync of today's total.
      *  B calls this when the app comes to foreground and when the 15-minute timer fires.
      *  A handles the actual write logic. B must not write to Firestore directly for daily totals. */
-    suspend fun triggerFirestoreSync()
+    suspend fun triggerFirestoreSync(memberships: List<GroupMembershipRef>)
 
     /**
      * Deletes the per-app, per-hour history — every `scroll_events` row before
@@ -286,7 +287,7 @@ class ScrollRepositoryImpl(
             }
     }
 
-    override suspend fun triggerFirestoreSync() {
+    override suspend fun triggerFirestoreSync(memberships: List<GroupMembershipRef>) {
         val userId = currentUserId()
         if (userId == null) {
             Log.i(tag, "triggerFirestoreSync() skipped — user is not signed in")
@@ -296,13 +297,15 @@ class ScrollRepositoryImpl(
         try {
             val totalKm = getTodayTotalKm()
             withTimeout(15_000L) {
-                val userGroups = firestore
-                    .collection("users").document(userId)
-                    .collection("groups").get().await()
-
-                for (groupDoc in userGroups.documents) {
-                    val groupId = groupDoc.id
-                    val displayName = groupDoc.getString("displayName") ?: "Unknown"
+                // The memberships are passed in rather than read here
+                // (BUILD_PLAN 2.2c). This method used to fetch
+                // `users/{uid}/groups` itself, and so did `getUserGroups` inside
+                // `updateGroupRecords` a moment later in the same pass — the
+                // same collection, twice, milliseconds apart, for a quarter of
+                // the sync read load and nothing else.
+                for (membership in memberships) {
+                    val groupId = membership.groupId
+                    val displayName = membership.displayName
                     val docId = "${userId}_${date}"
 
                     firestore
@@ -322,7 +325,7 @@ class ScrollRepositoryImpl(
 
                 Log.d(
                     tag,
-                    "triggerFirestoreSync() successfully synced ${userGroups.documents.size} group(s) " +
+                    "triggerFirestoreSync() successfully synced ${memberships.size} group(s) " +
                         "for user=$userId, date=$date, totalKm=$totalKm"
                 )
             }
