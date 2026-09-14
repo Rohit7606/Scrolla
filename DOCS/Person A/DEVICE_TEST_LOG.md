@@ -1269,3 +1269,55 @@ second-by-second trace, against a note that said "confirmed twice".
 Same signing key, debug over debug, one device, one OEM. It says nothing about
 release-over-release updates, which nobody has performed, and the OPPO result
 confirms a key *change* behaves completely differently.
+
+---
+
+## 2026-09-14, 16:02 — what offline actually does (BUILD_PLAN 2.7)
+
+Release build on the Pixel emulator, signed in as the test account with one
+group. Network taken down with `svc wifi disable` / `svc data disable`, then
+the app cold-started so nothing could be served from memory.
+
+### The board does not error offline
+
+2.7 says "nothing checks connectivity, so being on the train reads as an
+error". **It does not.** With `Active default network: none`, the Group tab
+rendered normally: "1 of 1 synced today", the Today/Yesterday/7-day row,
+"You're the only one here", "No group record set yet". No error, no retry
+prompt, nothing broken.
+
+Firestore's local persistence is on by default and nothing in this app turns it
+off, so `.get()` falls back to cache. The reconcile said it out loud —
+**`Backup reconcile: already in sync (1 local, 1 cloud)` with no network at
+all.** Reads work offline. `ERROR_NO_CONNECTION` has never had a caller because
+the case it was written for does not arise on this path.
+
+(The "Tracking is off" banner in that screenshot is `am force-stop` from the
+test method, not an offline symptom.)
+
+### What offline actually broke
+
+Writes, and only writes. `triggerFirestoreSync()` hung and timed out after 15 s
+— and then wrote `degradedReason`, which the Settings health card reports as:
+
+> **Tracking may be limited**
+> Scrolla is enabled but hasn't received recent scroll events — this may be a
+> battery restriction
+> **[Check battery settings]**
+
+Every clause of that is false for a network timeout. Tracking was fine, scroll
+events were arriving, battery was irrelevant. **Being on a train told the user
+their tracking was broken and sent them to the wrong settings screen.**
+
+That is finding A6 with a different caller — A6 removed the same mistake from
+the read path and explicitly warned that a further failure kind would need its
+own column rather than a third writer on `degradedReason`. Fixed by deleting
+`markSyncFailed` outright, so the write is impossible rather than merely
+absent, and locked with `ServiceHealthWritersTest`.
+
+### Second plan item this week whose premise did not survive a device
+
+2.1 said every reinstall clears the accessibility grant; polling proved it
+never does. 2.7 said offline reads as an error; the cache proved it does not.
+Both were plausible, both were written from reasoning rather than observation,
+and in both cases the real defect was somewhere nearby and sharper.

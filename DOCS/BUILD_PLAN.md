@@ -25,7 +25,7 @@ each stage is defined by what it unblocks, not by how interesting it is.
 | Accuracy | **Verified.** S0.7 re-run passed; the 31 % inflation is fixed and measured |
 | Battery | **0.36 %** (14.1 mAh) — and 82 % of that is network, not tracking |
 | Storage | 686 rows/day → **18.2 MB/year** |
-| Tests | **153 unit** — incl. 8 Compose screen tests and 6 migration tests |
+| Tests | **155 unit** — incl. 8 Compose screen tests and 6 migration tests |
 | Release build | Signed, minified, 4.64 MB — **sign-in, sync and group flows all verified** |
 | Devices ever tested | **1** |
 | Crash visibility | Crashlytics files correct non-fatals, verified on device. **Delivery waits for a process restart** (1.2e) |
@@ -542,12 +542,39 @@ problem; the certificate is.
 The APK is safe to hand out again as of 2026-09-14. **Any future signing-key
 change needs its SHA-1 registered too, or this recurs identically.**
 
-### 2.7 — Offline is not failure
+### 2.7 — Offline is not failure ✅ *(2026-09-14 — and it was not this)*
 
-*(was P2.3d)* Nothing checks connectivity, so being on the train reads as an
-error. With 50 users this generates support messages that aren't bugs.
+*(was P2.3d)* The item said nothing checks connectivity, so being on the train
+reads as an error, generating support messages that are not bugs.
 
----
+**Tested on a device, and the board does not error offline.** With no network
+at all, the Group tab rendered normally — "1 of 1 synced today", the stat row,
+the solo-group empty state. Firestore's local persistence is on by default and
+nothing here disables it, so reads fall back to cache; the reconcile logged
+`already in sync (1 local, 1 cloud)` with the network down. `ERROR_NO_CONNECTION`
+has never had a caller because that path does not fail.
+
+**The real defect was one clause away and much worse.** `triggerFirestoreSync()`
+wrote its failure into `degradedReason`, which the Settings health card turns
+into *"Tracking may be limited — Scrolla is enabled but hasn't received recent
+scroll events — this may be a battery restriction"*, with a button to check
+battery settings. So **no signal told the user their tracking was broken**, gave
+a false reason, and sent them to the wrong screen.
+
+That is A6 with a different caller. A6 stopped reads doing exactly this and
+warned that another failure kind would need its own column rather than a third
+writer on `degradedReason`.
+
+- [x] Deleted `markSyncFailed`, so the write is impossible at compile time
+      rather than merely absent. A failed sync stays visible where it should
+      be: `lastFirestoreSyncTimestamp` stops advancing and the card renders it
+      as "Last synced …", and Crashlytics gets a non-fatal.
+- [x] `ServiceHealthWritersTest` names the legitimate writers, so a third
+      subsystem reaching for that field fails in CI instead of on a phone.
+- [ ] **2.7a** *(small, open)* The board shows cached data offline without
+      saying it is cached — "1 of 1 synced today" can be stale. Honest but
+      incomplete. `ERROR_NO_CONNECTION` is written and waiting if this is ever
+      worth wiring.
 
 ## STAGE 3 — Makes it good, not viable
 
