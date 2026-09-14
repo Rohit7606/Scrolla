@@ -299,28 +299,50 @@ and it is narrower and sharper than "every update".
 Scope: same key, debug over debug, one device. Release-over-release has never
 been done.
 
-- [ ] **2.1a** Decide the channel. **Recommendation: Play Console internal
-      testing**, and the reason is not auto-updates.
+- [ ] **2.1a** Decide the channel. **Play Store is ruled out** (2026-09-14,
+      Rohit: the $25 Play Console fee is not affordable and the app is not
+      going to the Play Store). Recommendation below uses only free tools.
 
-      **Play-installed apps are not "sideloaded", so Android 13+ restricted
-      settings never applies to them.** The single largest piece of onboarding
-      friction — the screen Monish had to be walked through, the one that
-      blocks every install on Android 13+ and needs a hidden ⋮ menu — simply
-      does not appear. It also removes `INSTALL_FAILED_UPDATE_INCOMPATIBLE`
-      and the signing-key data-loss case (2.1c) for everyone who installs that
-      way, and gives automatic updates for free.
+      **Primary: Firebase App Distribution.** Verified on the Firebase pricing
+      page 2026-09-14 — listed **"No-cost" on the Spark plan, with no usage
+      limits stated**. The project already exists, so this costs nothing and
+      adds no new account.
 
-      Cost: $25 once, and the first upload has to be processed. Internal
-      testing takes up to 100 testers, which covers fifty.
+      What it gives that a shared APK link does not: tester groups, email
+      invites, **update notifications on the tester's device**, and a record of
+      who is on which build — which matters at fifty people, because
+      "it's broken" is unanswerable without knowing what they are running.
 
-      Against it: the APK must be uploaded for each release, and testers need
-      a Google account on the device, which everyone signing into Scrolla has
-      anyway.
+      **Be clear about what it does not fix.** An app installed this way is
+      still sideloaded, so **Android 13+ restricted settings still applies**.
+      That was the argument for Play, and it is now much weaker: 1.4 proved the
+      onboarding screen walks a stranger through that block successfully on a
+      second OEM. It is handled, not avoided.
 
-      The alternatives are a hosted APK with an in-app version check — real
-      build work, and it keeps the restricted-settings problem — or accepting
-      manual distribution, which is now much cheaper than it looked given an
-      update preserves both data and the accessibility grant.
+      **Secondary, and the bulletproofing: GitHub Releases + Obtainium.**
+      [Obtainium](https://github.com/ImranR98/Obtainium) is an open-source
+      Android app that installs and updates apps straight from a GitHub
+      Releases page and notifies on new releases. Testers install it once,
+      point it at the release repo, and updates arrive without anyone being
+      chased. Free, no accounts beyond GitHub, and no dependence on Firebase
+      continuing to offer this for free.
+
+      Note the repo would have to be reachable by testers. **Use a separate
+      public repo holding only the APK**, not this one — publishing the source
+      is a different decision, and this repo's history is not written for an
+      audience.
+
+      Two channels rather than one is deliberate: App Distribution is the
+      managed path that tells you who has what, Obtainium is the one that keeps
+      working if that ever changes.
+
+      - [ ] **2.1a-i** Wire the App Distribution Gradle plugin and a tester
+            group. Needs a Firebase CLI login or service account to upload.
+      - [ ] **2.1a-ii** Create the public release repo and publish the first
+            tagged APK.
+      - [ ] **2.1a-iii** Write the one-page install note (1.4c) covering both
+            routes and the restricted-settings step.
+
 - [x] **2.1b Dropped.** An update does not need Accessibility re-enabled —
       see above. Shipping that warning would have been a false alarm in the
       app, teaching people to ignore a message that is wrong.
