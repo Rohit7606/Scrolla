@@ -26,7 +26,7 @@ each stage is defined by what it unblocks, not by how interesting it is.
 | Battery | **0.36 %** (14.1 mAh) — and 82 % of that is network, not tracking |
 | Storage | 686 rows/day → **18.2 MB/year** |
 | Tests | **153 unit** — incl. 8 Compose screen tests and 6 migration tests |
-| Release build | Signed, minified, 4.64 MB, runs — but **cannot sign in** (2.6a) |
+| Release build | Signed, minified, 4.64 MB — **sign-in, sync and group flows all verified** |
 | Devices ever tested | **1** |
 | Crash visibility | Crashlytics files correct non-fatals, verified on device. **Delivery waits for a process restart** (1.2e) |
 
@@ -343,7 +343,7 @@ Espresso does not fix it. Running on the JVM also puts them in the ordinary
 attach a device. A genuine on-device run still needs an API ≤ 36 image
 downloaded.
 
-### 2.6 — Release build 🔴 **LAUNCH BLOCKER FOUND** *(2026-09-14)*
+### 2.6 — Release build ✅ *(blocker found and fixed 2026-09-14)*
 
 The signed-in paths — Room reads, Firestore sync, group flows — are all behind
 Google sign-in and had never run minified.
@@ -363,13 +363,23 @@ a button that fails and no way past it. It has read as "release build works"
 since `aaa6003` because that verified compile, sign, install and launch.
 Nobody had pressed the button.
 
-- [ ] **2.6a** 🔴 Add the release SHA-1 in Firebase Project Settings → Android
-      app → Add fingerprint. **Rohit only — console access.** Then download the
-      regenerated `google-services.json` (it gains a second `oauth_client`) and
-      commit it. No app code changes.
-- [ ] **2.6b** Re-run sign-in on the release build and confirm code 10 is gone.
-- [ ] **2.6c** Then the rest of what 2.6 was for: Firestore sync, Room reads
-      through the UI, and group flows, all minified.
+- [x] **2.6a** Release SHA-1 registered; `google-services.json` regenerated and
+      committed. No app code changed.
+- [x] **2.6b** Sign-in works. Code 10 gone.
+- [x] **2.6c** **All of it, minified, on a separate test account** so none of
+      Rohit's data was touched: sign-in, the Firestore daily-total write, the
+      personal backup reconcile, group creation (`6NPBWY`), the leaderboard
+      read, and the `joinedAt` record bound from `0b55803`
+      (`No record-eligible day for 6NPBWY since joining 2026-09-14`).
+      Home, Group, Your-groups and Profile all render minified.
+
+**Two bugs found by running it** — see 2.3, this is its whole argument:
+*(a)* Profile read **"1 groups · <name> on widget"**. Hardcoded plural, and it
+named the widget surface that does not exist (3.1). Fixed.
+*(b)* A returning user on a fresh install goes straight to Home and never sees
+onboarding — `isNewUser` is false, so the Accessibility step is skipped and
+`is_first_launch` is set to false. The tracking-off banner still catches them,
+so it is not silent, but it is worth confirming deliberately. **Not fixed.**
 
 **Everything else about the release build is verified** (2026-09-14, emulator,
 `flags=0x0`): launches, Compose renders, accessibility service binds, scroll
@@ -378,8 +388,8 @@ Crashlytics activated, and a sweep of the whole log for `ClassNotFoundException`
 / `NoSuchMethodError` / `VerifyError` and friends found nothing. R8 is not the
 problem; the certificate is.
 
-**Until 2.6a is done, do not hand out the release APK.** The debug build is
-unaffected and is what 1.4 should use.
+The APK is safe to hand out again as of 2026-09-14. **Any future signing-key
+change needs its SHA-1 registered too, or this recurs identically.**
 
 ### 2.7 — Offline is not failure
 

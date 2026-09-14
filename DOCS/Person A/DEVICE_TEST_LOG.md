@@ -1115,3 +1115,44 @@ build is unaffected and remains the right thing to give Monish for 1.4.
 This is the clearest vindication of the rule at the top of AGENTS.md that this
 project has produced: correct from every angle except the one nobody looked
 from.
+
+### Fixed and re-verified, same session
+
+Release SHA-1 registered, `google-services.json` regenerated, release rebuilt
+(versionCode 191). Signed in with a **separate test account**
+(uid `7KwwYGXqZ0eiSAEeZHFKXVe6hNG3`), so none of Rohit's data was involved:
+
+```
+12:48:43 SyncEngine:       Firestore sync requested (foreground)
+12:48:46 SyncEngine:       Backup reconcile uploaded 1 day(s)
+12:48:47 ScrollRepository: triggerFirestoreSync() successfully synced 0 group(s)
+12:48:47 SyncEngine:       Record update skipped — user belongs to no groups
+12:48:47 SyncEngine:       Firestore sync skipped (periodic) — a pass started 3477 ms ago
+12:51:51 GroupRepository:  Successfully created group: 6NPBWY
+12:52:32 ScrollRepository: triggerFirestoreSync() successfully synced 1 group(s)
+12:52:33 SyncEngine:       No record-eligible day for 6NPBWY since joining 2026-09-14
+```
+
+Every path 2.6 was written for, and none of them had ever run minified. The
+`skipped (periodic)` line is a bonus: the 1.3 single-flight fix confirmed on a
+release build too.
+
+**Two bugs found by simply looking at the screens with data on them**, which is
+exactly what BUILD_PLAN 2.3 says has never been done:
+
+1. Profile read **"1 groups · RelTest0914DeleteMe on widget"**. The plural is
+   hardcoded — one group is what most people have — and "on widget" names a
+   surface that does not exist, since widgets are 3.1 and unbuilt. It was an
+   inline string literal rather than a `ScrollaStrings` constant, which is how
+   it escaped every copy review the rest of the app has had. **Fixed.**
+
+2. A brand-new sign-in went **straight to Home, not onboarding**. `isNewUser`
+   came back false, and that branch also writes `is_first_launch = false`. So a
+   returning user on a fresh install never meets the Accessibility step. The
+   tracking-off banner still catches them so it is not silent, but it is worth
+   a deliberate test. **Not fixed** — recorded in BUILD_PLAN 2.6.
+
+**Left behind on purpose:** test group `6NPBWY` and test user
+`7KwwYGXqZ0eiSAEeZHFKXVe6hNG3` still exist in Firestore. They are the second
+and third orphans of the kind 3.6 already tracks, and are safe to delete
+whenever that item is picked up.
