@@ -171,15 +171,37 @@ the last). Tests 114 → 131.
       it arrives 8 s late. A window sized against the 400 ms gap would not have
       caught it.
 
-### 1.4 — The install path, on a phone that isn't Rohit's 🔴
+### 1.4 — The install path, on a phone that isn't Rohit's ✅ *(2026-09-14)*
 
 Android 13+ blocks **every** sideloaded app from Accessibility until restricted
-settings are unlocked. The onboarding step for it exists but has been seen by
-nobody. Tested on one device, one OEM.
+settings are unlocked. The onboarding step for it existed and had been seen by
+nobody.
 
-- [ ] **1.4a** Full install → onboarding → first number, on a non-Xiaomi phone.
-- [ ] **1.4b** Same on a second Xiaomi, to confirm the OEM steps still read true.
-- [ ] **1.4c** Write the install instructions someone receives with the APK.
+**It works.** Monish ran a full install and onboarding on an **OPPO CPH2565,
+Android 15, ColorOS 15** — the first non-Xiaomi device Scrolla has run on, and
+the first person who did not build it going through onboarding.
+
+- [x] **1.4a** Full install → onboarding → first number, unaided. No source
+      reading, no adb workarounds, no questions. **The restricted-settings
+      three-tap instructions, written for MIUI, matched ColorOS exactly** —
+      that was the biggest unknown in this plan. Battery instructions matched
+      too. 12 events across Reddit, LinkedIn and Instagram, correctly
+      separated, correct local date. Service enabled *and* bound,
+      `Crashed services:{}`. **No app bugs.**
+- [ ] **1.4b** Second Xiaomi — still not done, and lower value now that a
+      second OEM has passed.
+- [ ] **1.4c** Install instructions to ship with the APK.
+
+**Three tooling findings, all real, all fixed or recorded:** the backup command
+corrupts the file on Windows PowerShell (measured: 655,360 → 768,060 bytes,
+`file is not a database`); `run-as` does not work on release builds, so a phone
+carrying one cannot be backed up before a key change forces an uninstall; and
+there is no `sqlite3` on device.
+
+**Not settled:** the Today screen was never screenshotted, so the number
+reaching the *UI* on that device is unconfirmed — the database is proven, the
+screen is not. And two OEMs is still two; nothing here speaks to Samsung, the
+likeliest OEM among fifty people.
 
 ### 1.5 — Tell people about the UPI conflict 🟡 *(decided 2026-09-14)*
 
@@ -277,8 +299,28 @@ and it is narrower and sharper than "every update".
 Scope: same key, debug over debug, one device. Release-over-release has never
 been done.
 
-- [ ] **2.1a** Decide the channel: hosted APK + in-app "update available", or
-      Play internal testing, or accept manual distribution and write it down.
+- [ ] **2.1a** Decide the channel. **Recommendation: Play Console internal
+      testing**, and the reason is not auto-updates.
+
+      **Play-installed apps are not "sideloaded", so Android 13+ restricted
+      settings never applies to them.** The single largest piece of onboarding
+      friction — the screen Monish had to be walked through, the one that
+      blocks every install on Android 13+ and needs a hidden ⋮ menu — simply
+      does not appear. It also removes `INSTALL_FAILED_UPDATE_INCOMPATIBLE`
+      and the signing-key data-loss case (2.1c) for everyone who installs that
+      way, and gives automatic updates for free.
+
+      Cost: $25 once, and the first upload has to be processed. Internal
+      testing takes up to 100 testers, which covers fifty.
+
+      Against it: the APK must be uploaded for each release, and testers need
+      a Google account on the device, which everyone signing into Scrolla has
+      anyway.
+
+      The alternatives are a hosted APK with an in-app version check — real
+      build work, and it keeps the restricted-settings problem — or accepting
+      manual distribution, which is now much cheaper than it looked given an
+      update preserves both data and the accessibility grant.
 - [x] **2.1b Dropped.** An update does not need Accessibility re-enabled —
       see above. Shipping that warning would have been a false alarm in the
       app, teaching people to ignore a message that is wrong.
@@ -287,10 +329,31 @@ been done.
       different key must export before updating, and `run-as` cannot rescue
       them afterwards. This has already happened once, to Monish.
 
-### 2.2 — Firebase budget alert
+### 2.2 — Firebase budget alert 🟡 *(console only — Rohit)*
 
 *(was S3.13)* Free, five minutes, prevents a surprise bill. Do it before the
 user count moves.
+
+**Which of these applies depends on the plan, and that is worth checking
+first** (Firebase console → ⚙ → Usage and billing):
+
+- **On Spark (free):** there is no billing account, so a surprise bill is not
+  possible — the project stops serving when quota is reached instead. A budget
+  alert cannot be set and is not needed. What *is* worth knowing is the
+  ceiling: Firestore's free tier is 50k reads, 20k writes and 20k deletes a
+  day. With background sync at one pass an hour, fifty users and two groups
+  each, the write load is roughly 50 × 24 × 2 ≈ 2,400 writes a day plus group
+  reads — comfortably inside it, but the reads grow with group size, and that
+  is the number to watch.
+- **On Blaze (pay as you go):** set the budget. Google Cloud Console →
+  Billing → Budgets & alerts → Create budget, scope it to the
+  `scrolla-9986e` project, set an amount and alert thresholds at 50/90/100 %.
+  Alerts email the billing admin; they do **not** stop spending, so also
+  consider a low ceiling as an early warning rather than a cap.
+
+- [ ] **2.2a** Check which plan the project is on.
+- [ ] **2.2b** If Blaze, set the budget. If Spark, write "Spark, no billing
+      account, nothing to cap" here and close the item.
 
 ### 2.3 — The screens nobody has ever run 🟡 *(empty states covered 2026-09-14)*
 
