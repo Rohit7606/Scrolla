@@ -611,14 +611,25 @@ Not bugs to be rediscovered — decisions, with reasons.
 - **REVIEW_LOG #10** — the `users/{uid}/dailyTotals` rules are **live and
   unreviewed**.
 
-  **And nobody can currently diff live against the repo.** Until 2026-09-14
-  there was no `firebase.json` or `.firebaserc`, so the rules have only ever
-  been deployed by pasting them into the console — which is why the repo copy
-  and the live copy cannot be compared, and why this project once believed the
-  rules were undeployed for eleven days while they were live. Both files now
-  exist and `firebase deploy --only firestore:rules --dry-run` reports the repo
-  copy compiles, so **future changes can be deployed from the repo and reviewed
-  as a diff**. Nothing has been deployed; #10 still needs Monish. Reviews #2 and #4 each caught a real bug; #4 found that group
+  **Now checked rather than assumed: the repo copy and the live copy are
+  byte-identical.** Pulled the deployed ruleset from the Firebase Rules API on
+  2026-09-14 and diffed it against `firestore/firestore.rules` — 7,565 bytes
+  each, no differences (the 8-byte discrepancy on disk is only CRLF). The
+  timeline matches: the rules were committed at 11:49:19 IST on 2026-09-06 and
+  the live ruleset `34148ade-5012-4b94-b837-50e6ff75e474` was created at
+  11:51:28 IST, two minutes later, and nothing has touched the file since.
+
+  **So there is nothing to deploy, and that is the good outcome.** It also
+  means reviewing `firestore/firestore.rules` in git *is* reviewing production,
+  exactly — which is what #10 needs and could not previously be said with
+  confidence.
+
+  Until 2026-09-14 there was no `firebase.json` or `.firebaserc`, so the rules
+  had only ever reached the console by hand — which is why this project once
+  believed the rules were undeployed for eleven days while they were live. Both
+  files now exist and the repo copy compiles under `--dry-run`, so the *next*
+  change can be deployed from the repo and reviewed as a diff instead of
+  pasted. #10 still needs Monish's eyes on the content. Reviews #2 and #4 each caught a real bug; #4 found that group
   joining had never worked at all. Worth Monish's eyes even with the A/B split
   dropped.
 - **REVIEW_LOG #8** stays "changes required" until whoever reviews closes it.
