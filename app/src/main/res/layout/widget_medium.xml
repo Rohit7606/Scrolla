@@ -38,12 +38,17 @@
             android:maxLines="1" />
 
         <LinearLayout
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
-            android:orientation="horizontal"
-            android:baselineAligned="true"
+            android:orientation="vertical"
             android:gravity="center_vertical">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:baselineAligned="true">
 
             <TextView
                 android:id="@+id/widget_value"
@@ -69,6 +74,7 @@
                 android:layout_gravity="bottom"
                 android:fontFamily="@font/inter_regular"
                 android:maxLines="1" />
+            </LinearLayout>
         </LinearLayout>
 
         <TextView
@@ -83,13 +89,20 @@
             android:ellipsize="end" />
     </LinearLayout>
 
-    <View
+        <!-- ImageView, not View. `android.view.View` is NOT on the RemoteViews
+         allowed-class list, and inflating one replaces the whole widget with
+         "Can't load widget" on the user's home screen — seen on device
+         2026-09-14. The allowed set is FrameLayout, LinearLayout,
+         RelativeLayout, GridLayout plus a fixed list of widgets; a plain View
+         is not in it, and nothing warns you at build time. -->
+    <ImageView
         android:id="@+id/widget_divider"
         android:layout_width="1dp"
         android:layout_height="match_parent"
         android:layout_marginStart="14dp"
         android:layout_marginEnd="14dp"
-        android:background="@color/widget_hairline" />
+        android:background="@color/widget_hairline"
+        android:importantForAccessibility="no" />
 
     <!-- ─── STANDING ──────────────────────────────────────────── -->
     <LinearLayout

@@ -36,16 +36,24 @@
         android:fontFamily="@font/space_grotesk_medium"
         android:maxLines="1" />
 
-    <!-- The figure owns the space between the two labels. Centred inside its
-         own weighted band, so it stays optically central whatever the cell
-         height turns out to be. -->
+        <!-- The figure owns the space between the two labels, but the number
+             and its unit must share a baseline. The weighted band goes on an
+             outer container and the baseline row stays wrap_content inside it:
+             with layout_weight on the row itself, layout_gravity="bottom" sent
+             the unit to the bottom of a tall band instead of the number's
+             baseline, and "219" rendered with a stranded "m" below it. -->
     <LinearLayout
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:orientation="horizontal"
-        android:baselineAligned="true"
+        android:orientation="vertical"
         android:gravity="center_vertical">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:baselineAligned="true">
 
         <TextView
             android:id="@+id/widget_value"
@@ -71,6 +79,7 @@
             android:layout_gravity="bottom"
             android:fontFamily="@font/inter_regular"
             android:maxLines="1" />
+        </LinearLayout>
     </LinearLayout>
 
     <!-- The landmark. Two lines because "≈ Empire State Building height" does
