@@ -42,9 +42,10 @@ restructure, and the entire release build config.
 Six items. These are not "important"; they are the difference between handing
 out an APK and handing out a support burden you cannot answer.
 
-**1.1, 1.2 and 1.3 are done and verified on a device (2026-09-14).** What is
-left in Stage 1 — 1.4, 1.5, 1.6 — is not code: it is one phone that isn't
-Rohit's, one product decision about payment apps, and one screen.
+**Five of the six are done (2026-09-14).** 1.1, 1.2 and 1.3 are built and
+verified on a device; 1.5 is decided; 1.6 is built and seen. What remains is
+**1.4** — one phone that isn't Rohit's, briefed in `TASK_1.4_INSTALL_PATH.md`
+— and **1.5b**, one paragraph of onboarding copy.
 
 ### 1.1 — Sync in the background ✅ *(built and verified on device 2026-09-14)*
 
@@ -180,22 +181,59 @@ nobody. Tested on one device, one OEM.
 - [ ] **1.4b** Same on a second Xiaomi, to confirm the OEM steps still read true.
 - [ ] **1.4c** Write the install instructions someone receives with the APK.
 
-### 1.5 — Tell people about the UPI conflict 🔴
+### 1.5 — Tell people about the UPI conflict 🟡 *(decided 2026-09-14)*
 
 *(was P2.13a/b)* Payment apps disable themselves while an accessibility service
 is enabled. It is an anti-fraud control working correctly and **must not be
 evaded**. Handing 50 people an APK that quietly breaks their payment app is a
 trust failure, not a bug report.
 
-- [ ] **1.5a** Decide the product answer: accept and disclose, or ship a
-      one-tap "pause tracking" for when they need to pay.
-- [ ] **1.5b** Say it in onboarding, before the Accessibility step.
+- [x] **1.5a Decided: accept and disclose. No pause control.** Rohit's call,
+      on the evidence that most payment apps are unaffected — GPay works on his
+      device, supermoney does not. Degrading everyone's tracking to serve the
+      minority is the wrong trade.
 
-### 1.6 — Privacy screen 🔴
+      **And half of the alternative could not have been built anyway.** An app
+      can disable its own accessibility service (`disableSelf()`), but it
+      cannot re-enable it — that needs `WRITE_SECURE_SETTINGS`, which Android
+      withholds precisely so an app cannot switch itself back on around a
+      payment. See the note already in `TrackingHealthWatcher`.
+
+      That makes "pause automatically, resume automatically" impossible, and
+      **auto-pause without auto-resume is worse than nothing**: tracking would
+      silently switch off after every transaction. This project already has
+      that exact failure in its history — the multi-day gap after a UPI app
+      told the user to turn Scrolla off. Recorded here so it is not proposed
+      again.
+
+- [ ] **1.5b** Say it in onboarding, before the Accessibility step. Now the
+      only part left, and it is one paragraph of copy — the Privacy screen
+      (1.6) already carries the full disclosure.
+
+### 1.6 — Privacy screen ✅ *(built and seen on device 2026-09-14)*
 
 *(was P0.5d)* Mandatory for an app built on an AccessibilityService, and more so
-now there is a cloud backup. The retention promise currently lives in one
-settings caption.
+now there is a cloud backup — and, since this morning, crash reporting. The
+retention promise used to live in one settings caption.
+
+Written to one rule: **where a fact was available, no promise.** The
+load-bearing sentence is the one the user can check without us —
+`canRetrieveWindowContent="false"` is in the service config, so Android never
+delivers screen content to Scrolla at all, and the screen says where to go and
+look. "We do not read your screen" is a promise; "Android does not give it to
+us" is not.
+
+Covers what it receives, what it cannot see, what stays on the phone, what
+leaves and to whom, crash reports, retention, and how to get everything back or
+gone. Payment apps are named here too rather than left to be discovered
+mid-transaction.
+
+Reached from Settings, above the Export / Clear / Delete ladder — it explains
+what those three act on, and being read-only it breaks what was a run of three
+destructive rows.
+
+Rendering checked on device. Rohit: fine for now, with a UI/UX pass expected
+later.
 
 ---
 
