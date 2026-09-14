@@ -116,6 +116,8 @@ fun SettingsScreen(
     onSignOutClick: () -> Unit = {},
     onDeleteAccountClick: () -> Unit = {},
     onExportDataClick: () -> Unit = {},
+    /** Opens the Privacy screen (BUILD_PLAN 1.6). */
+    onPrivacyClick: () -> Unit = {},
     /** Clears per-app history. Scrolla keeps it indefinitely by decision, so
      *  this is the user's way to undo that. */
     onClearHistoryClick: () -> Unit = {},
@@ -510,6 +512,20 @@ fun SettingsScreen(
                                 hapticsOn = next
                                 if (next) ScrollaHaptics.confirm(ctx)
                             }
+                        )
+
+                        androidx.compose.material3.HorizontalDivider(
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
+                            modifier = Modifier.padding(horizontal = 16.dp)
+                        )
+
+                        SettingsItem(
+                            // Above the whole Export / Clear / Delete ladder,
+                            // because it is the row that explains what the
+                            // other three are acting on. Read-only, so it also
+                            // breaks the run of three destructive rows.
+                            label = ScrollaStrings.SETTINGS_PRIVACY_LABEL,
+                            onClick = onPrivacyClick
                         )
 
                         androidx.compose.material3.HorizontalDivider(

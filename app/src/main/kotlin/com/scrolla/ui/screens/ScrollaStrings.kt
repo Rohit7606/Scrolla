@@ -301,6 +301,67 @@ object ScrollaStrings {
     const val SETTINGS_HAPTICS_LABEL = "Haptic feedback"
     const val SETTINGS_HAPTICS_ON = "On"
     const val SETTINGS_HAPTICS_OFF = "Off"
+    const val SETTINGS_PRIVACY_LABEL = "Privacy"
+
+    // Screen 13: Privacy (BUILD_PLAN 1.6)
+    //
+    // Every claim here is checkable against the code, and several are checkable
+    // against the device. Nothing on this screen is a promise where a fact was
+    // available: an app that asks to observe every scroll a person makes does
+    // not get to be vague about what it sees.
+    const val PRIVACY_TITLE = "Privacy"
+
+    // Two constants rather than one with a line break in it. The contrast
+    // between the two sentences is the whole summary, so the break is
+    // structural, not wrapping — it should not be at the mercy of screen width.
+    const val PRIVACY_SUMMARY_HEADLINE_1 = "Scrolla measures how far you scroll."
+    const val PRIVACY_SUMMARY_HEADLINE_2 = "It cannot read what you scroll."
+    const val PRIVACY_SUMMARY_BODY =
+        "It runs on an accessibility service, which is a serious permission, so this page says exactly what that does and does not give it."
+
+    const val PRIVACY_RECEIVES_SECTION = "What Scrolla receives"
+    const val PRIVACY_RECEIVES_BODY =
+        "One kind of signal: “a view was scrolled”. Each one tells Scrolla how far the content moved and which app it happened in. That becomes a distance, an hour, and a package name."
+
+    const val PRIVACY_CANNOT_SECTION = "What it cannot see"
+    const val PRIVACY_CANNOT_1 = "The words on your screen"
+    const val PRIVACY_CANNOT_2 = "Anything you type, including passwords"
+    const val PRIVACY_CANNOT_3 = "Your messages, photos, or accounts"
+    const val PRIVACY_CANNOT_4 = "What any app is showing you"
+    const val PRIVACY_CANNOT_FOOTNOTE =
+        "This is not a promise we are asking you to take on trust. Scrolla declares canRetrieveWindowContent=“false”, so Android never sends it screen content in the first place. You can check it: Settings → Accessibility → Scrolla."
+
+    const val PRIVACY_ON_DEVICE_SECTION = "What stays on this phone"
+    const val PRIVACY_ON_DEVICE_BODY =
+        "Your per-app breakdown — which apps you scrolled and how far in each. It is written to a database on this device and is never uploaded, not to your group and not to us. If you uninstall Scrolla without exporting it, it is gone."
+
+    const val PRIVACY_LEAVES_SECTION = "What leaves this phone"
+    const val PRIVACY_LEAVES_1_TITLE = "Your daily total, to your groups"
+    const val PRIVACY_LEAVES_1_BODY =
+        "One number a day in kilometres, with your display name, for each group you have joined. That is what the leaderboard is. Your group sees the total and nothing underneath it."
+    const val PRIVACY_LEAVES_2_TITLE = "Your daily totals, to your own backup"
+    const val PRIVACY_LEAVES_2_BODY =
+        "Stored against your account so a new phone can restore your history. Only you can read it. Per-app data is not included — which is also why a reinstall cannot bring it back."
+
+    const val PRIVACY_CRASH_SECTION = "Crash reports"
+    const val PRIVACY_CRASH_BODY =
+        "When something fails, Scrolla sends the error and where it happened, tagged with your account id so repeated failures can be recognised as one person’s. It does not attach your distances or the names of the apps you scroll. Device model, Android version and free storage come with it."
+
+    const val PRIVACY_RETENTION_SECTION = "How long it is kept"
+    const val PRIVACY_RETENTION_BODY =
+        "Indefinitely, by decision rather than oversight. Deleting data cannot be undone and a retention rule can always be added later, so Scrolla keeps it and gives you the switch instead."
+
+    const val PRIVACY_REMOVE_SECTION = "Getting it all back, or gone"
+    const val PRIVACY_REMOVE_BODY =
+        "Export my data writes everything to a CSV you keep. Clear app history deletes the per-app breakdown before today. Delete my account removes your cloud data and your account. All three are in Settings."
+
+    const val PRIVACY_PAYMENT_SECTION = "Payment apps"
+    const val PRIVACY_PAYMENT_BODY =
+        "Some payment apps refuse to run while any accessibility service is enabled, including Scrolla. That is their anti-fraud check doing its job, and Scrolla does not try to get around it. If one of yours does this, you can turn Scrolla off in Android’s Accessibility settings and back on afterwards."
+
+    const val PRIVACY_FOOTER =
+        "Last updated 14 September 2026."
+
     const val SETTINGS_EXPORT_LABEL = "Export my data"
     const val SETTINGS_EXPORT_SUBJECT = "My Scrolla data"
     const val SETTINGS_DELETE_TITLE = "Delete your Scrolla account?"

@@ -88,6 +88,7 @@ sealed class ScreenRoute : Parcelable {
     @Parcelize object CreateGroup : ScreenRoute()
     @Parcelize object WeeklyRecap : ScreenRoute()
     @Parcelize object AppBreakdown : ScreenRoute()
+    @Parcelize object Privacy : ScreenRoute()
 }
 
 /**
@@ -220,6 +221,9 @@ fun MainShell(
                     onShowRecapClick = { navigateTo(ScreenRoute.WeeklyRecap) }
                 )
             }
+            is ScreenRoute.Privacy -> {
+                PrivacyScreen(onBackClick = popBackStack)
+            }
             is ScreenRoute.Settings -> {
                 val settingsViewModel: SettingsViewModel = viewModel()
                 val settingsState by settingsViewModel.uiState.collectAsState()
@@ -250,6 +254,7 @@ fun MainShell(
                             context.startActivity(Intent.createChooser(send, null))
                         }
                     },
+                    onPrivacyClick = { navigateTo(ScreenRoute.Privacy) },
                     onClearHistoryClick = { settingsViewModel.clearAppHistory() },
                     isClearingHistory = settingsState.isClearingHistory,
                     clearHistoryResult = settingsState.clearHistoryResult,
