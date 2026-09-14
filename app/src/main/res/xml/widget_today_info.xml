@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Small widget (BUILD_PLAN 3.1, SPRINT_LOG S2.6).
+
+    updatePeriodMillis is 0 on purpose. The platform's own period has a floor of
+    30 minutes and is skipped entirely in Doze, so relying on it would make the
+    number quietly stale exactly overnight and first thing in the morning — the
+    moment someone looks. Updates are driven instead by ScrollaWidgets: an
+    AlarmManager tick, matching the decision recorded for S2.6 ("not WorkManager
+    — more reliable on OEM devices") and the mechanism TrackingHealthWatcher
+    already uses successfully on MIUI, plus a push after every batch flush so
+    the figure is right the moment it changes.
+
+    targetCellWidth/Height are API 31+; minWidth/minHeight carry API 24-30,
+    where 110dp is the 2x2 cell.
+-->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="110dp"
+    android:minHeight="110dp"
+    android:targetCellWidth="2"
+    android:targetCellHeight="2"
+    android:updatePeriodMillis="0"
+    android:initialLayout="@layout/widget_today"
+    android:previewLayout="@layout/widget_today"
+    android:resizeMode="horizontal|vertical"
+    android:widgetCategory="home_screen"
+    android:description="@string/widget_today_description" />

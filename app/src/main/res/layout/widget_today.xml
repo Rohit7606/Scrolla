@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Small widget — today's distance (BUILD_PLAN 3.1, SPRINT_LOG S2.6).
+    Shows getTodayTotalKm() and the nearest landmark; tapping opens Home.
+
+    Laid out to read at a glance from a home screen, which is the only reason
+    this surface exists: the number is the content, everything else is a label.
+    The type mirrors HomeScreen — Instrument Serif for the figure, Space Grotesk
+    for the micro label — so the widget and the app look like one product.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@drawable/widget_background"
+    android:padding="14dp"
+    android:gravity="center_vertical">
+
+    <TextView
+        android:id="@+id/widget_label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/widget_today_label"
+        android:textColor="@color/widget_text_mid"
+        android:textSize="10sp"
+        android:letterSpacing="0.12"
+        android:fontFamily="@font/space_grotesk_medium"
+        android:maxLines="1" />
+
+    <!-- Number and unit on one baseline, as on Home. -->
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:baselineAligned="true"
+        android:layout_marginTop="6dp">
+
+        <TextView
+            android:id="@+id/widget_value"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/widget_placeholder_value"
+            android:textColor="@color/widget_accent"
+            android:textSize="40sp"
+            android:includeFontPadding="false"
+            android:fontFamily="@font/instrument_serif_regular"
+            android:maxLines="1" />
+
+        <TextView
+            android:id="@+id/widget_unit"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/widget_placeholder_unit"
+            android:textColor="@color/widget_text_mid"
+            android:textSize="14sp"
+            android:includeFontPadding="false"
+            android:layout_marginStart="4dp"
+            android:layout_marginBottom="4dp"
+            android:layout_gravity="bottom"
+            android:fontFamily="@font/inter_regular"
+            android:maxLines="1" />
+    </LinearLayout>
+
+    <!-- The landmark. Two lines because "about the height of the Eiffel Tower"
+         does not fit on one at this width, and truncating it mid-phrase loses
+         the part that makes the number mean anything. -->
+    <TextView
+        android:id="@+id/widget_landmark"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:text="@string/widget_placeholder_landmark"
+        android:textColor="@color/widget_text_mid"
+        android:textSize="11sp"
+        android:lineSpacingMultiplier="1.1"
+        android:fontFamily="@font/inter_regular"
+        android:maxLines="2"
+        android:ellipsize="end" />
+</LinearLayout>

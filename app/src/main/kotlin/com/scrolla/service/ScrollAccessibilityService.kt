@@ -11,6 +11,7 @@ import android.util.Log
 import android.view.accessibility.AccessibilityEvent
 import androidx.core.app.NotificationCompat
 import com.scrolla.diagnostics.CrashReporter
+import com.scrolla.widget.TodayWidgetProvider
 import com.scrolla.model.DistanceFormatter
 import com.scrolla.model.ScrollaConstants
 import com.scrolla.room.DailyTotal
@@ -347,6 +348,21 @@ class ScrollAccessibilityService : AccessibilityService() {
                 // isServiceRunning or any other field written by lifecycle callbacks.
                 db.serviceHealthDao().markFlushSuccess(flushTs = timestamp, eventTs = eventTs)
                 Log.d("BatchFlush", "Successfully flushed batch at $timestamp")
+
+                // BUILD_PLAN 3.1: push the new figure to the widget.
+                //
+                // Here rather than only on the alarm, because this is the
+                // moment the number actually changed. The fifteen-minute tick
+                // exists for the day rolling over at midnight, when nothing
+                // flushes but the total must still return to zero; without
+                // this push the widget would lag real scrolling by up to
+                // fifteen minutes, which on a surface whose whole purpose is
+                // to be glanced at is the difference between current and
+                // decorative.
+                //
+                // Costs nothing when no widget is placed: the refresh resolves
+                // an empty id array and returns.
+                TodayWidgetProvider.refresh(applicationContext)
             } catch (e: Exception) {
                 // S1.A6: Mark degraded on failure (fail loud internally, invisible to user).
                 // Fix 2: Targeted update — still stamps lastEventTimestamp so staleness

@@ -65,6 +65,8 @@ object CrashReporter {
         SYNC_BACKGROUND_WORKER,
         /** WorkManager refused to schedule, so there is no background sync. */
         SYNC_SCHEDULE_FAILED,
+        /** The home-screen widget failed to render — Android shows an error tile. */
+        WIDGET_RENDER,
 
         // --- Room reads. Each one returns a default that looks like real data. ---
         READ_TODAY_TOTAL,

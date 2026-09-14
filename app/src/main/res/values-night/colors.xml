@@ -1,4 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="scrolla_ground">#121110</color>
+
+    <!-- Dark values: CardDark, TextHiDark, TextMidDark, AccentDark, HairlineDark. -->
+    <color name="widget_card">#1A1817</color>
+    <color name="widget_text_hi">#F5F1EE</color>
+    <color name="widget_text_mid">#A39D98</color>
+    <color name="widget_accent">#ED6A5A</color>
+    <color name="widget_hairline">#2A2624</color>
 </resources>

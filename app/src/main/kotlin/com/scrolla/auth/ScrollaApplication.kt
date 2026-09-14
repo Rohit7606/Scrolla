@@ -5,6 +5,7 @@ import com.google.firebase.FirebaseApp
 import com.google.firebase.auth.FirebaseAuth
 import com.scrolla.diagnostics.CrashReporter
 import com.scrolla.ui.ScrollaGraph
+import com.scrolla.widget.ScrollaWidgets
 import com.scrolla.work.SyncWorker
 
 /**
@@ -39,5 +40,10 @@ class ScrollaApplication : Application() {
         // every launch re-registers the one periodic job rather than stacking
         // them, because it is enqueued under a unique name with KEEP.
         SyncWorker.schedule(this)
+
+        // BUILD_PLAN 3.1: keep the widget's number current. Idempotent, and a
+        // no-op in effect when no widget is placed — the alarm fires, finds an
+        // empty id array, and returns.
+        ScrollaWidgets.scheduleRefresh(this)
     }
 }

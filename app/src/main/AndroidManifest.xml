@@ -99,5 +99,25 @@
             android:enabled="true"
             android:exported="false" />
 
+        <!--
+            Home-screen widget (BUILD_PLAN 3.1, SPRINT_LOG S2.6).
+
+            exported="true" is required: the system's AppWidgetService is what
+            delivers APPWIDGET_UPDATE, and it is a different process. The custom
+            ACTION_REFRESH is only ever sent as an explicit intent naming this
+            component, so nothing else can usefully invoke it.
+        -->
+        <receiver
+            android:name=".widget.TodayWidgetProvider"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_today_info" />
+        </receiver>
+
     </application>
 </manifest>

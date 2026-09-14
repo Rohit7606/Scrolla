@@ -5,4 +5,17 @@
          system paints a mismatched colour in the moment before setContent
          renders and during any overscroll stretch. -->
     <color name="scrolla_ground">#FAF8F6</color>
+
+    <!-- Widget palette (BUILD_PLAN 3.1).
+         RemoteViews cannot read the Compose theme, so these mirror Color.kt by
+         hand and are duplicated in values-night/. If a value here drifts from
+         Color.kt the widget quietly stops matching the app, which is the kind
+         of thing nobody notices until it looks wrong on someone's home screen.
+         Light values: CardLight, TextHiLight, TextMidLight, AccentLight,
+         HairlineLight. -->
+    <color name="widget_card">#FFFFFF</color>
+    <color name="widget_text_hi">#17150F</color>
+    <color name="widget_text_mid">#625C55</color>
+    <color name="widget_accent">#B83E2B</color>
+    <color name="widget_hairline">#E4DDD6</color>
 </resources>
