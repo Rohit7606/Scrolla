@@ -1015,3 +1015,64 @@ repeatedly". Still not proof — both were same-key debug updates, which may be
 the distinguishing factor, and neither changed the signing key or uninstalled
 first. But it is no longer a single anomaly, and BUILD_PLAN 2.1 is priced on
 the old assumption.
+
+---
+
+## 2026-09-14, 12:19–12:24 — the release build, actually run (BUILD_PLAN 2.6)
+
+Pixel_10_Pro emulator, Android 17 (API 37). Release APK 4.64 MB, versionCode
+189, `flags=0x0` — **no `DEBUGGABLE` flag**, so this is the genuinely minified
+build and not debug wearing its name.
+
+**On the emulator, not the phone, and that is not caution for its own sake.**
+Debug and release are signed with different keys, so release cannot be
+installed over the existing build without an uninstall, which deletes three
+weeks of `scroll_events`. And a release build is not debuggable, so `run-as`
+does not work — **the backup could not be restored into it afterwards.** There
+is no safe path to a release build on that phone that keeps the history.
+
+### What R8 did not break
+
+| path | evidence |
+|---|---|
+| Launch | No crash, process alive, `AndroidRuntime:E` empty |
+| Compose | Sign-in screen renders — serif display face, theme, layout all intact |
+| `POST_NOTIFICATIONS` | Runtime request shown and granted |
+| AccessibilityService | `Bound services:{Service[label=Scrolla, …]}`, `Crashed services:{}` |
+| Scroll measurement | `delta=774 deltaCm=4.09575` — the pure delta logic survives minification |
+| Room write | `BatchFlush: Successfully flushed batch at 1789368742999` |
+| Crashlytics | Settings fetched, `"status":"activated"`, `bundle_id: com.scrolla`, `collect_reports: true` |
+
+Swept the entire session log for `ClassNotFoundException`,
+`NoSuchMethodError`, `NoSuchFieldException`, `NoClassDefFoundError`,
+`VerifyError`, `AbstractMethodError` and `IncompatibleClassChangeError`:
+**nothing**. No warnings or errors from the app's pid at all.
+
+That covers the risk the proguard file was written against — the file notes
+Scrolla never calls `toObject()`, which is the usual source of R8 breakage in
+Firebase apps, and nothing here contradicts it.
+
+### The limit of this run
+
+`run-as` does not work on a release build, so **Room could not be read
+directly**. The flush evidence is the log line, which is emitted only after
+the DAO calls return and has a `catch` that logs failure instead — good
+evidence, not proof, and worth saying plainly rather than dressing up.
+
+### Still untested minified
+
+Firestore sync, Room reads through the UI, and the group flows all sit behind
+Google sign-in. Being done with a **separate test account** rather than
+Rohit's, which is both safer and a better test — it exercises the fresh
+sign-in → onboarding → join-by-code → appear-on-leaderboard path that all
+fifty people will take.
+
+Why not Rohit's account, recorded so the reasoning is not re-derived:
+`triggerFirestoreSync()` writes today's total unconditionally, so an
+almost-empty emulator would overwrite his real entry for the day in both
+groups and in his personal backup. It self-heals on the phone's next sync, so
+it is temporary — but the *group record* would not have been, and that was
+worth checking rather than assuming. It turns out to be safe:
+`bestEligibleDay` requires an active-hour span read from `scroll_events`, and
+per-app events never leave the device, so every past day fails eligibility on
+a fresh install. The span rule protects the record by accident.
