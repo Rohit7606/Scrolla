@@ -28,6 +28,23 @@ plugins {
     id("kotlin-parcelize")
 }
 
+/**
+ * Room's exported schemas (BUILD_PLAN 2.5).
+ *
+ * Room warned about this on every build — "Schema export directory was not
+ * provided" — and the warning was load-bearing. Without the JSON schemas there
+ * is no record of what any past version looked like, so `MigrationTestHelper`
+ * cannot be used and a migration can only be checked by shipping it.
+ *
+ * Turning it on now captures version 4 onward. Versions 1-3 are gone and
+ * cannot be recovered this way; `MigrationTest` builds those by hand from the
+ * DDL on the real device instead. From here on every schema change leaves a
+ * file in `app/schemas` that must be committed with it.
+ */
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
+}
+
 android {
     namespace = "com.scrolla"
     compileSdk = 35
@@ -172,6 +189,7 @@ dependencies {
     // when someone remembers to attach a device — which is the actual point of
     // BUILD_PLAN 2.5.
     testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.core)
     testImplementation(libs.androidx.compose.ui.test.junit4)
     testImplementation(libs.androidx.junit)
     debugImplementation(libs.androidx.compose.ui.test.manifest)

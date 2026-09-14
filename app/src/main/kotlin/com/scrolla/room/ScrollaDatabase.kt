@@ -86,6 +86,21 @@ abstract class ScrollaDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * Every migration, in one list, so `getDatabase` and the migration test
+         * cannot disagree about what ships.
+         *
+         * `MigrationTest` runs *this* array rather than its own copy. A
+         * migration written and then left out of `addMigrations()` is a
+         * realistic mistake and an unrecoverable one — Room would refuse to
+         * open the user's database on the first launch after the upgrade, with
+         * three weeks of scroll history inside it and no way forward or back.
+         * Testing a hand-written copy of the list would be testing the one
+         * thing that cannot go wrong.
+         */
+        internal val ALL_MIGRATIONS: Array<Migration> =
+            arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+
         fun getDatabase(context: Context): ScrollaDatabase {
             return INSTANCE ?: synchronized(this) {
                 INSTANCE ?: Room.databaseBuilder(
@@ -93,7 +108,7 @@ abstract class ScrollaDatabase : RoomDatabase() {
                     ScrollaDatabase::class.java,
                     "scrolla_database"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                    .addMigrations(*ALL_MIGRATIONS)
                     .build()
                     .also { INSTANCE = it }
             }
