@@ -353,29 +353,58 @@ been done.
 
 ### 2.2 — Firebase budget alert 🟡 *(console only — Rohit)*
 
-*(was S3.13)* Free, five minutes, prevents a surprise bill. Do it before the
-user count moves.
+*(was S3.13)* Checked properly on 2026-09-14, and the item is not quite what it
+said.
 
-**Which of these applies depends on the plan, and that is worth checking
-first** (Firebase console → ⚙ → Usage and billing):
+**Step 1 — find out which plan the project is on.** Firebase console →
+`scrolla-9986e` → the plan is shown at the bottom of the left sidebar, or via
+⚙ → **Usage and billing** → **Details & settings**.
 
-- **On Spark (free):** there is no billing account, so a surprise bill is not
-  possible — the project stops serving when quota is reached instead. A budget
-  alert cannot be set and is not needed. What *is* worth knowing is the
-  ceiling: Firestore's free tier is 50k reads, 20k writes and 20k deletes a
-  day. With background sync at one pass an hour, fifty users and two groups
-  each, the write load is roughly 50 × 24 × 2 ≈ 2,400 writes a day plus group
-  reads — comfortably inside it, but the reads grow with group size, and that
-  is the number to watch.
-- **On Blaze (pay as you go):** set the budget. Google Cloud Console →
-  Billing → Budgets & alerts → Create budget, scope it to the
-  `scrolla-9986e` project, set an amount and alert thresholds at 50/90/100 %.
-  Alerts email the billing admin; they do **not** stop spending, so also
-  consider a low ceiling as an early warning rather than a cap.
+**If Spark (no-cost), which is the likely answer:**
 
-- [ ] **2.2a** Check which plan the project is on.
-- [ ] **2.2b** If Blaze, set the budget. If Spark, write "Spark, no billing
-      account, nothing to cap" here and close the item.
+There is no billing account attached, so **a surprise bill is not possible**.
+Services stop serving when a quota is reached instead of charging. There is
+nothing to cap, and the Cloud budget screen will not apply.
+
+What matters instead is the ceiling. Verified on the Firebase pricing page
+2026-09-14:
+
+| Firestore, Spark | limit |
+|---|---|
+| document reads | 50,000/day |
+| document writes | 20,000/day |
+| document deletes | 20,000/day |
+| stored data | 1 GiB |
+
+Against that, background sync at one pass an hour with fifty users in two
+groups each is roughly **50 × 24 × 2 ≈ 2,400 writes/day** — about 12 % of the
+write budget. Reads are the side that grows with group size, since each
+leaderboard view reads every member's daily total. Watch it at
+**Firestore → Usage**.
+
+Crashlytics and App Distribution are both no-cost on Spark too, so neither
+1.2 nor 2.1a changes this.
+
+**If Blaze (pay as you go):**
+
+Google Cloud console → **Billing** → **Budgets & alerts** → **Create budget**,
+scope it to `scrolla-9986e`, set an amount, and set thresholds at 50/90/100 %.
+
+**Two things worth knowing before relying on it.** A budget alert **does not
+pause anything** — it emails you while the bill keeps growing. And Google's
+*spend cap* budgets, which do pause a service, **are only available for AI
+Logic, App Hosting, Cloud Functions and Extensions — not Firestore**. So on
+Blaze there is no way to hard-cap the thing Scrolla actually uses.
+
+**Which means Spark is the safer plan for this specific risk**, and staying on
+it is a real answer rather than a default. Only move to Blaze for a feature
+that needs it, and know that the ceiling becomes a notification rather than a
+limit when you do.
+
+- [ ] **2.2a** Check the plan.
+- [ ] **2.2b** If Spark: write "Spark, no billing account, nothing to cap" here
+      and close. If Blaze: set the alerts-only budget and note that Firestore
+      cannot be spend-capped.
 
 ### 2.3 — The screens nobody has ever run 🟡 *(empty states covered 2026-09-14)*
 
