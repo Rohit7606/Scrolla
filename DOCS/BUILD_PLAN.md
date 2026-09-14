@@ -25,7 +25,7 @@ each stage is defined by what it unblocks, not by how interesting it is.
 | Accuracy | **Verified.** S0.7 re-run passed; the 31 % inflation is fixed and measured |
 | Battery | **0.36 %** (14.1 mAh) — and 82 % of that is network, not tracking |
 | Storage | 686 rows/day → **18.2 MB/year** |
-| Tests | **139 unit, 0 instrumented** |
+| Tests | **147 unit** (incl. 8 Compose screen tests), 0 instrumented |
 | Release build | Signed, minified, 4.6 MB, **runs** — verified on an emulator |
 | Devices ever tested | **1** |
 | Crash visibility | Crashlytics files correct non-fatals, verified on device. **Delivery waits for a process restart** (1.2e) |
@@ -249,8 +249,16 @@ list.
 "each reinstall clears the grant, confirmed twice". On 2026-09-14 an
 `adb install -r` over the existing debug build left it intact — and *bound*,
 checked with `dumpsys accessibility` rather than trusting the settings flag.
-It happened again on the next install (177 → 179), so that is **two
-consecutive reinstalls with the grant intact and the service bound**. Both were
+It kept happening — **four consecutive reinstalls on 2026-09-14 left the grant
+intact and the service bound**.
+
+**There is now a candidate explanation for the original rule.** Read
+`accessibility_enabled` immediately after `adb install -r` and it returns `0`;
+read it fifteen seconds later and it is `1`, with the service bound. The
+package replace takes the process down and the system re-registers the service
+shortly after. A check run straight after an install would report the grant
+gone every time, and that is exactly how anyone would check it. Unproven, but
+it fits four failures to reproduce, and it is cheap to test deliberately. Both were
 same-key debug updates, which may be the distinguishing factor — neither
 changed the signing key nor uninstalled first, and that is the obvious thing to
 test next. But it is no longer a single anomaly, and this item is priced on the
@@ -266,22 +274,55 @@ old assumption: "all 50 people re-enable Accessibility after every update" and
 *(was S3.13)* Free, five minutes, prevents a surprise bill. Do it before the
 user count moves.
 
-### 2.3 — The screens nobody has ever run
+### 2.3 — The screens nobody has ever run 🟡 *(empty states covered 2026-09-14)*
 
 *(was P2.2a/b)* Personal Records, App Breakdown, Weekly Recap, Hall of Fame and
 Settings have never been opened on a device with real data — **and no screen has
 ever been seen in its empty state**, which is where the last three UI bugs were.
+
+- [x] **Empty states are now tested** rather than looked at: eight Compose
+      tests in `EmptyStateTest`, run on every build. Two of them assert the
+      specific trap — that a screen with no data shows neither "July 12" nor
+      "Instagram", the preview defaults that render plausibly enough to pass
+      for a real user's history.
+- [x] Checked statically while writing them: all four call sites in `MainShell`
+      pass every argument, so no screen is currently falling back to a preview
+      default. That was the P4.2 failure and it is not present.
+- [ ] **Still open: the populated path on a device with real data.** Untested,
+      and it needs a person to tap through — adb cannot drive the UI on MIUI.
 
 ### 2.4 — A second and third device
 
 *(was S3.14, S0.8)* One device and one OEM is not a test matrix. Includes
 re-running the accuracy test on a second phone.
 
-### 2.5 — Instrumented tests: currently zero
+### 2.5 — Instrumented tests: currently zero 🟡 *(screens covered 2026-09-14)*
 
-*(was P0.1e)* 114 unit tests cover pure logic. Nothing covers navigation, Room
-against a real database, or a Compose screen rendering. You cannot hand-test
-every screen before each of 50 sideloads.
+*(was P0.1e)* 114 unit tests covered pure logic. Nothing covered navigation,
+Room against a real database, or a Compose screen rendering. You cannot
+hand-test every screen before each of 50 sideloads.
+
+- [x] **Compose screen rendering is covered** — see 2.3. It found a launch
+      crash on its first run: `SyncWorker.schedule()` called
+      `WorkManager.getInstance()` unguarded from `Application.onCreate()`,
+      where a throw is not a failed feature but an app that will not start.
+      Added the day before, found by a test that was not looking for it.
+- [x] Stale test dependencies replaced: `androidx.test.ext:junit` 1.1.5 → 1.2.1
+      and Espresso 3.5.1 → 3.6.1. They had been declared for months with no
+      `androidTest` directory to use them.
+- [ ] **Room against a real database**, especially the migrations. Still
+      nothing. This is the highest-value gap left in this item — the phone
+      holds the only copy of three weeks of events and a bad migration is
+      unrecoverable.
+- [ ] **Navigation.** Nothing covers the `routeStack` in `MainShell`.
+
+**On Robolectric vs a device.** These run on the JVM. The only system image on
+this machine is API 37, where Espresso still calls the removed
+`InputManager.getInstance()` and every test dies before asserting — upgrading
+Espresso does not fix it. Running on the JVM also puts them in the ordinary
+`test` task, so they run on every build rather than when someone remembers to
+attach a device. A genuine on-device run still needs an API ≤ 36 image
+downloaded.
 
 ### 2.6 — Release build on a real device
 
