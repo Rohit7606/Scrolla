@@ -52,23 +52,45 @@ firebase appdistribution:groups:list --project scrolla-9986e
 
 ### A3. Add testers
 
+> **Substitute real addresses before running this.** On 2026-09-14 this
+> runbook's example was run verbatim and created two testers called
+> `friend1@gmail.com` and `friend2@gmail.com` — plausible addresses that may
+> belong to actual strangers, sitting in the group the next release emails an
+> invite to. They were removed. The placeholders below are now obviously fake,
+> so running them by accident fails instead of succeeding quietly.
+
+For a handful of people:
+
 ```bash
 firebase appdistribution:testers:add \
   --group-alias scrolla-testers \
   --project scrolla-9986e \
-  friend1@gmail.com friend2@gmail.com
+  REPLACE-ME@example.com ALSO-REPLACE-ME@example.com
 ```
 
-Or from a file, one email per line — better for fifty people, and it keeps the
-list out of your shell history:
+For fifty, use a file — one address per line. Better anyway, because it keeps
+the list out of your shell history:
 
 ```bash
+# create testers.txt first, one address per line
 firebase appdistribution:testers:add --file testers.txt \
   --group-alias scrolla-testers --project scrolla-9986e
 ```
 
-**Do not commit `testers.txt`.** Add it to `.gitignore` first — those are other
-people's email addresses and this repo is going to have a public sibling.
+`testers.txt` is already in `.gitignore` — those are other people's email
+addresses and this repo is going to have a public sibling.
+
+Check who is actually on the project before every release:
+
+```bash
+firebase appdistribution:testers:list --project scrolla-9986e
+```
+
+Remove someone:
+
+```bash
+firebase appdistribution:testers:remove --project scrolla-9986e someone@example.com
+```
 
 ### A4. What a tester does, once
 
