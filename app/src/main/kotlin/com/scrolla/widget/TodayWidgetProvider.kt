@@ -119,16 +119,30 @@ class TodayWidgetProvider : AppWidgetProvider() {
         views.setTextViewText(R.id.widget_value, DistanceFormatter.formatDisplayValue(km))
         views.setTextViewText(R.id.widget_unit, DistanceFormatter.formatDisplayUnit(km))
 
-        // Before the first scroll of the day there is no landmark, because
-        // nothing has been measured. Saying so is better than an empty line,
-        // and far better than comparing 0 to something.
-        val landmark = DistanceFormatter.nearestLandmark(km)
+        // `landmarkComparison`, not `nearestLandmark`. The first version of this
+        // called the latter and shipped two bugs at once, both of which the app
+        // had already solved and neither of which was visible until the widget
+        // sat on a real home screen:
+        //
+        //  1. It rendered "about the height of Eiffel Tower height". The
+        //     landmark names already carry their own descriptor, and the
+        //     `HOME_LANDMARK_PREFIX` string that suggested otherwise had no
+        //     callers — dead copy that read like the app's phrasing and was not.
+        //  2. It showed the nearest landmark unconditionally, so ten metres of
+        //     scrolling would have claimed the Eiffel Tower. Home and the recap
+        //     card both guard against exactly that; the guard lived privately in
+        //     each of them, so this third consumer never saw it.
+        //
+        // Null means no honest comparison yet — either nothing is measured, or
+        // the figure is not near any landmark. Both are better said plainly
+        // than compared to something it is not.
+        val landmark = DistanceFormatter.landmarkComparison(km)
         views.setTextViewText(
             R.id.widget_landmark,
             if (landmark == null) {
                 context.getString(R.string.widget_empty_landmark)
             } else {
-                context.getString(R.string.widget_landmark_prefix, landmark.first)
+                context.getString(R.string.widget_landmark_prefix, landmark)
             }
         )
 

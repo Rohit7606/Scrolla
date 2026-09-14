@@ -93,16 +93,6 @@ class HomeViewModel(
      * when today's figure is genuinely in that landmark's neighbourhood; early in
      * the day the honest answer is no comparison at all.
      */
-    private fun landmarkFor(km: Float): String? {
-        val (name, landmarkKm) = DistanceFormatter.nearestLandmark(km) ?: return null
-        if (landmarkKm <= 0f) return null
-        val ratio = km / landmarkKm
-        return if (ratio in MIN_LANDMARK_RATIO..MAX_LANDMARK_RATIO) "≈ $name" else null
-    }
-
-    private companion object {
-        /** Below half a landmark, or above double it, "≈" is no longer honest. */
-        const val MIN_LANDMARK_RATIO = 0.5f
-        const val MAX_LANDMARK_RATIO = 2.0f
-    }
+    private fun landmarkFor(km: Float): String? =
+        DistanceFormatter.landmarkComparison(km)?.let { "≈ $it" }
 }

@@ -86,11 +86,53 @@ object DistanceFormatter {
 
     /** Finds the nearest landmark match for a given km value.
      *  Returns a pair: (landmark name, exact landmark km) for display on Home and the recap card.
-     *  Returns null if km is 0f or negative. */
+     *  Returns null if km is 0f or negative.
+     *
+     *  **Prefer [landmarkComparison] for anything user-facing.** This returns the
+     *  closest entry however absurdly far off it is, which is only safe once the
+     *  caller has applied the honesty check. */
     fun nearestLandmark(km: Float): Pair<String, Float>? {
         if (km <= 0f) return null
         return LANDMARKS.minByOrNull { Math.abs(it.second - km) }
     }
+
+    /**
+     * The landmark to compare this distance against, or null when no honest
+     * comparison exists.
+     *
+     * [nearestLandmark] returns the closest entry by contract, however far off
+     * it is — so ten centimetres of scrolling comes back as "Eiffel Tower
+     * height", which is the nearest landmark and a ludicrous claim. A
+     * comparison is only made when the figure is genuinely in that landmark's
+     * neighbourhood; early in the day the honest answer is no comparison.
+     *
+     * **This lives here because it had already been written twice.** The rule
+     * was a private function in `HomeViewModel` and again in
+     * `WeeklyRecapViewModel`, and when the home-screen widget became the third
+     * consumer it called `nearestLandmark()` directly and lost the guard
+     * entirely — shipping a widget that would tell someone ten metres of
+     * scrolling was the Eiffel Tower. A rule that three callers need is not a
+     * ViewModel's private business.
+     *
+     * Returns the bare landmark name. Each surface adds its own lead-in
+     * ("≈ …", "that's about …"), because they read differently in a caption,
+     * a share card and on a home screen — but none of them should be deciding
+     * *whether* the comparison is true.
+     */
+    fun landmarkComparison(
+        km: Float,
+        minRatio: Float = MIN_LANDMARK_RATIO,
+        maxRatio: Float = MAX_LANDMARK_RATIO
+    ): String? {
+        val (name, landmarkKm) = nearestLandmark(km) ?: return null
+        if (landmarkKm <= 0f) return null
+        val ratio = km / landmarkKm
+        return if (ratio in minRatio..maxRatio) name else null
+    }
+
+    /** Below half a landmark, or above double it, a comparison is not honest. */
+    const val MIN_LANDMARK_RATIO = 0.5f
+    const val MAX_LANDMARK_RATIO = 2.0f
 
     private val LANDMARKS = listOf(
         Pair("Eiffel Tower height", 0.163f),

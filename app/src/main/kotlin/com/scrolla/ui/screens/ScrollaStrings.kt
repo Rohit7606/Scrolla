@@ -93,7 +93,11 @@ object ScrollaStrings {
     // =========================================
     const val HOME_TITLE = "Scrolla"
     const val HOME_UNIT = "km"
-    const val HOME_LANDMARK_PREFIX = "about the height of"
+    // HOME_LANDMARK_PREFIX was here, unused since it was written, and it is
+    // what made the widget render "about the height of Eiffel Tower height" —
+    // it reads like the app's phrasing and never was. Home builds its own
+    // lead-in from DistanceFormatter.landmarkComparison(). Deleted rather than
+    // kept: dead copy that misleads is worse than no copy.
     const val HOME_EMPTY_LANDMARK = "start scrolling to see your distance"
     const val HOME_WAITING_FOR_SENSOR = "waiting for the first scroll to be measured"
     const val HOME_STANDING_UNAVAILABLE = "no group results yet"

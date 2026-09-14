@@ -124,4 +124,84 @@ class DistanceFormatterTest {
         val (name, _) = DistanceFormatter.nearestLandmark(0.83f)!!
         assertEquals("Burj Khalifa height", name)
     }
+
+    // ---- landmarkComparison: the honesty rule, BUILD_PLAN 3.1 ----------------
+    //
+    // Extracted from two ViewModels after the home-screen widget became a third
+    // consumer, called nearestLandmark() directly, and lost the guard. These
+    // tests exist so the fourth consumer cannot.
+
+    @Test
+    fun `ten centimetres is not the Eiffel Tower`() {
+        // The case the rule was written for, named in its own KDoc.
+        // nearestLandmark(0.0001f) returns "Eiffel Tower height" quite
+        // correctly — it is the nearest — and saying so would be ludicrous.
+        assertEquals("Eiffel Tower height", DistanceFormatter.nearestLandmark(0.0001f)?.first)
+        assertNull(DistanceFormatter.landmarkComparison(0.0001f))
+    }
+
+    @Test
+    fun `a figure in the landmark's neighbourhood is compared`() {
+        // 147 m against the Eiffel Tower's 163 m — ratio 0.90. This is the real
+        // reading off Rohit's phone on 2026-09-14, and it is an honest claim.
+        assertEquals("Eiffel Tower height", DistanceFormatter.landmarkComparison(0.147f))
+    }
+
+    @Test
+    fun `the ratio boundaries are inclusive`() {
+        // Tested through the explicit ratio parameters rather than by doubling a
+        // distance, because doubling changes which landmark is nearest — at 2x
+        // the Eiffel Tower the closest entry is the Empire State Building, and
+        // the first version of this test asserted otherwise and failed. The
+        // parameters exist precisely so the boundary can be checked without
+        // that interference.
+        assertEquals(
+            "Eiffel Tower height",
+            DistanceFormatter.landmarkComparison(0.163f, minRatio = 1.0f, maxRatio = 1.0f)
+        )
+        assertNull(
+            DistanceFormatter.landmarkComparison(0.163f, minRatio = 1.01f, maxRatio = 2.0f)
+        )
+    }
+
+    @Test
+    fun `too small a fraction of the nearest landmark is refused`() {
+        // 49% of the Eiffel Tower, which is still the nearest entry at that
+        // distance — so this isolates the ratio rule rather than the search.
+        assertEquals("Eiffel Tower height", DistanceFormatter.nearestLandmark(0.163f * 0.49f)?.first)
+        assertNull(DistanceFormatter.landmarkComparison(0.163f * 0.49f))
+    }
+
+    @Test
+    fun `too large a multiple of the nearest landmark is refused`() {
+        // 20 km. The nearest entry is the full height of Everest at 8.8 km, and
+        // 20 / 8.8 is 2.27 — past double, so no comparison. Someone who has
+        // scrolled 20 km has not scrolled Everest.
+        assertEquals("full height of Mt. Everest", DistanceFormatter.nearestLandmark(20f)?.first)
+        assertNull(DistanceFormatter.landmarkComparison(20f))
+    }
+
+    @Test
+    fun `zero and negative have no comparison`() {
+        assertNull(DistanceFormatter.landmarkComparison(0f))
+        assertNull(DistanceFormatter.landmarkComparison(-1f))
+    }
+
+    @Test
+    fun `the name carries its own descriptor, so callers must not add one`() {
+        // This is why the widget read "about the height of Eiffel Tower height".
+        // Every name already says what it is; a lead-in that repeats it is the
+        // bug, and it was invited by a dead HOME_LANDMARK_PREFIX string.
+        val selfDescribing = listOf(0.147f, 0.443f, 0.830f, 1.0f, 42.2f)
+            .mapNotNull { DistanceFormatter.landmarkComparison(it) }
+        assertTrue(selfDescribing.isNotEmpty())
+        selfDescribing.forEach { name ->
+            assertTrue(
+                "landmark name should describe itself: $name",
+                name.contains("height") || name.contains("distance") ||
+                    name.contains("walk") || name.contains("orbit") ||
+                    name.contains("summit") || name.contains("Everest")
+            )
+        }
+    }
 }

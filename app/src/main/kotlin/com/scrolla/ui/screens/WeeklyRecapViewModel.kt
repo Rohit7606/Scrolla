@@ -60,10 +60,6 @@ class WeeklyRecapViewModel(
      * however far off it is, so only claim a comparison when the figure is
      * genuinely in that landmark's neighbourhood.
      */
-    private fun landmarkFor(km: Float): String? {
-        val (name, landmarkKm) = DistanceFormatter.nearestLandmark(km) ?: return null
-        if (landmarkKm <= 0f) return null
-        val ratio = km / landmarkKm
-        return if (ratio in 0.5f..2.0f) "that's about $name" else null
-    }
+    private fun landmarkFor(km: Float): String? =
+        DistanceFormatter.landmarkComparison(km)?.let { "that's about $it" }
 }

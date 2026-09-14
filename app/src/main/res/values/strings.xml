@@ -7,7 +7,11 @@
          reference Android resources. -->
     <string name="widget_today_label">TODAY</string>
     <string name="widget_today_description">Scroll distance today</string>
-    <string name="widget_landmark_prefix">about the height of %1$s</string>
+    <!-- The landmark names already carry their own descriptor ("Eiffel Tower
+         height", "marathon distance"), so the lead-in must not repeat it. The
+         first version read "about the height of Eiffel Tower height" on a real
+         home screen. Same approx form Home uses. -->
+    <string name="widget_landmark_prefix">≈ %1$s</string>
     <string name="widget_empty_landmark">start scrolling to see your distance</string>
     <!-- Shown in the widget picker before any real data is read. A plausible
          figure would be a fabricated one, so the preview shows the same empty
