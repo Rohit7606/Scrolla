@@ -56,3 +56,7 @@ scrolla_database
 # Design canvas seeded payloads (~2MB of generated editor code each).
 # The .dc.html sources and canvas.json next to them are the real work.
 Artifacts/*/scrolla-*.html
+
+# Tester email lists for App Distribution — other people's addresses,
+# and this repo has a public sibling.
+testers.txt
