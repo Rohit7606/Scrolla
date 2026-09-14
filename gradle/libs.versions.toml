@@ -16,6 +16,7 @@ firebaseAuth = "22.3.0"
 firebaseFirestore = "24.10.1"
 googleGmsGoogleServices = "4.4.4"
 firebaseCrashlyticsPlugin = "3.0.2"
+firebaseAppDistributionPlugin = "5.0.0"
 room = "2.7.1"
 work = "2.9.1"
 desugarJdkLibs = "2.1.5"
@@ -61,4 +62,5 @@ kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "ko
 google-gms-google-services = { id = "com.google.gms.google-services", version.ref = "googleGmsGoogleServices" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 firebase-crashlytics = { id = "com.google.firebase.crashlytics", version.ref = "firebaseCrashlyticsPlugin" }
+firebase-appdistribution = { id = "com.google.firebase.appdistribution", version.ref = "firebaseAppDistributionPlugin" }
 ksp = { id = "com.google.devtools.ksp", version = "2.2.10-2.0.2" }

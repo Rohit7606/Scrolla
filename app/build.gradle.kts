@@ -18,11 +18,28 @@ fun gitCommitCount(): Int = try {
     1
 }
 
+/**
+ * The last commit subject, used as App Distribution release notes.
+ *
+ * Falls back to a neutral string rather than failing the build, for the same
+ * reason gitCommitCount() does: a source zip or a machine without git on PATH
+ * should still be able to produce an APK.
+ */
+fun gitLastCommitSubject(): String = try {
+    providers.exec {
+        commandLine("git", "log", "-1", "--pretty=%s")
+    }.standardOutput.asText.get().trim().ifBlank { "New build" }
+} catch (e: Exception) {
+    logger.warn("release notes: git unavailable (${e.message})")
+    "New build"
+}
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.google.gms.google.services)
     alias(libs.plugins.firebase.crashlytics)
+    alias(libs.plugins.firebase.appdistribution)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.ksp)
     id("kotlin-parcelize")
@@ -131,6 +148,28 @@ android {
             // actually get. Needs network at build time.
             configure<com.google.firebase.crashlytics.buildtools.gradle.CrashlyticsExtension> {
                 mappingFileUploadEnabled = true
+            }
+
+            // BUILD_PLAN 2.1a — the managed distribution channel. No-cost on
+            // the Spark plan, and the project already exists, so this adds no
+            // account and no bill.
+            //
+            // Release, not debug: the release APK is 4.6 MB against debug's
+            // 30 MB, it is minified, and it is signed with the stable key, so
+            // updates install over each other. Debug is for development and
+            // for the 1.4 install test, not for fifty people.
+            //
+            // Testers are notified on their device when a new build lands,
+            // which is the half of distribution that a shared link cannot do.
+            configure<com.google.firebase.appdistribution.gradle.AppDistributionExtension> {
+                artifactType = "APK"
+                // Create this group in the Firebase console. Named rather than
+                // listing emails here so the tester list is not in git.
+                groups = "scrolla-testers"
+                // The last commit subject. Testers get told what changed
+                // without anyone writing release notes by hand, and the commit
+                // subjects in this repo are already written to be read.
+                releaseNotes = gitLastCommitSubject()
             }
         }
         // NOTE: no `applicationIdSuffix` on debug, deliberately. Suffixing it
