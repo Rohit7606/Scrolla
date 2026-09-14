@@ -103,9 +103,13 @@ data class WidgetSnapshot(
                     // one still sees a board.
                     val primary = groups.firstOrNull { it.isPrimary } ?: groups.firstOrNull()
                     if (primary != null) {
+                        // .totals — the freshness flag is deliberately
+                        // dropped here. A widget has no room for "this may be
+                        // stale" and no way to let anyone act on it; the app
+                        // says so instead (BUILD_PLAN 2.7a).
                         val totals = GroupRepository()
                             .getGroupLeaderboard(primary.groupId, LocalDate.now().toString())
-                            .getOrNull().orEmpty()
+                            .getOrNull()?.totals.orEmpty()
 
                         board = totals
                             .sortedBy { it.totalKm }

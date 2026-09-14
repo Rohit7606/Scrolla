@@ -87,6 +87,11 @@ fun LeaderboardScreen(
     emptyBoardMessage: String = ScrollaStrings.LEADERBOARD_EMPTY_NO_TOTALS,
     /** How many people are in this group, including those who have not synced today. */
     memberCount: Int? = null,
+    /** True when these rows came from Firestore's local cache rather than the
+     *  server (BUILD_PLAN 2.7a). The board stays — it is the last true thing we
+     *  knew — but "N of M synced today" is a claim about right now, and a caption
+     *  has to say when it is not. */
+    isFromCache: Boolean = false,
     /** Opens the group switcher. Null hides the affordance entirely. */
     onSwitchGroupClick: (() -> Unit)? = null,
     /** A failed read. Shown in place of the empty state, which would otherwise
@@ -166,6 +171,17 @@ fun LeaderboardScreen(
             if (memberCount != null && memberCount > 0) {
                 Text(
                     text = "${entries.size} of $memberCount synced today",
+                    style = ScrollaType.Caption,
+                    color = colors.textLow
+                )
+            }
+            // Directly under the claim it qualifies, not in a banner at the top
+            // of the screen. "3 of 5 synced today" is the sentence that stops
+            // being true when the read came off the disk, so the correction
+            // belongs against it.
+            if (isFromCache) {
+                Text(
+                    text = ScrollaStrings.LEADERBOARD_FROM_CACHE,
                     style = ScrollaType.Caption,
                     color = colors.textLow
                 )

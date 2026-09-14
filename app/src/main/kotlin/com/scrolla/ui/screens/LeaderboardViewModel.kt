@@ -27,7 +27,14 @@ data class LeaderboardUiState(
     val errorMessage: String? = null,
     /** True only for a user-initiated pull, so the spinner is the gesture's and
      *  not the tab-open read's. */
-    val isRefreshing: Boolean = false
+    val isRefreshing: Boolean = false,
+    /**
+     * True when these rows came off the disk rather than the wire
+     * (BUILD_PLAN 2.7a). The board is still worth showing — it is the last
+     * true thing we knew — but "1 of 1 synced today" is a claim about right
+     * now, and from cache it can be hours old.
+     */
+    val isFromCache: Boolean = false
 )
 
 /**
@@ -169,7 +176,7 @@ class LeaderboardViewModel(
             }
 
             val today = LocalDate.now().toString()
-            val totals = groupRepository.getGroupLeaderboard(active.groupId, today).getOrElse { error ->
+            val board = groupRepository.getGroupLeaderboard(active.groupId, today).getOrElse { error ->
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     isRefreshing = false,
@@ -186,7 +193,8 @@ class LeaderboardViewModel(
                 isLoading = false,
                 groups = groups,
                 activeGroup = active,
-                entries = totals.map {
+                isFromCache = board.isFromCache,
+                entries = board.totals.map {
                     LeaderboardEntry(
                         displayName = if (it.userId == userId) "You" else it.displayName,
                         distanceKm = it.totalKm,

@@ -34,6 +34,26 @@ data class MemberDailyTotal(
     val totalKm: Float
 )
 
+/**
+ * A group's board for one day, and whether it came off the wire or off the disk
+ * (BUILD_PLAN 2.7a).
+ *
+ * Firestore keeps local persistence on by default, so a read with no network
+ * succeeds from cache rather than failing — which is why 2.7's premise ("being
+ * on the train reads as an error") turned out to be wrong on device. The board
+ * is right to render. It was wrong to render *silently*: "1 of 1 synced today"
+ * is a claim about right now, and from cache it can be hours old.
+ *
+ * The flag is returned with the data rather than exposed as a separate query so
+ * it cannot drift from the rows it describes, and so a caller has to decide what
+ * to do about it instead of not knowing there was anything to decide.
+ */
+data class GroupLeaderboard(
+    val totals: List<MemberDailyTotal>,
+    /** True when Firestore served this from disk — no server round trip. */
+    val isFromCache: Boolean
+)
+
 /** A group's all-time best (lowest) single day, from the group metadata document. */
 data class GroupRecord(
     val recordKm: Float,
@@ -202,7 +222,7 @@ class GroupRepository(
      * B only ever reads this collection; A's sync owns the writes
      * (`DATA_CONTRACT.md` §3.3).
      */
-    suspend fun getGroupLeaderboard(groupId: String, date: String): Result<List<MemberDailyTotal>> {
+    suspend fun getGroupLeaderboard(groupId: String, date: String): Result<GroupLeaderboard> {
         return try {
             val snapshot = firestore.collection("groups").document(groupId)
                 .collection("dailyTotals")
@@ -218,7 +238,17 @@ class GroupRepository(
                 )
             }.sortedBy { it.totalKm }
 
-            Result.success(totals)
+            // Logged because the whole of 2.7a rests on this flag being true
+            // when the server is unreachable, and that is a claim about
+            // Firestore's behaviour on a real phone rather than about this
+            // code. Verified on device with the radios off, 2026-09-14.
+            if (snapshot.metadata.isFromCache) {
+                Log.d(TAG, "Leaderboard served from CACHE for $groupId on $date (${totals.size} rows)")
+            }
+
+            Result.success(
+                GroupLeaderboard(totals = totals, isFromCache = snapshot.metadata.isFromCache)
+            )
         } catch (e: Exception) {
             Log.e(TAG, "Failed to load leaderboard for group: $groupId on $date", e)
             Result.failure(e)

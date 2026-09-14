@@ -127,6 +127,14 @@ object ScrollaStrings {
     const val LEADERBOARD_NO_GROUP_TITLE = "No group yet"
     const val LEADERBOARD_EMPTY_NO_GROUP = "Join a group to see how you compare."
     const val LEADERBOARD_EMPTY_NO_TOTALS = "No totals have synced for today yet."
+
+    /**
+     * BUILD_PLAN 2.7a. Not an error — the board above it is real, it is
+     * simply the last thing we knew rather than the current one. The
+     * wording avoids "offline" because Firestore serving from disk only
+     * tells us the server was not reached, not why.
+     */
+    const val LEADERBOARD_FROM_CACHE = "Saved results — couldn't reach the server"
     const val LEADERBOARD_NO_RECORD_YET = "No group record set yet"
     const val LEADERBOARD_LEFT_GROUP_SUFFIX = "(left)"
 

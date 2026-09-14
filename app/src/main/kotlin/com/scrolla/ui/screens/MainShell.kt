@@ -773,6 +773,7 @@ private fun MainTabsScreen(
                         groupStats = boardState.groupStats ?: GroupStats(0f, 0f, 0f),
                         groupBestDay = boardState.groupBestDay,
                         memberCount = boardState.activeGroup?.memberCount,
+                        isFromCache = boardState.isFromCache,
                         errorMessage = boardState.errorMessage,
                         onRetryClick = { leaderboardViewModel.refresh() },
                         isRefreshing = boardState.isRefreshing,

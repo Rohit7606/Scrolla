@@ -542,7 +542,7 @@ problem; the certificate is.
 The APK is safe to hand out again as of 2026-09-14. **Any future signing-key
 change needs its SHA-1 registered too, or this recurs identically.**
 
-### 2.7 — Offline is not failure ✅ *(2026-09-14 — and it was not this)*
+### 2.7 — Offline is not failure ✅ *(closed 2026-09-14 — and it was not this)*
 
 *(was P2.3d)* The item said nothing checks connectivity, so being on the train
 reads as an error, generating support messages that are not bugs.
@@ -571,10 +571,27 @@ writer on `degradedReason`.
       as "Last synced …", and Crashlytics gets a non-fatal.
 - [x] `ServiceHealthWritersTest` names the legitimate writers, so a third
       subsystem reaching for that field fails in CI instead of on a phone.
-- [ ] **2.7a** *(small, open)* The board shows cached data offline without
-      saying it is cached — "1 of 1 synced today" can be stale. Honest but
-      incomplete. `ERROR_NO_CONNECTION` is written and waiting if this is ever
-      worth wiring.
+- [x] **2.7a** ✅ *(2026-09-14)* The board says when it is cached.
+      `getGroupLeaderboard` now returns `GroupLeaderboard(totals, isFromCache)`
+      rather than a bare list, so the freshness flag travels with the rows it
+      describes and a caller has to decide about it instead of not knowing there
+      was anything to decide. The Group tab prints "Saved results — couldn't
+      reach the server" directly under "N of M synced today", which is the
+      sentence that stops being true. The widget drops the flag on purpose: no
+      room to say it and no way to act on it.
+
+      **`ERROR_NO_CONNECTION` was still not the answer.** The board does not
+      fail offline, so there is no error to report — the defect was a true
+      sentence with a missing qualifier, not a failure.
+
+      Verified on device with `svc wifi disable && svc data disable`
+      ("Active default network: none"):
+      `GroupRepository: Leaderboard served from CACHE for GUW4YE on 2026-09-14
+      (1 rows)`, and no such line on the same read with the radios on. That log
+      stays: 2.7a rests entirely on Firestore setting that flag on real
+      hardware, which is a claim about Firestore, not about this code.
+      `CachedBoardTest` covers the half that has to keep being true — caption
+      shown when cached, rows still rendered, nothing shown when fresh.
 
 ## STAGE 3 — Makes it good, not viable
 
