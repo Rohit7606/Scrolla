@@ -25,7 +25,7 @@ each stage is defined by what it unblocks, not by how interesting it is.
 | Accuracy | **Verified.** S0.7 re-run passed; the 31 % inflation is fixed and measured |
 | Battery | **0.36 %** (14.1 mAh) — and 82 % of that is network, not tracking |
 | Storage | 686 rows/day → **18.2 MB/year** |
-| Tests | **136 unit, 0 instrumented** |
+| Tests | **139 unit, 0 instrumented** |
 | Release build | Signed, minified, 4.6 MB, **runs** — verified on an emulator |
 | Devices ever tested | **1** |
 | Crash visibility | Crashlytics files correct non-fatals, verified on device. **Delivery waits for a process restart** (1.2e) |
@@ -42,18 +42,38 @@ restructure, and the entire release build config.
 Six items. These are not "important"; they are the difference between handing
 out an APK and handing out a support burden you cannot answer.
 
-### 1.1 — Sync in the background 🔴
+**1.1, 1.2 and 1.3 are done and verified on a device (2026-09-14).** What is
+left in Stage 1 — 1.4, 1.5, 1.6 — is not code: it is one phone that isn't
+Rohit's, one product decision about payment apps, and one screen.
 
-`triggerFirestoreSync()` is called only from `SyncViewModel`, which lives only
-while the app is on screen. **A user who tracks all day and doesn't open Scrolla
-never appears on their group's leaderboard that day** — `getGroupLeaderboard`
-filters on `date == today` and they have no document.
+### 1.1 — Sync in the background ✅ *(built and verified on device 2026-09-14)*
 
-With 50 people the board shows only whoever happened to open the app. The thing
-you open the app to see is broken by not opening the app.
+`triggerFirestoreSync()` was called only from `SyncViewModel`, which lives only
+while the app is on screen. **A user who tracked all day and didn't open Scrolla
+never appeared on their group's leaderboard that day** — `getGroupLeaderboard`
+filters on `date == today` and they had no document.
 
-Needs a periodic `WorkManager` job that calls the same sync. Not config — real
-work. **This is the single largest gap and it appears in none of the old docs.**
+With 50 people the board showed only whoever happened to open the app. The thing
+you open the app to see was broken by not opening the app.
+
+- [x] The work moved out of the ViewModel into `SyncEngine` — same three steps,
+      no Android lifecycle — so `SyncViewModel` (cadence while someone watches)
+      and `SyncWorker` (hourly, app closed) run the *same* code.
+- [x] **One engine per process**, held by `ScrollaGraph`. Load-bearing, not
+      tidiness: the engine serialises passes against itself, so foreground and
+      background can only be stopped from doing identical work if they share
+      the instance. Two engines would each behave alone and race each other.
+- [x] Verified with Scrolla closed and WhatsApp on screen: today's total
+      reached Firestore for both groups. The process was started by the
+      accessibility service rebinding, **not by anyone opening the app** —
+      exactly the case this exists for. See DEVICE_TEST_LOG.
+
+**One hour, not fifteen minutes.** Foreground is frequent because someone is
+looking at the number; background only has to get today's document written, and
+an hour stale is invisible on a board that resets daily. Against a battery cost
+already measured at 82 % network, 24 passes a day beats 96 for no loss anyone
+can perceive. `BACKGROUND_SYNC_INTERVAL_MINUTES` — WorkManager's floor is 15 if
+this ever proves wrong, but lower it after a complaint, not a guess.
 
 ### 1.2 — Crashlytics 🟡 *(built and proven 2026-09-14; delivery lag open)*
 
@@ -104,12 +124,17 @@ And Scrolla barely crashes — it *degrades*. A read throws, the catch returns
       see is a user who silently stops using it" — and a report that arrives
       after they have already given up does not answer it.
 
-      Not fatal: reports still go up on reboot, an OEM kill, an update, or a
-      real crash, and MIUI is aggressive enough that in practice this is
-      probably a day rather than a week. **But it should be a decision with a
-      measurement behind it, not an assumption.** The cheapest next step is to
-      find out how often a real process actually restarts over a week before
-      building anything.
+      **Measured 2026-09-14: 9.5 hours.** Last night's three non-fatals were
+      still on the device this morning, undelivered, in the same session
+      directory — the process had lived from 01:48 to 11:12. They uploaded the
+      instant an install restarted it. So the path works end to end and the lag
+      is simply the process lifetime; on a phone not being rebuilt by a
+      developer twice a night it will often be longer.
+
+      Not fatal: reports go up on reboot, an OEM kill, an update, or a real
+      crash. **But it should be a decision with a measurement behind it.** The
+      cheapest next step is to find out how often a real process restarts over
+      a week before building anything.
 
 ### 1.3 — Everything runs twice ✅ *(fixed and verified on device 2026-09-14)*
 
@@ -186,9 +211,13 @@ list.
 "each reinstall clears the grant, confirmed twice". On 2026-09-14 an
 `adb install -r` over the existing debug build left it intact — and *bound*,
 checked with `dumpsys accessibility` rather than trusting the settings flag.
-One observation against two, so the rule stands until re-tested, but it is
-worth two deliberate tries: "all 50 people re-enable Accessibility after every
-update" and "nobody has to" are different problems with different answers.
+It happened again on the next install (177 → 179), so that is **two
+consecutive reinstalls with the grant intact and the service bound**. Both were
+same-key debug updates, which may be the distinguishing factor — neither
+changed the signing key nor uninstalled first, and that is the obvious thing to
+test next. But it is no longer a single anomaly, and this item is priced on the
+old assumption: "all 50 people re-enable Accessibility after every update" and
+"nobody has to" are different problems with different answers.
 
 - [ ] **2.1a** Decide the channel: hosted APK + in-app "update available", or
       Play internal testing, or accept manual distribution and write it down.

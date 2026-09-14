@@ -947,3 +947,71 @@ decision to take, not a bug to fix** — see BUILD_PLAN 1.2d.
 Not force-stopped to prove the upload. A force-stop sets the stopped flag and
 would have cost a manual Accessibility re-enable on MIUI; the events will go up
 on their own at the next process start.
+
+---
+
+## 2026-09-14, 11:09–11:14 — background sync runs with the app closed
+
+Device: Redmi Note 10 (M2101K7BI), Android 13, MIUI. Debug build, versionCode
+179, installed over 177 with `adb install -r`. 7,804 events at backup,
+integrity ok.
+
+**BUILD_PLAN 1.1 — verified, and in the exact shape the item describes.**
+Scrolla was not open; WhatsApp was on screen.
+
+```
+11:12:26.242 SyncWorker:       Background sync scheduled every 60 min
+11:12:26.600 SyncEngine:       Firestore sync requested (background)
+11:12:28.740 SyncEngine:       Backup reconcile uploaded 1 day(s)
+11:12:30.266 ScrollRepository: triggerFirestoreSync() successfully synced
+                               2 group(s) for user=dkip…, date=2026-09-14,
+                               totalKm=0.084336266
+11:12:31.880 SyncEngine:       Offering 2026-09-09 to GUW4YE, joined 2026-09-07
+11:12:32.738 SyncWorker:       Background sync ran
+```
+
+Today's total reached Firestore for both groups with nobody opening the app.
+**The process that did it was started by the accessibility service rebinding
+after the install, not by a person** — which is the whole case for 1.1.
+
+Afterwards the job returned to `ENQUEUED` and the system holds it as:
+
+```
+JOB #u0a315/1  com.scrolla/androidx.work.impl.background.systemjob.SystemJobService
+Required constraints:  TIMING_DELAY CONNECTIVITY
+Satisfied constraints: CONNECTIVITY DEVICE_NOT_DOZING BACKGROUND_NOT_RESTRICTED
+Unsatisfied:           TIMING_DELAY
+```
+
+So the network constraint is real at the OS level, and the only thing it now
+waits on is the next hour. It will not wake with no connection and burn the
+15-second Firestore timeout, which happened three times during last night's
+aeroplane test.
+
+R8 check, because WorkManager resolves workers by `Class.forName`:
+`com.scrolla.work.SyncWorker -> com.scrolla.work.SyncWorker` while
+`SingleFlightSync -> T4.A`. Obfuscation is on; the worker is deliberately kept.
+
+### 1.2e now has a real number: 9.5 hours
+
+Last night's three non-fatals were still sitting on the device this morning,
+undelivered, in the same session directory. The process (pid 14631) had lived
+from 01:48 to 11:12 — **nine and a half hours** — because the foreground
+service keeps it at `oom_score_adj` 200 and nothing reclaimed it.
+
+They uploaded the moment the install restarted the process: the old session
+`6AA705170387…` and all three event files are gone, replaced by a fresh empty
+session. So the path works end to end, and the delay is exactly what the
+process lifetime is. On a phone that is not being rebuilt by a developer twice
+a night, that could be considerably longer than 9.5 hours.
+
+### The accessibility grant survived a second reinstall
+
+Two consecutive `adb install -r` updates (177, then 179), both leaving
+`accessibility_enabled=1` with the service **bound**, `Crashed services:{}`.
+
+That is now two observations against a rule recorded as "confirmed
+repeatedly". Still not proof — both were same-key debug updates, which may be
+the distinguishing factor, and neither changed the signing key or uninstalled
+first. But it is no longer a single anomaly, and BUILD_PLAN 2.1 is priced on
+the old assumption.
