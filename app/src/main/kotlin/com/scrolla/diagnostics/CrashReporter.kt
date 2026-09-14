@@ -61,6 +61,8 @@ object CrashReporter {
         // --- The sync path. The user vanishes from the leaderboard here. ---
         SYNC_FIRESTORE,
         SYNC_FIRESTORE_TIMEOUT,
+        /** The background worker threw — the engine normally handles its own. */
+        SYNC_BACKGROUND_WORKER,
 
         // --- Room reads. Each one returns a default that looks like real data. ---
         READ_TODAY_TOTAL,

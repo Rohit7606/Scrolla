@@ -5,6 +5,7 @@ import com.google.firebase.FirebaseApp
 import com.google.firebase.auth.FirebaseAuth
 import com.scrolla.diagnostics.CrashReporter
 import com.scrolla.ui.ScrollaGraph
+import com.scrolla.work.SyncWorker
 
 /**
  * Application class to initialize Firebase and B's UI composition root.
@@ -32,5 +33,11 @@ class ScrollaApplication : Application() {
         FirebaseAuth.getInstance().addAuthStateListener { auth ->
             CrashReporter.setSignedInUser(auth.currentUser?.uid)
         }
+
+        // BUILD_PLAN 1.1: keep syncing when the app is closed. Idempotent, the
+        // same way TrackingHealthWatcher.schedule() above is — calling it on
+        // every launch re-registers the one periodic job rather than stacking
+        // them, because it is enqueued under a unique name with KEEP.
+        SyncWorker.schedule(this)
     }
 }

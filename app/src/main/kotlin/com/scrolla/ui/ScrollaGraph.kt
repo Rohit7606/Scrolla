@@ -1,6 +1,7 @@
 package com.scrolla.ui
 
 import android.content.Context
+import com.scrolla.firestore.SyncEngine
 import com.scrolla.room.ScrollRepository
 import com.scrolla.room.ScrollRepositoryImpl
 import com.scrolla.room.ScrollaDatabase
@@ -69,6 +70,18 @@ object ScrollaGraph {
             ?: packageName.substringAfterLast('.')
         return segment.replaceFirstChar { it.uppercase() }
     }
+
+    /**
+     * The one [SyncEngine] for this process (BUILD_PLAN 1.1).
+     *
+     * Deliberately shared between `SyncViewModel` and `SyncWorker`. The engine
+     * serialises sync passes against itself, so a foreground pass and a
+     * background one can only be stopped from doing the same work twice if they
+     * are holding the same instance. Two engines would each be perfectly
+     * well-behaved on their own and race each other — the 2026-09-14 duplicate
+     * bug rebuilt with more moving parts.
+     */
+    val syncEngine: SyncEngine by lazy { SyncEngine(scrollRepository = scrollRepository) }
 
     val scrollRepository: ScrollRepository by lazy {
         val context = appContext
