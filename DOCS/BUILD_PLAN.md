@@ -25,7 +25,7 @@ each stage is defined by what it unblocks, not by how interesting it is.
 | Accuracy | **Verified.** S0.7 re-run passed; the 31 % inflation is fixed and measured |
 | Battery | **0.36 %** (14.1 mAh) — and 82 % of that is network, not tracking |
 | Storage | 686 rows/day → **18.2 MB/year** |
-| Tests | **147 unit** (incl. 8 Compose screen tests), 0 instrumented |
+| Tests | **153 unit** — incl. 8 Compose screen tests and 6 migration tests |
 | Release build | Signed, minified, 4.6 MB, **runs** — verified on an emulator |
 | Devices ever tested | **1** |
 | Crash visibility | Crashlytics files correct non-fatals, verified on device. **Delivery waits for a process restart** (1.2e) |
@@ -310,10 +310,29 @@ hand-test every screen before each of 50 sideloads.
 - [x] Stale test dependencies replaced: `androidx.test.ext:junit` 1.1.5 → 1.2.1
       and Espresso 3.5.1 → 3.6.1. They had been declared for months with no
       `androidTest` directory to use them.
-- [ ] **Room against a real database**, especially the migrations. Still
-      nothing. This is the highest-value gap left in this item — the phone
-      holds the only copy of three weeks of events and a bad migration is
-      unrecoverable.
+- [x] **Room migrations are covered** — six tests taking a version 1 database
+      through the whole chain to version 4, run against a real SQLite file
+      using `ScrollaDatabase.ALL_MIGRATIONS`, the same array `getDatabase()`
+      ships. A migration written and never registered now fails a test instead
+      of refusing to open a user's database on the first launch after an
+      update. Verified by breaking the index name on purpose and watching it
+      fail; a green test nobody has seen fail is not evidence.
+- [x] **Room schema export now actually works.** `0d338ab` is titled "export
+      Room schema JSON for migration validation" and never added
+      `room.schemaLocation` — it committed `1.json` once and nothing
+      regenerated it through versions 2, 3 or 4, while every build warned. The
+      new `4.json`'s identity hash matches `room_master_table` on the device,
+      so the generated schema is confirmed against what people are running.
+      **Every future schema change must commit its JSON alongside.**
+- [ ] **Two things the migration work turned up, neither acted on:**
+      *(a)* `MIGRATION_2_3`'s comment says a wrong index name throws on first
+      launch. It did not — Room opened fine and only the index assertion
+      caught it, which would make the real consequence a *silently* missing
+      index and every `scroll_events` read a full scan. Worth confirming on a
+      device; Robolectric's SQLite is not the phone's.
+      *(b)* Versions 2 and 3 have no exported schema and cannot get one. The
+      chain is tested end to end, so this costs nothing today, but a future
+      `MigrationTestHelper` run cannot start from either.
 - [ ] **Navigation.** Nothing covers the `routeStack` in `MainShell`.
 
 **On Robolectric vs a device.** These run on the JVM. The only system image on
