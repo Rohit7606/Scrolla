@@ -63,6 +63,8 @@ object CrashReporter {
         SYNC_FIRESTORE_TIMEOUT,
         /** The background worker threw — the engine normally handles its own. */
         SYNC_BACKGROUND_WORKER,
+        /** WorkManager refused to schedule, so there is no background sync. */
+        SYNC_SCHEDULE_FAILED,
 
         // --- Room reads. Each one returns a default that looks like real data. ---
         READ_TODAY_TOTAL,

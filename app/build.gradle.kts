@@ -88,6 +88,11 @@ android {
             // 131 tests here assert on returned values from pure functions, and
             // none of them wants Android behaviour, only Android silence.
             isReturnDefaultValues = true
+
+            // Compose UI tests need real resources to inflate against. Without
+            // this they fail on resource lookup rather than on anything they
+            // are testing.
+            isIncludeAndroidResources = true
         }
     }
 
@@ -159,6 +164,17 @@ dependencies {
 
     implementation(libs.play.services.auth)
     testImplementation(libs.junit)
+    // Runs the Compose screen tests on the JVM. The alternative was an
+    // instrumented run, and the only system image on this machine is API 37,
+    // where Espresso still calls the removed InputManager.getInstance() and
+    // every test dies before it asserts anything. Robolectric also puts these
+    // in the ordinary `test` task, so they run on every build rather than only
+    // when someone remembers to attach a device — which is the actual point of
+    // BUILD_PLAN 2.5.
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.compose.ui.test.junit4)
+    testImplementation(libs.androidx.junit)
+    debugImplementation(libs.androidx.compose.ui.test.manifest)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     androidTestImplementation(libs.androidx.espresso.core)

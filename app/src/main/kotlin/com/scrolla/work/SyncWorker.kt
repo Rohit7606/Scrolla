@@ -96,12 +96,33 @@ class SyncWorker(
                 ScrollaConstants.BACKGROUND_SYNC_INTERVAL_MINUTES, TimeUnit.MINUTES
             ).setConstraints(constraints).build()
 
-            WorkManager.getInstance(context).enqueueUniquePeriodicWork(
-                WORK_NAME,
-                ExistingPeriodicWorkPolicy.KEEP,
-                request
-            )
-            Log.d(TAG, "Background sync scheduled every ${ScrollaConstants.BACKGROUND_SYNC_INTERVAL_MINUTES} min")
+            // Guarded because this is called from Application.onCreate(), where
+            // an exception is not a failed feature but an app that does not
+            // start at all. WorkManager.getInstance() throws outright when its
+            // startup initializer has not run — another library disabling the
+            // androidx.startup provider is enough to do it, and so is an OEM
+            // that interferes with content providers at boot.
+            //
+            // Found by the first Compose test written against this app
+            // (BUILD_PLAN 2.5): the screens under test never mention
+            // WorkManager, and every one of them died in Application.onCreate
+            // before rendering a pixel. On a phone that would have been a
+            // launch crash with no way back.
+            //
+            // Losing background sync costs a user their place on the day's
+            // leaderboard until they next open the app — which is exactly the
+            // old behaviour this feature replaced, so failing to it is safe.
+            try {
+                WorkManager.getInstance(context).enqueueUniquePeriodicWork(
+                    WORK_NAME,
+                    ExistingPeriodicWorkPolicy.KEEP,
+                    request
+                )
+                Log.d(TAG, "Background sync scheduled every ${ScrollaConstants.BACKGROUND_SYNC_INTERVAL_MINUTES} min")
+            } catch (e: Exception) {
+                Log.e(TAG, "Could not schedule background sync — app will sync only while open", e)
+                CrashReporter.nonFatal(CrashReporter.Where.SYNC_SCHEDULE_FAILED, e)
+            }
         }
     }
 }
