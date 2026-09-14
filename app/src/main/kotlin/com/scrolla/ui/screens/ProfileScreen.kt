@@ -276,8 +276,14 @@ fun ProfileScreen(
                         Text(
                             text = when {
                                 errorMessage != null -> ScrollaStrings.ERROR_GROUPS_UNAVAILABLE
-                                primaryGroupName != null ->
-                                    "$groupCount groups · $primaryGroupName on widget"
+                                primaryGroupName != null -> {
+                                    val count = if (groupCount == 1) {
+                                        ScrollaStrings.PROFILE_GROUPS_ONE
+                                    } else {
+                                        String.format(ScrollaStrings.PROFILE_GROUPS_MANY, groupCount)
+                                    }
+                                    "$count · $primaryGroupName"
+                                }
                                 else -> ScrollaStrings.PROFILE_NO_GROUPS
                             },
                             style = ScrollaType.Body,

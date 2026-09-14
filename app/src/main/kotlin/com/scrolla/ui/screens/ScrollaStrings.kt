@@ -174,6 +174,19 @@ object ScrollaStrings {
     const val PROFILE_HALL_OF_FAME_EMPTY = "No record set yet — be the first"
     const val PROFILE_GROUPS_LINK = "Manage groups"
 
+    /**
+     * Profile's group summary. Two constants because "1 groups" was shipping,
+     * and one group is what most people have.
+     *
+     * Neither mentions a widget. The line used to read "N groups · Name on
+     * widget", promising a surface that does not exist — widgets are BUILD_PLAN
+     * 3.1, the largest build still outstanding. Telling someone their group is
+     * on a widget they cannot have is the same class of error as a screen
+     * showing preview data as if it were theirs.
+     */
+    const val PROFILE_GROUPS_ONE = "1 group"
+    const val PROFILE_GROUPS_MANY = "%d groups"
+
     // =========================================
     // Screen 9: Settings
     // =========================================

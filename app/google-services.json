@@ -14,11 +14,27 @@
       },
       "oauth_client": [
         {
+          "client_id": "166613112223-jo06f0qjjkmguh4v1e4ogdjcl570n3d8.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.scrolla",
+            "certificate_hash": "968c969245844d269f2866f20dfb0a156c694beb"
+          }
+        },
+        {
           "client_id": "166613112223-nsobc6fglva685tccjb9edu20js1cash.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.scrolla",
             "certificate_hash": "b0a693bff26656b2bbd130bd180ae92e8ecf95e7"
+          }
+        },
+        {
+          "client_id": "166613112223-pl1sqoopis6rs702f5o26gcbtk70ihim.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.scrolla",
+            "certificate_hash": "7bd4dae0c084ea47e11861b57b199315fa5cb643"
           }
         },
         {
