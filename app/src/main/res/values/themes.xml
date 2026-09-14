@@ -31,4 +31,18 @@
         <item name="windowSplashScreenAnimatedIcon">@drawable/scrolla_logo_small</item>
         <item name="postSplashScreenTheme">@style/Theme.MyApplication</item>
     </style>
-</resources>
+
+    <!-- One row in the large widget's two lists (SPRINT_LOG S3.9). A style
+         rather than six copies of the same six attributes; RemoteViews inflates
+         styles normally. -->
+    <style name="WidgetRow">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:textColor">@color/widget_text_hi</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:fontFamily">@font/inter_regular</item>
+        <item name="android:maxLines">1</item>
+        <item name="android:ellipsize">end</item>
+        <item name="android:paddingBottom">4dp</item>
+    </style>
+</resources>

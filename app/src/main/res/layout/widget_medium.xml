@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Medium widget — today's distance and where it puts you (SPRINT_LOG S3.9).
+
+    Two columns, because the extra width is the only thing this size has over
+    the small one and stacking would waste it. The figure keeps the left, which
+    is where the eye lands; the standing sits right of a hairline, so the two
+    read as related rather than as one run-on line.
+
+    The standing column collapses (visibility GONE, set in the provider) when
+    there is no honest rank — see `standingOf`. A widget with an empty right
+    half is better than one showing "1st of 1".
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="horizontal"
+    android:background="@drawable/widget_background"
+    android:padding="16dp"
+    android:baselineAligned="false">
+
+    <!-- ─── TODAY ─────────────────────────────────────────────── -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/widget_today_label"
+            android:textColor="@color/widget_text_mid"
+            android:textSize="10sp"
+            android:letterSpacing="0.12"
+            android:fontFamily="@font/space_grotesk_medium"
+            android:maxLines="1" />
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:orientation="horizontal"
+            android:baselineAligned="true"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:id="@+id/widget_value"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/widget_placeholder_value"
+                android:textColor="@color/widget_accent"
+                android:textSize="44sp"
+                android:includeFontPadding="false"
+                android:fontFamily="@font/instrument_serif_regular"
+                android:maxLines="1" />
+
+            <TextView
+                android:id="@+id/widget_unit"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/widget_placeholder_unit"
+                android:textColor="@color/widget_text_mid"
+                android:textSize="15sp"
+                android:includeFontPadding="false"
+                android:layout_marginStart="4dp"
+                android:layout_marginBottom="5dp"
+                android:layout_gravity="bottom"
+                android:fontFamily="@font/inter_regular"
+                android:maxLines="1" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/widget_landmark"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/widget_placeholder_landmark"
+            android:textColor="@color/widget_text_mid"
+            android:textSize="11sp"
+            android:fontFamily="@font/inter_regular"
+            android:maxLines="2"
+            android:ellipsize="end" />
+    </LinearLayout>
+
+    <View
+        android:id="@+id/widget_divider"
+        android:layout_width="1dp"
+        android:layout_height="match_parent"
+        android:layout_marginStart="14dp"
+        android:layout_marginEnd="14dp"
+        android:background="@color/widget_hairline" />
+
+    <!-- ─── STANDING ──────────────────────────────────────────── -->
+    <LinearLayout
+        android:id="@+id/widget_standing_column"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="0.85"
+        android:orientation="vertical">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/widget_standing_label"
+            android:textColor="@color/widget_text_mid"
+            android:textSize="10sp"
+            android:letterSpacing="0.12"
+            android:fontFamily="@font/space_grotesk_medium"
+            android:maxLines="1" />
+
+        <TextView
+            android:id="@+id/widget_rank"
+            android:layout_width="wrap_content"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:gravity="center_vertical"
+            android:text="@string/widget_placeholder_rank"
+            android:textColor="@color/widget_text_hi"
+            android:textSize="34sp"
+            android:includeFontPadding="false"
+            android:fontFamily="@font/instrument_serif_regular"
+            android:maxLines="1" />
+
+        <TextView
+            android:id="@+id/widget_rank_detail"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/widget_placeholder_rank_detail"
+            android:textColor="@color/widget_text_mid"
+            android:textSize="11sp"
+            android:fontFamily="@font/inter_regular"
+            android:maxLines="2"
+            android:ellipsize="end" />
+    </LinearLayout>
+</LinearLayout>

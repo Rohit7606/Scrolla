@@ -44,14 +44,37 @@ data class GroupStanding(
  */
 fun LeaderboardUiState.selfStanding(): GroupStanding? {
     val group = activeGroup ?: return null
-    if (entries.size < 2) return null
-
     val self = entries.firstOrNull { it.isSelf } ?: return null
-    val ahead = entries.count { it.distanceKm < self.distanceKm }
+    return standingOf(
+        memberKm = entries.map { it.distanceKm },
+        selfKm = self.distanceKm,
+        groupName = group.groupName
+    )
+}
 
+/**
+ * The rule itself, with no UI state in it (BUILD_PLAN 3.1).
+ *
+ * Extracted so the home-screen widget can show a rank without reimplementing
+ * this. That is not hypothetical tidiness: the landmark rule in
+ * `DistanceFormatter` was private to two ViewModels, the widget became a
+ * third consumer, copied the call and not the guard, and shipped a claim that
+ * ten metres of scrolling was the Eiffel Tower. Every guard documented above
+ * is one that a second implementation would silently drop — most of all the
+ * "fewer than two members" case, which is the difference between a rank and a
+ * participation trophy.
+ *
+ * @param memberKm every member who has synced today, self included.
+ * @param selfKm this user's figure, or null if they have not synced today.
+ */
+fun standingOf(memberKm: List<Float>, selfKm: Float?, groupName: String): GroupStanding? {
+    if (memberKm.size < 2) return null
+    if (selfKm == null) return null
+
+    val ahead = memberKm.count { it < selfKm }
     return GroupStanding(
         rankPosition = ahead + 1,
-        groupSize = entries.size,
-        groupName = group.groupName
+        groupSize = memberKm.size,
+        groupName = groupName
     )
 }

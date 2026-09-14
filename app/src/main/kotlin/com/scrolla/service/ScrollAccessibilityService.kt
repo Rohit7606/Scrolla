@@ -11,7 +11,7 @@ import android.util.Log
 import android.view.accessibility.AccessibilityEvent
 import androidx.core.app.NotificationCompat
 import com.scrolla.diagnostics.CrashReporter
-import com.scrolla.widget.TodayWidgetProvider
+import com.scrolla.widget.ScrollaWidgetProvider
 import com.scrolla.model.DistanceFormatter
 import com.scrolla.model.ScrollaConstants
 import com.scrolla.room.DailyTotal
@@ -362,7 +362,7 @@ class ScrollAccessibilityService : AccessibilityService() {
                 //
                 // Costs nothing when no widget is placed: the refresh resolves
                 // an empty id array and returns.
-                TodayWidgetProvider.refresh(applicationContext)
+                ScrollaWidgetProvider.refreshAll(applicationContext)
             } catch (e: Exception) {
                 // S1.A6: Mark degraded on failure (fail loud internally, invisible to user).
                 // Fix 2: Targeted update — still stamps lastEventTimestamp so staleness

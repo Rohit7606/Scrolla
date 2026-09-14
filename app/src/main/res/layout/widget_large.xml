@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Large widget, 4x4 (SPRINT_LOG S3.9): the week, what it went into, and where
+    it puts you.
+
+    Three bands, in the order someone reads them: the figure and the week above
+    it, then the two lists side by side. The apps answer "where did it go" and
+    the board answers "how am I doing" — different questions, so they sit in
+    different columns rather than one long list.
+
+    Rows are fixed TextViews rather than a collection. RemoteViews lists need a
+    RemoteViewsService and a bound adapter, which is a service, a connection and
+    a whole extra failure mode for three rows that never grow.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@drawable/widget_background"
+    android:padding="16dp">
+
+    <!-- ─── TODAY + WEEK ──────────────────────────────────────── -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:baselineAligned="false">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/widget_today_label"
+                android:textColor="@color/widget_text_mid"
+                android:textSize="10sp"
+                android:letterSpacing="0.12"
+                android:fontFamily="@font/space_grotesk_medium"
+                android:maxLines="1" />
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:baselineAligned="true">
+
+                <TextView
+                    android:id="@+id/widget_value"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/widget_placeholder_value"
+                    android:textColor="@color/widget_accent"
+                    android:textSize="40sp"
+                    android:includeFontPadding="false"
+                    android:fontFamily="@font/instrument_serif_regular"
+                    android:maxLines="1" />
+
+                <TextView
+                    android:id="@+id/widget_unit"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/widget_placeholder_unit"
+                    android:textColor="@color/widget_text_mid"
+                    android:textSize="14sp"
+                    android:includeFontPadding="false"
+                    android:layout_marginStart="4dp"
+                    android:layout_marginBottom="4dp"
+                    android:layout_gravity="bottom"
+                    android:fontFamily="@font/inter_regular"
+                    android:maxLines="1" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- The last seven days. Rightmost bar is always today. -->
+        <ImageView
+            android:id="@+id/widget_chart"
+            android:layout_width="0dp"
+            android:layout_height="46dp"
+            android:layout_weight="1"
+            android:layout_marginStart="16dp"
+            android:layout_gravity="bottom"
+            android:contentDescription="@string/widget_chart_description"
+            android:scaleType="fitXY" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/widget_landmark"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:text="@string/widget_placeholder_landmark"
+        android:textColor="@color/widget_text_mid"
+        android:textSize="11sp"
+        android:fontFamily="@font/inter_regular"
+        android:maxLines="1"
+        android:ellipsize="end" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="14dp"
+        android:layout_marginBottom="12dp"
+        android:background="@color/widget_hairline" />
+
+    <!-- ─── APPS | BOARD ──────────────────────────────────────── -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="horizontal"
+        android:baselineAligned="false">
+
+        <LinearLayout
+            android:id="@+id/widget_apps_column"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/widget_apps_label"
+                android:textColor="@color/widget_text_mid"
+                android:textSize="10sp"
+                android:letterSpacing="0.12"
+                android:fontFamily="@font/space_grotesk_medium"
+                android:layout_marginBottom="6dp"
+                android:maxLines="1" />
+
+            <TextView android:id="@+id/widget_app_1" style="@style/WidgetRow" />
+            <TextView android:id="@+id/widget_app_2" style="@style/WidgetRow" />
+            <TextView android:id="@+id/widget_app_3" style="@style/WidgetRow" />
+        </LinearLayout>
+
+        <View
+            android:layout_width="1dp"
+            android:layout_height="match_parent"
+            android:layout_marginStart="14dp"
+            android:layout_marginEnd="14dp"
+            android:background="@color/widget_hairline" />
+
+        <LinearLayout
+            android:id="@+id/widget_board_column"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/widget_board_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/widget_board_label"
+                android:textColor="@color/widget_text_mid"
+                android:textSize="10sp"
+                android:letterSpacing="0.12"
+                android:fontFamily="@font/space_grotesk_medium"
+                android:layout_marginBottom="6dp"
+                android:maxLines="1" />
+
+            <TextView android:id="@+id/widget_board_1" style="@style/WidgetRow" />
+            <TextView android:id="@+id/widget_board_2" style="@style/WidgetRow" />
+            <TextView android:id="@+id/widget_board_3" style="@style/WidgetRow" />
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>

@@ -27,9 +27,9 @@ import android.util.Log
  *  - **The tick** catches the day rolling over. At midnight today's total
  *    becomes yesterday's and the widget must return to zero on its own; nothing
  *    else would tell it.
- *  - **[TodayWidgetProvider.refresh]** after a batch flush catches the ordinary
- *    case, and is why the number moves while someone is actually scrolling
- *    rather than up to fifteen minutes later.
+ *  - **[ScrollaWidgetProvider.refreshAll]** after a batch flush catches the
+ *    ordinary case, and is why the number moves while someone is actually
+ *    scrolling rather than up to fifteen minutes later.
  *
  * Inexact and non-wakeup, exactly like `TrackingHealthWatcher`: this must never
  * wake a sleeping phone to redraw a number nobody is looking at. The next time
@@ -81,21 +81,23 @@ object ScrollaWidgets {
     }
 
     /**
-     * Carries [TodayWidgetProvider.ACTION_REFRESH], not
+     * Targets [WidgetRefreshReceiver], not a provider, and not
      * `ACTION_APPWIDGET_UPDATE`.
      *
-     * The framework ignores an `ACTION_APPWIDGET_UPDATE` that has no
-     * `EXTRA_APPWIDGET_IDS`, and an alarm scheduled once cannot know ids that
-     * change every time a widget is added or removed. Using it here would mean
-     * an alarm that fires correctly forever while the widget never changes —
-     * a failure with no symptom except a number that is always wrong.
+     * Two traps avoided here, both of which fail silently:
+     *
+     *  - The framework ignores an `ACTION_APPWIDGET_UPDATE` with no
+     *    `EXTRA_APPWIDGET_IDS`, and an alarm scheduled once cannot know ids
+     *    that change every time a widget is added or removed. That would be an
+     *    alarm firing correctly forever while the number never moved.
+     *  - A `PendingIntent` names **one** component, so aiming it at
+     *    `TodayWidgetProvider` would refresh the small size only and leave a
+     *    medium or large widget on the same home screen frozen.
      */
     private fun pendingIntent(context: Context): PendingIntent = PendingIntent.getBroadcast(
         context,
         REQUEST_CODE,
-        Intent(context, TodayWidgetProvider::class.java).apply {
-            action = TodayWidgetProvider.ACTION_REFRESH
-        },
+        Intent(context, WidgetRefreshReceiver::class.java),
         PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
     )
 }

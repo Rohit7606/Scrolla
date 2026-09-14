@@ -19,4 +19,23 @@
     <string name="widget_placeholder_value">0</string>
     <string name="widget_placeholder_unit">m</string>
     <string name="widget_placeholder_landmark">start scrolling to see your distance</string>
+
+    <!-- Medium (S3.9) -->
+    <string name="widget_medium_description">Scroll distance and your group standing</string>
+    <string name="widget_standing_label">STANDING</string>
+    <string name="widget_placeholder_rank">--</string>
+    <string name="widget_placeholder_rank_detail">join a group to compare</string>
+    <string name="widget_rank_detail">of %1$d today in %2$s</string>
+    <string name="widget_no_group">join a group to compare</string>
+
+    <!-- Large (S3.9) -->
+    <string name="widget_large_description">Your week, your apps and your group</string>
+    <string name="widget_chart_description">Scroll distance for the last seven days</string>
+    <string name="widget_apps_label">TOP APPS</string>
+    <string name="widget_board_label">GROUP</string>
+    <string name="widget_row_empty">--</string>
+    <string name="widget_no_apps_yet">nothing yet today</string>
+    <!-- Matches LEADERBOARD_SELF_NAME so the widget and the Group tab refer to
+         the same person the same way. -->
+    <string name="widget_board_self">You</string>
 </resources>
