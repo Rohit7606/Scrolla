@@ -1076,3 +1076,42 @@ worth checking rather than assuming. It turns out to be safe:
 `bestEligibleDay` requires an active-hour span read from `scroll_events`, and
 per-app events never leave the device, so every past day fails eligibility on
 a fresh install. The span rule protects the record by accident.
+
+### 2.6 found a launch blocker: the release build cannot sign in
+
+```
+E MainActivity: Sign-in failed: Google sign-in failed (code 10)
+```
+
+Code 10 is `DEVELOPER_ERROR`, which for Google Sign-In means the app's signing
+certificate is not registered against the OAuth client. Root cause confirmed by
+comparing the keystores directly:
+
+| | SHA-1 | in `google-services.json` |
+|---|---|---|
+| debug | `B0:A6:93:BF:F2:66:56:B2:BB:D1:30:BD:18:0A:E9:2E:8E:CF:95:E7` | **yes** |
+| **release** | `7B:D4:DA:E0:C0:84:EA:47:E1:18:61:B5:7B:19:93:15:FA:5C:B6:43` | **no** |
+
+Only the debug certificate has ever been registered in Firebase.
+
+**What this means.** The release APK — the signed, minified, 4.6 MB one built
+for handing to fifty people — **cannot sign in at all**. Everything in Scrolla
+is behind Google sign-in: the leaderboard, groups, sync, the personal backup,
+even reaching Home. A user receiving that APK gets a sign-in button that fails
+and no way past it.
+
+It has read as "release build works" since `aaa6003` because the build was
+verified to *compile, sign, install and launch*. Nobody had pressed the button.
+The app looked fine right up to the only action a new user can take.
+
+**The fix is a console action, not a code change.** Add the release SHA-1 to
+the Android app under Firebase Project Settings, then download the regenerated
+`google-services.json` and commit it — it will gain a second `oauth_client`
+entry for that certificate. No app code moves.
+
+**Do not hand out the release APK until this is done and re-tested.** The debug
+build is unaffected and remains the right thing to give Monish for 1.4.
+
+This is the clearest vindication of the rule at the top of AGENTS.md that this
+project has produced: correct from every angle except the one nobody looked
+from.

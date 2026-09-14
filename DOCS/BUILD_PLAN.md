@@ -26,7 +26,7 @@ each stage is defined by what it unblocks, not by how interesting it is.
 | Battery | **0.36 %** (14.1 mAh) — and 82 % of that is network, not tracking |
 | Storage | 686 rows/day → **18.2 MB/year** |
 | Tests | **153 unit** — incl. 8 Compose screen tests and 6 migration tests |
-| Release build | Signed, minified, 4.6 MB, **runs** — verified on an emulator |
+| Release build | Signed, minified, 4.64 MB, runs — but **cannot sign in** (2.6a) |
 | Devices ever tested | **1** |
 | Crash visibility | Crashlytics files correct non-fatals, verified on device. **Delivery waits for a process restart** (1.2e) |
 
@@ -343,10 +343,43 @@ Espresso does not fix it. Running on the JVM also puts them in the ordinary
 attach a device. A genuine on-device run still needs an API ≤ 36 image
 downloaded.
 
-### 2.6 — Release build on a real device
+### 2.6 — Release build 🔴 **LAUNCH BLOCKER FOUND** *(2026-09-14)*
 
 The signed-in paths — Room reads, Firestore sync, group flows — are all behind
-Google sign-in and have never run minified. Needs one phone on a release build.
+Google sign-in and had never run minified.
+
+**The release build cannot sign in.** `Sign-in failed: Google sign-in failed
+(code 10)` — `DEVELOPER_ERROR`, the signing certificate is not registered
+against the OAuth client. Only the **debug** SHA-1 is in
+`google-services.json`:
+
+| | SHA-1 | registered |
+|---|---|---|
+| debug | `B0:A6:93:…:8E:CF:95:E7` | yes |
+| **release** | `7B:D4:DA:E0:C0:84:EA:47:E1:18:61:B5:7B:19:93:15:FA:5C:B6:43` | **no** |
+
+Everything is behind sign-in, so the APK meant for fifty people is unusable —
+a button that fails and no way past it. It has read as "release build works"
+since `aaa6003` because that verified compile, sign, install and launch.
+Nobody had pressed the button.
+
+- [ ] **2.6a** 🔴 Add the release SHA-1 in Firebase Project Settings → Android
+      app → Add fingerprint. **Rohit only — console access.** Then download the
+      regenerated `google-services.json` (it gains a second `oauth_client`) and
+      commit it. No app code changes.
+- [ ] **2.6b** Re-run sign-in on the release build and confirm code 10 is gone.
+- [ ] **2.6c** Then the rest of what 2.6 was for: Firestore sync, Room reads
+      through the UI, and group flows, all minified.
+
+**Everything else about the release build is verified** (2026-09-14, emulator,
+`flags=0x0`): launches, Compose renders, accessibility service binds, scroll
+measured at `deltaCm=4.09575`, `BatchFlush: Successfully flushed batch`,
+Crashlytics activated, and a sweep of the whole log for `ClassNotFoundException`
+/ `NoSuchMethodError` / `VerifyError` and friends found nothing. R8 is not the
+problem; the certificate is.
+
+**Until 2.6a is done, do not hand out the release APK.** The debug build is
+unaffected and is what 1.4 should use.
 
 ### 2.7 — Offline is not failure
 
