@@ -100,6 +100,34 @@ adb exec-out run-as com.scrolla cat \
 #   SELECT appPackage, SUM(scrollCm) FROM scroll_events GROUP BY appPackage;
 ```
 
+### On Windows, that redirect will silently corrupt the file
+
+**Run it in Git Bash, not PowerShell or cmd.** PowerShell rewrites the byte
+stream on `>`, which destroys a SQLite file and says nothing about it.
+Measured on 2026-09-14 against the same database:
+
+| | bytes | result |
+|---|---|---|
+| on device | 655,360 | — |
+| Git Bash `>` | 655,360 | `integrity_check: ok`, 7,861 events |
+| **PowerShell `>`** | **768,060** | **`file is not a database (26)`** |
+
+That is 112,700 bytes of CRLF translation injected into a binary. Nothing
+warns you — the file exists, it is a plausible size, and it is unopenable. If
+the only copy of someone's history were in it, it would be gone.
+
+If you must use PowerShell, go through base64:
+
+```powershell
+adb shell "run-as com.scrolla base64 /data/data/com.scrolla/databases/scrolla_database" > b64.txt
+certutil -decode b64.txt clean.db
+```
+
+Note also that **`run-as` only works on debug builds**. A phone carrying a
+release build cannot have its database read at all, so a signing-key change
+that forces an uninstall takes the history with it and no backup is possible
+first.
+
 `Bound services:` is the one that matters. `accessibility_enabled = 1` only
 means the switch is on; we have seen a device report the service as enabled
 while `Bound services:{}` — switched on and not running. If those two disagree
