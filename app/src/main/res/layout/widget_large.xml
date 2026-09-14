@@ -3,14 +3,23 @@
     Large widget, 4x4 (SPRINT_LOG S3.9): the week, what it went into, and where
     it puts you.
 
-    Three bands, in the order someone reads them: the figure and the week above
-    it, then the two lists side by side. The apps answer "where did it go" and
-    the board answers "how am I doing" — different questions, so they sit in
-    different columns rather than one long list.
+    Four bands, in the order someone reads them: the figure with the week beside
+    it, the week's shape as three numbers, then the two lists side by side. The
+    apps answer "where did it go" and the board answers "how am I doing" —
+    different questions, so they sit in different columns rather than one long
+    list.
+
+    **The stats strip exists because a 4x4 has to earn its cell.** On device
+    2026-09-14 this widget rendered correctly and still looked broken: a figure,
+    a chart and three app rows filled the top half and left the bottom half
+    empty, because the group column hides itself when there is no honest board
+    (`standingOf`) and this user has no synced group yet — the state every new
+    user is in. Three totals off the seven days already loaded fill it with
+    something true rather than with padding.
 
     Rows are fixed TextViews rather than a collection. RemoteViews lists need a
     RemoteViewsService and a bound adapter, which is a service, a connection and
-    a whole extra failure mode for three rows that never grow.
+    a whole extra failure mode for five rows that never grow.
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/widget_root"
@@ -79,7 +88,7 @@
         <ImageView
             android:id="@+id/widget_chart"
             android:layout_width="0dp"
-            android:layout_height="46dp"
+            android:layout_height="52dp"
             android:layout_weight="1"
             android:layout_marginStart="16dp"
             android:layout_gravity="bottom"
@@ -99,7 +108,7 @@
         android:maxLines="1"
         android:ellipsize="end" />
 
-        <!-- ImageView, not View. `android.view.View` is NOT on the RemoteViews
+    <!-- ImageView, not View. `android.view.View` is NOT on the RemoteViews
          allowed-class list, and inflating one replaces the whole widget with
          "Can't load widget" on the user's home screen — seen on device
          2026-09-14. The allowed set is FrameLayout, LinearLayout,
@@ -108,12 +117,115 @@
     <ImageView
         android:layout_width="match_parent"
         android:layout_height="1dp"
-        android:layout_marginTop="14dp"
+        android:layout_marginTop="12dp"
         android:layout_marginBottom="12dp"
         android:background="@color/widget_hairline"
         android:importantForAccessibility="no" />
 
+    <!-- ─── THE WEEK IN THREE NUMBERS ─────────────────────────── -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:baselineAligned="false">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/widget_week_total_label"
+                android:textColor="@color/widget_text_mid"
+                android:textSize="9sp"
+                android:letterSpacing="0.12"
+                android:fontFamily="@font/space_grotesk_medium"
+                android:maxLines="1" />
+
+            <TextView
+                android:id="@+id/widget_week_total"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="@string/widget_row_empty"
+                android:textColor="@color/widget_text_hi"
+                android:textSize="15sp"
+                android:fontFamily="@font/inter_regular"
+                android:maxLines="1" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/widget_week_avg_label"
+                android:textColor="@color/widget_text_mid"
+                android:textSize="9sp"
+                android:letterSpacing="0.12"
+                android:fontFamily="@font/space_grotesk_medium"
+                android:maxLines="1" />
+
+            <TextView
+                android:id="@+id/widget_week_avg"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="@string/widget_row_empty"
+                android:textColor="@color/widget_text_hi"
+                android:textSize="15sp"
+                android:fontFamily="@font/inter_regular"
+                android:maxLines="1" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/widget_week_best_label"
+                android:textColor="@color/widget_text_mid"
+                android:textSize="9sp"
+                android:letterSpacing="0.12"
+                android:fontFamily="@font/space_grotesk_medium"
+                android:maxLines="1" />
+
+            <TextView
+                android:id="@+id/widget_week_best"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="@string/widget_row_empty"
+                android:textColor="@color/widget_text_hi"
+                android:textSize="15sp"
+                android:fontFamily="@font/inter_regular"
+                android:maxLines="1" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <ImageView
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="12dp"
+        android:layout_marginBottom="4dp"
+        android:background="@color/widget_hairline"
+        android:importantForAccessibility="no" />
+
     <!-- ─── APPS | BOARD ──────────────────────────────────────── -->
+    <!-- The band takes the slack and centres its columns in it, so leftover
+         height splits above and below the lists instead of pooling under them.
+         Two apps and a five-person board must both look deliberate. -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
@@ -124,7 +236,8 @@
         <LinearLayout
             android:id="@+id/widget_apps_column"
             android:layout_width="0dp"
-            android:layout_height="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_vertical"
             android:layout_weight="1"
             android:orientation="vertical">
 
@@ -142,26 +255,27 @@
             <TextView android:id="@+id/widget_app_1" style="@style/WidgetRow" />
             <TextView android:id="@+id/widget_app_2" style="@style/WidgetRow" />
             <TextView android:id="@+id/widget_app_3" style="@style/WidgetRow" />
+            <TextView android:id="@+id/widget_app_4" style="@style/WidgetRow" />
+            <TextView android:id="@+id/widget_app_5" style="@style/WidgetRow" />
         </LinearLayout>
 
-            <!-- ImageView, not View. `android.view.View` is NOT on the RemoteViews
-         allowed-class list, and inflating one replaces the whole widget with
-         "Can't load widget" on the user's home screen — seen on device
-         2026-09-14. The allowed set is FrameLayout, LinearLayout,
-         RelativeLayout, GridLayout plus a fixed list of widgets; a plain View
-         is not in it, and nothing warns you at build time. -->
-    <ImageView
+        <!-- Has an id so it can hide with the column it separates. Without one
+             the hairline stayed behind when the board went GONE and sat alone
+             against the right edge of the card — seen on device 2026-09-14. -->
+        <ImageView
+            android:id="@+id/widget_board_divider"
             android:layout_width="1dp"
             android:layout_height="match_parent"
             android:layout_marginStart="14dp"
             android:layout_marginEnd="14dp"
             android:background="@color/widget_hairline"
-        android:importantForAccessibility="no" />
+            android:importantForAccessibility="no" />
 
         <LinearLayout
             android:id="@+id/widget_board_column"
             android:layout_width="0dp"
-            android:layout_height="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_vertical"
             android:layout_weight="1"
             android:orientation="vertical">
 
@@ -180,6 +294,8 @@
             <TextView android:id="@+id/widget_board_1" style="@style/WidgetRow" />
             <TextView android:id="@+id/widget_board_2" style="@style/WidgetRow" />
             <TextView android:id="@+id/widget_board_3" style="@style/WidgetRow" />
+            <TextView android:id="@+id/widget_board_4" style="@style/WidgetRow" />
+            <TextView android:id="@+id/widget_board_5" style="@style/WidgetRow" />
         </LinearLayout>
     </LinearLayout>
 </LinearLayout>

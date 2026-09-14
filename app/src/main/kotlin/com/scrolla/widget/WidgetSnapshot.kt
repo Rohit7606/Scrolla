@@ -40,7 +40,35 @@ data class WidgetSnapshot(
 ) {
     data class BoardRow(val displayName: String, val km: Float, val isSelf: Boolean)
 
+    data class WeekStats(val totalKm: Float, val averageKm: Float, val bestKm: Float)
+
+    /**
+     * The three numbers the large widget puts under the chart.
+     *
+     * **The average divides by seven, not by the rows that exist.** A day with
+     * no scroll_events has no row, and dividing by rows-present would quietly
+     * report the average of the days someone used their phone — which is always
+     * higher, and is not what "daily average" means to the person reading it. A
+     * quiet day is a real day and it counts against the average; on a reverse
+     * leaderboard that is the direction that flatters, so getting it wrong
+     * would flatter in the wrong direction too.
+     *
+     * Pure over [week] so it can be asserted on directly rather than read off a
+     * home screen.
+     */
+    fun weekStats(): WeekStats {
+        val total = week.sumOf { it.totalKm.toDouble() }.toFloat()
+        return WeekStats(
+            totalKm = total,
+            averageKm = total / WEEK_DAYS,
+            bestKm = week.maxOfOrNull { it.totalKm } ?: 0f
+        )
+    }
+
     companion object {
+        /** The window the chart and the average both mean by "the week". */
+        const val WEEK_DAYS = 7
+
         private const val TAG = "WidgetSnapshot"
 
         /**
@@ -58,7 +86,7 @@ data class WidgetSnapshot(
             val repo = ScrollaGraph.scrollRepository
 
             val todayKm = repo.getTodayTotalKm()
-            val week = repo.getRecentDailyTotals(7).sortedBy { it.day }
+            val week = repo.getRecentDailyTotals(WEEK_DAYS).sortedBy { it.day }
             val topApps = repo.getTodayTopApps()
 
             var standing: GroupStanding? = null

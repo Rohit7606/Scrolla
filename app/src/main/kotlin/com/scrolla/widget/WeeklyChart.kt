@@ -23,6 +23,38 @@ import java.time.LocalDate
 object WeeklyChart {
 
     /**
+     * The chart as the widgets want it: today's colours, today's date, sizes in
+     * dp.
+     *
+     * Two sizes draw this now — the medium widget when it has no honest rank to
+     * show, and the large one always. Both wanted the same accent-for-today
+     * rule and the same dp-to-px conversion, and the third caller is the one
+     * that reimplements it slightly differently and loses something; that has
+     * already happened once on this project, with `landmarkComparison`.
+     */
+    fun forWidget(
+        context: android.content.Context,
+        days: List<DailyTotal>,
+        widthDp: Int,
+        heightDp: Int
+    ): Bitmap = render(
+        days = days,
+        today = LocalDate.now(),
+        widthPx = dp(context, widthDp),
+        heightPx = dp(context, heightDp),
+        barColor = context.getColor(com.scrolla.R.color.widget_text_mid),
+        todayColor = context.getColor(com.scrolla.R.color.widget_accent)
+    )
+
+    /** RemoteViews works in pixels; the chart needs a real size to draw into. */
+    private fun dp(context: android.content.Context, value: Int): Int =
+        android.util.TypedValue.applyDimension(
+            android.util.TypedValue.COMPLEX_UNIT_DIP,
+            value.toFloat(),
+            context.resources.displayMetrics
+        ).toInt()
+
+    /**
      * @param days up to seven totals, oldest first. Missing days are drawn as
      *   empty slots rather than skipped, because a gap in a week is information
      *   — a bar chart that closes up around absent days shows a tidier week
