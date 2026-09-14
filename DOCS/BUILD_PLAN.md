@@ -351,7 +351,7 @@ been done.
       different key must export before updating, and `run-as` cannot rescue
       them afterwards. This has already happened once, to Monish.
 
-### 2.2 — Firebase budget alert 🟡 *(console only — Rohit)*
+### 2.2 — Firebase budget alert ✅ *(closed 2026-09-14 — Spark, nothing to cap)*
 
 *(was S3.13)* Checked properly on 2026-09-14, and the item is not quite what it
 said.
@@ -401,10 +401,19 @@ it is a real answer rather than a default. Only move to Blaze for a feature
 that needs it, and know that the ceiling becomes a notification rather than a
 limit when you do.
 
-- [ ] **2.2a** Check the plan.
-- [ ] **2.2b** If Spark: write "Spark, no billing account, nothing to cap" here
-      and close. If Blaze: set the alerts-only budget and note that Firestore
-      cannot be spend-capped.
+- [x] **2.2a** Checked: **Spark**. No billing account, so a surprise bill is
+      not possible and there is nothing to cap. Confirmed by Rohit 2026-09-14.
+- [x] **2.2b** Closed. Crashlytics (1.2) and App Distribution (2.1a) are both
+      no-cost on Spark, so nothing built this week moves the project off it.
+      The number to watch is **Firestore reads**, not money: measured from the
+      code, a sync pass costs **4 reads and 1 write per group the user is in**,
+      so fifty people in two groups each at hourly background sync is ~9,600
+      reads and ~2,400 writes a day, plus leaderboard views. Roughly 29 % of
+      reads and 12 % of writes.
+- [ ] **2.2c** *(new)* `users/{uid}/groups` is **read twice per sync pass** —
+      once in `triggerFirestoreSync`, once in `getUserGroups` inside
+      `updateGroupRecords`. That is a quarter of the sync read load for
+      nothing. Not urgent at this headroom, but it is free to fix.
 
 ### 2.3 — The screens nobody has ever run 🟡 *(empty states covered 2026-09-14)*
 
@@ -600,7 +609,16 @@ Not bugs to be rediscovered — decisions, with reasons.
 ## Open reviews
 
 - **REVIEW_LOG #10** — the `users/{uid}/dailyTotals` rules are **live and
-  unreviewed**. Reviews #2 and #4 each caught a real bug; #4 found that group
+  unreviewed**.
+
+  **And nobody can currently diff live against the repo.** Until 2026-09-14
+  there was no `firebase.json` or `.firebaserc`, so the rules have only ever
+  been deployed by pasting them into the console — which is why the repo copy
+  and the live copy cannot be compared, and why this project once believed the
+  rules were undeployed for eleven days while they were live. Both files now
+  exist and `firebase deploy --only firestore:rules --dry-run` reports the repo
+  copy compiles, so **future changes can be deployed from the repo and reviewed
+  as a diff**. Nothing has been deployed; #10 still needs Monish. Reviews #2 and #4 each caught a real bug; #4 found that group
   joining had never worked at all. Worth Monish's eyes even with the A/B split
   dropped.
 - **REVIEW_LOG #8** stays "changes required" until whoever reviews closes it.
