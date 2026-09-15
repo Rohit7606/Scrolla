@@ -375,10 +375,17 @@ class ScrollRepositoryImpl(
                         ).await()
                 }
 
+                // The week windows are logged because "most improved" is a
+                // feature whose entire output is silence until several
+                // conditions line up (BUILD_PLAN 3.3), and a silent feature that
+                // is working looks exactly like a silent feature that is broken.
+                // This is the only place to see whether this device contributed
+                // a baseline at all.
                 Log.d(
                     tag,
                     "triggerFirestoreSync() successfully synced ${memberships.size} group(s) " +
-                        "for user=$userId, date=$date, totalKm=$totalKm"
+                        "for user=$userId, date=$date, totalKm=$totalKm, " +
+                        "last7Km=${windows.last7Km}, prev7Km=${windows.prev7Km}"
                 )
             }
 
