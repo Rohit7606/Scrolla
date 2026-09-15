@@ -3,6 +3,7 @@ package com.scrolla.ui.screens
 import android.content.Context
 import android.util.Log
 import android.os.Build
+import com.scrolla.BuildConfig
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.scrolla.auth.AuthRepository
@@ -10,6 +11,8 @@ import com.scrolla.firestore.GroupRepository
 import com.scrolla.room.ScrollRepository
 import com.scrolla.room.ScrollaDatabase
 import com.scrolla.room.ServiceHealthState
+import com.scrolla.update.UpdateCheck
+import com.scrolla.update.UpdateRepository
 import com.scrolla.ui.ScrollaGraph
 import com.scrolla.ui.ScrollaMessages
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -29,7 +32,14 @@ data class SettingsUiState(
     val deleteError: String? = null,
     val isClearingHistory: Boolean = false,
     /** Non-null once a clear finishes — success or failure, both reported. */
-    val clearHistoryResult: String? = null
+    val clearHistoryResult: String? = null,
+    val appVersion: String = BuildConfig.VERSION_NAME,
+    /**
+     * The newer version on GitHub, or null when there is none or we could not
+     * find out. Both are "offer nothing" — an update prompt that cannot be
+     * verified is worse than no prompt, because it cannot be dismissed either.
+     */
+    val updateVersion: String? = null
 )
 
 /**
@@ -41,7 +51,8 @@ data class SettingsUiState(
 class SettingsViewModel(
     private val authRepository: AuthRepository = AuthRepository(),
     private val scrollRepository: ScrollRepository = ScrollaGraph.scrollRepository,
-    private val groupRepository: GroupRepository = GroupRepository()
+    private val groupRepository: GroupRepository = GroupRepository(),
+    private val updateRepository: UpdateRepository = UpdateRepository()
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SettingsUiState())
@@ -54,6 +65,17 @@ class SettingsViewModel(
             // A linked phone shows up as a second provider on the same account.
             phoneLinked = user?.providerData?.any { it.providerId == "phone" } == true
         )
+
+        // Scrolla is installed outside the Play Store, so nothing else in the
+        // world will ever tell anyone a new build exists. Checked on open
+        // rather than on a schedule: one anonymous GET, and Settings is where
+        // someone already goes when they suspect something is out of date.
+        viewModelScope.launch {
+            val latest = updateRepository.latestVersion()
+            if (UpdateCheck.isNewer(latest, BuildConfig.VERSION_NAME)) {
+                _uiState.value = _uiState.value.copy(updateVersion = latest?.removePrefix("v"))
+            }
+        }
 
         viewModelScope.launch {
             scrollRepository.observeServiceHealth().collect { health ->

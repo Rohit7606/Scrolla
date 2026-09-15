@@ -71,6 +71,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.scrolla.model.DistanceFormatter
+import com.scrolla.update.UpdateCheck
 import com.scrolla.ui.ScrollaGraph
 import com.scrolla.ui.ScrollaMessages
 import androidx.compose.runtime.rememberCoroutineScope
@@ -260,6 +261,19 @@ fun MainShell(
                     deviceOem = settingsState.deviceOem,
                     displayName = settingsState.displayName,
                     phoneLinked = settingsState.phoneLinked,
+                    appVersion = settingsState.appVersion,
+                    updateVersion = settingsState.updateVersion,
+                    onUpdateClick = {
+                        // Handed to the browser and the system installer rather
+                        // than downloaded in-app: that needs
+                        // REQUEST_INSTALL_PACKAGES and a PackageInstaller
+                        // session whose failure modes all end with a
+                        // half-installed app on someone else's phone. This is
+                        // the same flow they already completed once.
+                        context.startActivity(
+                            Intent(Intent.ACTION_VIEW, Uri.parse(UpdateCheck.DOWNLOAD_URL))
+                        )
+                    },
                     onBackClick = popBackStack,
                     onSignOutClick = {
                         settingsViewModel.signOut(context)

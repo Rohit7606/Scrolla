@@ -184,6 +184,51 @@ step, not a blocker.
 
 ---
 
+## Part A0 — The install path testers actually use *(2026-09-15)*
+
+**One APK, from GitHub Releases. App Tester is no longer in the flow.**
+
+App Distribution's install route asks someone to sign in with Google, install
+Google's 20 MB App Tester, sign in again, and only then install Scrolla — about
+ten steps, two of them installing something that is not this app. That is not a
+beta anyone finishes, and App Tester bought exactly one thing in return: telling
+people a new build had landed.
+
+The current path:
+
+```
+https://github.com/Rohit7606/scrolla-releases/releases/latest/download/scrolla.apk
+```
+
+One permanent URL that always redirects to the newest asset (verified: 302 to
+the current release). Download, install, open. No Google account to get the
+file, no second app.
+
+Send the landing page rather than that URL directly — it explains the game,
+names the awkward steps before they happen, and carries the group code:
+
+```
+https://claude.ai/artifact/TzvybJHHWDWYDN3JPJx6C7?g=GUW4YE
+```
+
+**What was lost, and what replaced it.** App Tester's update notifications.
+Scrolla now checks GitHub itself and offers the download under Settings →
+Version (`com.scrolla.update`). That is weaker than a push notification and
+nobody should pretend otherwise: it is seen only by someone who opens Settings.
+It is also the only option that does not cost a second install.
+
+**What none of this fixes.** Every route here is a sideload, so every tester
+still meets the Android 13+ restricted-settings step. Only a Play Store install
+avoids that, and Play is ruled out on cost (BUILD_PLAN 2.1a). If that decision
+is ever revisited, the restricted-settings step is what the money buys — not
+distribution, which works fine.
+
+**App Distribution is still live** and still worth keeping: it is the managed
+channel with an email allowlist, and `release.sh` publishes to both. It is no
+longer what a new tester is sent to.
+
+---
+
 ## Part B — GitHub Releases, for Obtainium
 
 The channel that does not depend on Firebase continuing to be free, and the one

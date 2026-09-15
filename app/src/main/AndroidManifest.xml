@@ -31,6 +31,15 @@
     -->
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
 
+    <!--
+        Declared explicitly, though Firebase's manifest already merges it in.
+        Scrolla now makes its own HTTP call (the update check), so relying on
+        a transitive dependency to grant the permission would mean removing or
+        upgrading a library could silently switch update checking off, with no
+        build error and nothing to see on a device.
+    -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"

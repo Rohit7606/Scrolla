@@ -109,6 +109,10 @@ fun SettingsScreen(
     // argument away from being shown to a user as their own data (P4.2).
     displayName: String = "",
     phoneLinked: Boolean = false,
+    appVersion: String = "1.0",
+    /** Non-null when a newer build is published. See [com.scrolla.update.UpdateCheck]. */
+    updateVersion: String? = null,
+    onUpdateClick: () -> Unit = {},
     onBackClick: () -> Unit = {},
     onFixBatteryClick: () -> Unit = {},
     onEditNameClick: () -> Unit = {},
@@ -442,6 +446,24 @@ fun SettingsScreen(
                             .padding(horizontal = spacing.medium)
                             .bentoCard(padding = 0.dp) // Tightly pack the items
                     ) {
+                        // Installed outside the Play Store, so nothing else
+                        // will ever tell anyone a new build exists. Ordinary
+                        // text, never the accent — coral means "you, here,
+                        // now" and an app version is none of those.
+                        SettingsItem(
+                            label = ScrollaStrings.SETTINGS_VERSION_LABEL,
+                            value = updateVersion
+                                ?.let { String.format(ScrollaStrings.SETTINGS_UPDATE_TEMPLATE, it) }
+                                ?: appVersion,
+                            onClick = onUpdateClick,
+                            enabled = updateVersion != null
+                        )
+
+                        androidx.compose.material3.HorizontalDivider(
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
+                            modifier = Modifier.padding(horizontal = 16.dp)
+                        )
+
                         SettingsItem(
                             label = ScrollaStrings.SETTINGS_DISPLAY_NAME_LABEL,
                             // Real data when Auth has it. Blank is possible —

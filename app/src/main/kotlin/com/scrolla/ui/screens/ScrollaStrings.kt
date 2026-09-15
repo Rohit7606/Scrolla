@@ -252,6 +252,12 @@ object ScrollaStrings {
 
     // Account
     const val SETTINGS_ACCOUNT_SECTION = "Account"
+
+    const val SETTINGS_VERSION_LABEL = "Version"
+    /** Shown in place of the version when a newer build is published.
+     *  Tapping opens the download. Scrolla is installed outside the Play
+     *  Store, so nothing else will ever tell anyone an update exists. */
+    const val SETTINGS_UPDATE_TEMPLATE = "Update to %s"
     const val SETTINGS_NOT_YET_AVAILABLE = "Not yet available"
     /**
      * The caption that travels with the recap card (BUILD_PLAN 3.2).

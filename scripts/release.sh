@@ -120,7 +120,18 @@ elif ! command -v gh >/dev/null 2>&1; then
 else
   git tag -a "$TAG" -m "$NOTES"
   git push origin "$TAG"
-  gh release create "$TAG" "$APK" \
+  # Uploaded as scrolla.apk, not app-release.apk. Two reasons, both about the
+  # person downloading it: the filename is what they see in the downloads tray
+  # and in the install dialog, and "app-release.apk" arriving from an unknown
+  # source is exactly what a malicious file looks like. It also makes
+  #
+  #   https://github.com/OWNER/REPO/releases/latest/download/scrolla.apk
+  #
+  # one permanent URL that always serves the newest build — which is the whole
+  # install channel now that the App Tester step is gone.
+  NAMED_APK="$(dirname "$APK")/scrolla.apk"
+  cp "$APK" "$NAMED_APK"
+  gh release create "$TAG" "$NAMED_APK" \
     --repo "$RELEASE_REPO" \
     --title "Scrolla ${VERSION_NAME}" \
     --notes "$NOTES"
