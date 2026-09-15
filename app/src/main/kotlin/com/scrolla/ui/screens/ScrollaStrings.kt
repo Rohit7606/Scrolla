@@ -112,6 +112,9 @@ object ScrollaStrings {
     // =========================================
     const val LEADERBOARD_TITLE = "Leaderboard"
     const val LEADERBOARD_MOST_IMPROVED = " has improved most this week"
+
+    /** The same line when the winner is the reader. */
+    const val LEADERBOARD_MOST_IMPROVED_SELF = " have improved most this week"
     const val LEADERBOARD_MOST_CONSISTENT = "is most consistent this week"
     const val LEADERBOARD_STAT_TODAY = "today"
     const val LEADERBOARD_STAT_YESTERDAY = "yesterday"

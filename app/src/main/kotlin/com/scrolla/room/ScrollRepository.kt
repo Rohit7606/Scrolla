@@ -2,6 +2,7 @@ package com.scrolla.room
 
 import android.util.Log
 import com.scrolla.firestore.GroupMembershipRef
+import com.scrolla.ui.screens.WeeklyWindow
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
@@ -190,6 +191,43 @@ class ScrollRepositoryImpl(
         }
     }
 
+    /** This week and the one before it, each null when there is no data in it. */
+    private data class WeekWindows(val last7Km: Float?, val prev7Km: Float?)
+
+    /**
+     * The two seven-day totals `mostImprovedOf` compares.
+     *
+     * Fourteen **rows**, narrowed to two calendar windows by [WeeklyWindow] —
+     * the guard that exists because `ORDER BY day DESC LIMIT n` returns the n
+     * most recent rows and a quiet day has no row at all. Without it, a device
+     * with gaps would report a fortnight of scrolling as one week, which is the
+     * bug that once made Weekly Recap claim 595 m for a real total of one metre.
+     *
+     * Null rather than 0f when a window is empty. Absent is not zero, and here
+     * the difference decides whether someone is eligible for an award at all.
+     */
+    private suspend fun weekWindows(): WeekWindows {
+        return try {
+            val today = LocalDate.now()
+            val history = dailyTotalDao.getRecentDays(WeeklyWindow.WINDOW_DAYS * 2)
+            val thisWeek = WeeklyWindow.rowsWithin(history, today)
+            val lastWeek = WeeklyWindow.rowsWithin(
+                history,
+                today.minusDays(WeeklyWindow.WINDOW_DAYS.toLong())
+            )
+            WeekWindows(
+                last7Km = thisWeek.takeIf { it.isNotEmpty() }?.map { it.totalKm }?.sum(),
+                prev7Km = lastWeek.takeIf { it.isNotEmpty() }?.map { it.totalKm }?.sum()
+            )
+        } catch (e: Exception) {
+            // A failure here must not cost the totals upload, which is the
+            // write the leaderboard actually depends on. No windows simply
+            // means no most-improved this pass.
+            Log.e(tag, "weekWindows() failed", e)
+            WeekWindows(null, null)
+        }
+    }
+
     override suspend fun getTodayPeakHour(): Int? {
         return try {
             scrollEventDao.getPeakHourForDay(today())?.hourBucket
@@ -296,6 +334,14 @@ class ScrollRepositoryImpl(
         val date = today()
         try {
             val totalKm = getTodayTotalKm()
+
+            // The two week totals ride along in the same document (BUILD_PLAN
+            // 3.3). Each device writes its own, so reading the board reads
+            // everybody's and "most improved" costs no Firestore reads at all —
+            // the alternative was fourteen days x N members per view, which
+            // would have undone 2.2c several times over.
+            val windows = weekWindows()
+
             withTimeout(15_000L) {
                 // The memberships are passed in rather than read here
                 // (BUILD_PLAN 2.2c). This method used to fetch
@@ -312,13 +358,19 @@ class ScrollRepositoryImpl(
                         .collection("groups").document(groupId)
                         .collection("dailyTotals").document(docId)
                         .set(
-                            mapOf(
-                                "userId" to userId,
-                                "date" to date,
-                                "displayName" to displayName,
-                                "totalKm" to totalKm,
-                                "updatedAt" to FieldValue.serverTimestamp()
-                            ),
+                            buildMap {
+                                put("userId", userId)
+                                put("date", date)
+                                put("displayName", displayName)
+                                put("totalKm", totalKm)
+                                put("updatedAt", FieldValue.serverTimestamp())
+                                // Omitted, never written as zero. A member with
+                                // no previous week has no baseline, and a 0.0
+                                // there would make someone who joined on Friday
+                                // look like the worst backslider in the group.
+                                windows.last7Km?.let { put("last7Km", it) }
+                                windows.prev7Km?.let { put("prev7Km", it) }
+                            },
                             SetOptions.merge()
                         ).await()
                 }

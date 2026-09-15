@@ -34,7 +34,13 @@ data class LeaderboardUiState(
      * true thing we knew — but "1 of 1 synced today" is a claim about right
      * now, and from cache it can be hours old.
      */
-    val isFromCache: Boolean = false
+    val isFromCache: Boolean = false,
+    /**
+     * Who cut their scrolling most this week, or null when there is no honest
+     * answer (BUILD_PLAN 3.3). See [mostImprovedOf] for the five ways there
+     * isn't one.
+     */
+    val mostImproved: MostImproved? = null
 )
 
 /**
@@ -194,6 +200,18 @@ class LeaderboardViewModel(
                 groups = groups,
                 activeGroup = active,
                 isFromCache = board.isFromCache,
+                // Computed from documents already in hand — the week totals ride
+                // along in each member's daily total, so this is free.
+                mostImproved = mostImprovedOf(
+                    board.totals.map {
+                        ImprovementCandidate(
+                            displayName = if (it.userId == userId) "You" else it.displayName,
+                            isSelf = it.userId == userId,
+                            last7Km = it.last7Km,
+                            prev7Km = it.prev7Km
+                        )
+                    }
+                ),
                 entries = board.totals.map {
                     LeaderboardEntry(
                         displayName = if (it.userId == userId) "You" else it.displayName,

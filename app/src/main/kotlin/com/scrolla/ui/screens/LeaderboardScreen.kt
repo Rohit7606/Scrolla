@@ -74,6 +74,9 @@ fun LeaderboardScreen(
     modifier: Modifier = Modifier,
     groupName: String = "College Friends",
     mostImprovedName: String? = "Lewis",
+    /** Changes the verb, nothing else. "You has improved most this week" is the
+     *  kind of thing that gets screenshotted. */
+    mostImprovedIsSelf: Boolean = false,
     entries: List<LeaderboardEntry> = listOf(
         LeaderboardEntry("Lewis", 1.2f),
         LeaderboardEntry("You", 2.3f, isSelf = true),
@@ -298,7 +301,11 @@ fun LeaderboardScreen(
                     tint = colors.improving
                 )
                 Text(
-                    text = "$mostImprovedName${ScrollaStrings.LEADERBOARD_MOST_IMPROVED}",
+                    text = mostImprovedName + if (mostImprovedIsSelf) {
+                        ScrollaStrings.LEADERBOARD_MOST_IMPROVED_SELF
+                    } else {
+                        ScrollaStrings.LEADERBOARD_MOST_IMPROVED
+                    },
                     style = ScrollaType.Caption,
                     color = colors.improving
                 )

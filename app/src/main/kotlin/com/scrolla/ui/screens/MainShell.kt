@@ -811,7 +811,8 @@ private fun MainTabsScreen(
                     LeaderboardScreen(
                         groupName = boardState.activeGroup?.groupName
                             ?: ScrollaStrings.LEADERBOARD_NO_GROUP_TITLE,
-                        mostImprovedName = null,
+                        mostImprovedName = boardState.mostImproved?.displayName,
+                        mostImprovedIsSelf = boardState.mostImproved?.isSelf == true,
                         entries = boardState.entries,
                         groupStats = boardState.groupStats ?: GroupStats(0f, 0f, 0f),
                         groupBestDay = boardState.groupBestDay,

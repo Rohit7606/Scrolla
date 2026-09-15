@@ -47,7 +47,19 @@ data class GroupMembershipRef(
 data class MemberDailyTotal(
     val userId: String,
     val displayName: String,
-    val totalKm: Float
+    val totalKm: Float,
+    /**
+     * This member's own seven-day totals, written by their own device during
+     * sync (BUILD_PLAN 3.3). Null when they have no data in that window —
+     * absent, not zero, which is what makes someone who joined on Friday
+     * ineligible for "most improved" rather than its biggest loser.
+     *
+     * They ride in this document rather than in a query of their own so the
+     * award costs no reads: fourteen days x N members per board view would have
+     * undone 2.2c several times over.
+     */
+    val last7Km: Float? = null,
+    val prev7Km: Float? = null
 )
 
 /**
@@ -282,7 +294,13 @@ class GroupRepository(
                 MemberDailyTotal(
                     userId = userId,
                     displayName = doc.getString("displayName") ?: "Unknown",
-                    totalKm = doc.getDouble("totalKm")?.toFloat() ?: return@mapNotNull null
+                    totalKm = doc.getDouble("totalKm")?.toFloat() ?: return@mapNotNull null,
+                    // Absent on every document written before 2026-09-15, and on
+                    // any member still running an older build. getDouble returns
+                    // null for a missing field, which is exactly the "no
+                    // baseline" case the award already refuses to rank.
+                    last7Km = doc.getDouble("last7Km")?.toFloat(),
+                    prev7Km = doc.getDouble("prev7Km")?.toFloat()
                 )
             }.sortedBy { it.totalKm }
 
