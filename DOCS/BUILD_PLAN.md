@@ -627,10 +627,23 @@ writer on `degradedReason`.
 
 Ordered by value to a daily habit.
 
-- [ ] **3.1 Widgets** *(S2.6, S3.9)* — small, medium, large. The largest single
-      build left, and the only **passive** surface: the thing that makes a
-      tracker a daily habit rather than an app you remember to open. Arguably
-      belongs in Stage 2 given 1.1.
+- [x] **3.1 Widgets** ✅ *(2026-09-14, seen on the home screen)* All three
+      sizes, refreshed by AlarmManager and after every batch flush. The only
+      **passive** surface in the product, and the one that makes a tracker a
+      habit rather than an app you remember to open.
+
+      Three defects, all invisible until a real home screen: `android.view.View`
+      is not on the RemoteViews allowed-class list, so medium and large rendered
+      as "Can't load widget" while the provider logged success; a `layout_weight`
+      on the baseline row sent the unit to the bottom of its band and stranded
+      the "m" under the number; and both larger sizes hid their group column
+      when there was no honest board — the state every new user is in — leaving
+      most of the card empty. The medium now shows the week instead, the large
+      gained the week as three totals, and the stranded hairline got an id so it
+      can hide with the column it separates.
+
+      Typeface corrected 2026-09-15: all three layouts were using Inter, a third
+      face in a two-face system, retired from the app but reintroduced here.
 - [x] **3.2 Weekly recap share card** ✅ *(2026-09-15)* `RecapCard` draws a
       1080x1350 PNG on a Canvas, writes it to `cacheDir/share`, and shares it as
       an `image/png` with the caption. Canvas and not a Compose capture: a
