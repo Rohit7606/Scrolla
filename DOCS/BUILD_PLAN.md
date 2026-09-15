@@ -741,8 +741,39 @@ Ordered by value to a daily habit.
             the Console**. No client can reach them: nobody is a member, so no
             rule that requires membership will ever permit it. Rohit's call —
             this is live data and deleting it is not reversible.
-- [ ] **3.7 Accessibility pass** *(P3.3a–e)* — TalkBack, 48dp targets, 200 % font
-      scale, contrast. An app built on an accessibility API should survive one.
+- [x] **3.7 Accessibility pass** 🟡 *(2026-09-15 — audited and tested; TalkBack
+      itself still unrun)* Most of this was already done and the audit mainly
+      confirmed it.
+
+      **200 % font scale:** `LargeFontTest` renders Insights, Settings, Privacy,
+      App Breakdown and the board at the Android maximum. It is a Compose test
+      because **MIUI blocks `settings put system font_scale`**, exactly as it
+      blocks `settings put secure` and input injection, so the scale cannot be
+      driven on the only phone this project has. The suite includes a control
+      that asserts the density override actually applied — without it, every
+      other test would pass trivially at 100 % and report surviving a font scale
+      it never saw, which is worse than no test.
+
+      **TalkBack labels:** already thorough. Every "Navigate up" is labelled,
+      icon-only controls in the group switcher carry real descriptions
+      ("Share College Friends invite code"), the week chart describes itself,
+      and `formatDistanceSpoken` is wired into four places so a screen reader
+      says "less than one metre" rather than "less than one metres". Decorative
+      icons beside a text label are deliberately `contentDescription = null` —
+      labelling them would make TalkBack read "chevron chevron chevron".
+
+      **Contrast:** `textFaint` (#4A4340, documented "never text") is used only
+      for borders and bar fills. Checked every call site; no violations.
+
+      **48 dp targets:** the small `.size()` values are icons *inside* larger
+      clickable rows, so the target is the row.
+
+      - [ ] **3.7a** **TalkBack has never actually been run.** The labels are
+            present and correct in the source; nobody has swiped through a
+            screen with the screen reader on. Enabling it needs
+            `settings put secure enabled_accessibility_services`, which MIUI
+            blocks — so this is a manual pass on a phone, by hand, and it is the
+            only part of 3.7 that a person still has to do.
 - [ ] **3.8 Phone number linking** *(S1.B4)* — Settings advertises it as not yet
       available, which is at least honest.
 - [x] **3.9 Primary group** ✅ *(2026-09-15 — closed by 3.1)* Not cut; finished.
