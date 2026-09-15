@@ -122,13 +122,31 @@ fun MainShell(
     modifier: Modifier = Modifier,
     /** Signing out clears the Firebase session; without this the shell stayed on
      *  screen showing a logged-in UI backed by a dead session. */
-    onSignedOut: () -> Unit = {}
+    onSignedOut: () -> Unit = {},
+    /** A group code from an invite link, or null. See [GroupDeepLink]. */
+    inviteCode: String? = null,
+    /** Called once the invite has been opened, so the same link cannot reopen
+     *  the join screen every time the activity is recreated — a rotation would
+     *  otherwise throw the user back into a join they had already finished. */
+    onInviteConsumed: () -> Unit = {}
 ) {
     val context = LocalContext.current
     // Outlives the tap but not the screen: a share cancelled by
     // navigating away should stop, not finish into a dead context.
     val shareScope = rememberCoroutineScope()
     var routeStack by rememberSaveable { mutableStateOf(listOf<ScreenRoute>(ScreenRoute.MainTabs)) }
+
+    // An invite link lands the user on the join screen with the code already in
+    // it. Keyed on the code so a second, different invite still opens, and
+    // consumed immediately so it fires once rather than on every recomposition.
+    var pendingInvite by rememberSaveable { mutableStateOf<String?>(null) }
+    LaunchedEffect(inviteCode) {
+        if (inviteCode != null) {
+            pendingInvite = inviteCode
+            routeStack = routeStack + ScreenRoute.JoinGroup
+            onInviteConsumed()
+        }
+    }
     var selectedTab by rememberSaveable { mutableIntStateOf(0) }
     // Survives rotation so a freshly created code is never lost before it is shared.
     var createdGroupCode by rememberSaveable { mutableStateOf<String?>(null) }
@@ -410,6 +428,7 @@ fun MainShell(
                 val errorMessage by groupViewModel.errorMessage.collectAsState()
                 
                 JoinGroupScreen(
+                    initialCode = pendingInvite.orEmpty(),
                     isLoading = isLoading,
                     errorMessage = errorMessage,
                     onBackClick = {
@@ -570,6 +589,19 @@ fun MainShell(
         }
     }
 
+        // Only over the tabs, never over a pushed screen.
+        //
+        // These banners are aligned to the top of the outer Box, which makes
+        // them an overlay rather than a row — so on any detail screen they sat
+        // on top of that screen's own back arrow and title. Seen on device
+        // 2026-09-15 on the join screen, which is the worst possible place for
+        // it: a new user has tracking off by definition, so the very first
+        // screen an invite link opens for them was one with no visible way back
+        // and no title saying what it was.
+        //
+        // The banner is ambient awareness for the main surface. A detail screen
+        // is transient and the banner is still there when they return.
+        if (currentRoute is ScreenRoute.MainTabs) {
         if (trackingOff) {
             TrackingOffBanner(
                 onFixClick = {
@@ -607,6 +639,7 @@ fun MainShell(
                     .align(Alignment.TopCenter)
                     .windowInsetsPadding(WindowInsets.statusBars)
             )
+        }
         }
 
         SnackbarHost(

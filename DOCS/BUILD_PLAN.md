@@ -868,6 +868,67 @@ Ordered by value to a daily habit.
 
 ---
 
+## THE INVITE FLOW — how a stranger becomes a daily user
+
+*(new 2026-09-15, outside the original stages)*
+
+The problem neither Stage 2 nor Stage 3 addressed: a new tester installed,
+signed in, and landed on a board reading **"1 of 1 synced today"**. A reverse
+leaderboard with one person on it is not a product — there is no game and no
+reason to open it tomorrow. Forty installs into forty empty boards is the
+likeliest way this fails that has nothing to do with the code working.
+
+- [x] **The landing page** — https://claude.ai/artifact/TzvybJHHWDWYDN3JPJx6C7
+      Sent instead of the raw Firebase link. Carries the group code as `?g=CODE`,
+      so one page serves every invite. Built to the design system rather than to
+      taste: surface and text ladders, the two typefaces, coral spent only on the
+      revealed figure and the primary button, hairlines instead of shadows, the
+      15 % ambient glow from the sign-in recipe.
+
+      It opens with the app's own question — "How far do you think you scroll
+      each day?" — because the guess is the most characteristic thing Scrolla
+      has and it was locked behind an install.
+
+      **It does not repeat the 2,800× claim.** Stage 4 records that figure as
+      3–7× too high, and a landing page is the last place to put a number the
+      project's own notes call wrong. The reveal says the *unit* is wrong, which
+      is true and needs no invented figure.
+
+      It also names the three awkward steps before they happen — Google sign-in,
+      the App Tester install, the restricted setting. People abandon because a
+      flow looks sketchy, not because it is hard, and every unexplained step is
+      somewhere to abandon.
+
+- [x] **The deep link** — `scrolla://join/CODE` opens the join screen with the
+      code already in it. Verified on device: the link opened Scrolla straight
+      onto the six filled cells with nothing typed.
+
+      A custom scheme, not an https App Link: App Links need a domain serving
+      `assetlinks.json` and there is none. **The cost is real and is why the page
+      exists** — `scrolla://` does nothing at all on a phone without Scrolla, so
+      this can never be the link you send to someone you are inviting. The page
+      branches; the scheme is the "already have it" path.
+
+      `onNewIntent` is handled, not just `onCreate`. Without it a link tapped
+      while Scrolla was already open would have done nothing — the quietest
+      possible failure for the one feature whose job is getting people in.
+
+- [x] **A banner was covering every detail screen's header.** Found by
+      screenshotting the deep link. `TrackingOffBanner` and `TrackingGapBanner`
+      are aligned to the top of the outer `Box`, which makes them an overlay
+      rather than a row, so they sat on top of whatever screen was pushed —
+      hiding its back arrow and its title.
+
+      The join screen is the worst place for that and the likeliest to hit it: a
+      new user has tracking off by definition, so the first screen an invite
+      opened for them had no visible way back and no title. Both banners are now
+      scoped to `MainTabs`.
+
+- [ ] **Send the page, not the Firebase link.** The invite link still goes out
+      raw. `https://claude.ai/artifact/TzvybJHHWDWYDN3JPJx6C7?g=GUW4YE`
+
+---
+
 ## STAGE 4 — Explicitly not doing before launch
 
 Written down so they stop being reconsidered every week.

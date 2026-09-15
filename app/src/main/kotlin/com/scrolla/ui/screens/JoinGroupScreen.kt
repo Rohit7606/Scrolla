@@ -50,6 +50,9 @@ import com.scrolla.ui.theme.spacing
 @Composable
 fun JoinGroupScreen(
     modifier: Modifier = Modifier,
+    /** Filled in from an invite link, so nobody types a code they were sent.
+     *  Empty is the ordinary case, typed by hand. */
+    initialCode: String = "",
     isLoading: Boolean = false,
     errorMessage: String? = null,
     onBackClick: () -> Unit = {},
@@ -57,7 +60,7 @@ fun JoinGroupScreen(
     onCreateGroupClick: () -> Unit = {}
 ) {
     val spacing = MaterialTheme.spacing
-    var groupCode by remember { mutableStateOf("") }
+    var groupCode by remember { mutableStateOf(initialCode) }
     var isVisible by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {

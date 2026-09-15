@@ -20,6 +20,7 @@ import com.scrolla.device.TrackingHealthWatcher
 import com.scrolla.device.isScrollAccessibilityServiceEnabled
 import com.scrolla.room.ScrollaDatabase
 import com.scrolla.room.ServiceHealthState
+import com.scrolla.ui.screens.GroupDeepLink
 import com.scrolla.ui.screens.MainShell
 import com.scrolla.ui.screens.OnboardingScreen
 import com.scrolla.ui.screens.SignInScreen
@@ -45,6 +46,8 @@ class MainActivity : ComponentActivity() {
         // The FGS notification (bug #1) and the P2.12 alert both need this on
         // API 33+, where it defaults denied and the app had no request flow.
         requestNotificationPermissionIfNeeded()
+
+        inviteCode = GroupDeepLink.groupCodeFrom(intent?.dataString)
 
         setContent {
             ScrollaUILabTheme {
@@ -106,7 +109,9 @@ class MainActivity : ComponentActivity() {
                                 onSignedOut = {
                                     isSignedIn = false
                                     currentScreen = "signin"
-                                }
+                                },
+                                inviteCode = inviteCode,
+                                onInviteConsumed = { inviteCode = null }
                             )
                         }
                     }
@@ -125,6 +130,31 @@ class MainActivity : ComponentActivity() {
      * is exactly the moment the user is looking at it to confirm their change
      * took effect.
      */
+    /**
+     * A group code from an invite link, held as Compose state so tapping a link
+     * while Scrolla is already open routes immediately.
+     *
+     * Not read straight from `intent` inside the composition: `intent` is a
+     * mutable property of the Activity and does not recompose anything when
+     * [onNewIntent] replaces it, so a second invite would sit there unseen.
+     */
+    private var inviteCode by mutableStateOf<String?>(null)
+
+    /**
+     * The app was already running when the link was tapped.
+     *
+     * Without this, `launchMode` being standard means the system delivers the
+     * new intent here rather than recreating the Activity, and an invite tapped
+     * by someone who already had Scrolla open would do nothing at all — the
+     * quietest possible failure for the one feature whose job is getting people
+     * into a group.
+     */
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        GroupDeepLink.groupCodeFrom(intent.dataString)?.let { inviteCode = it }
+    }
+
     override fun onResume() {
         super.onResume()
         refreshAccessibilityStatus()

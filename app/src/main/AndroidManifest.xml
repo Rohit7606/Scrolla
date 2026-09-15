@@ -67,6 +67,26 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
+            <!--
+                Invite links: scrolla://join/GUW4YE (BUILD_PLAN, invite flow).
+
+                BROWSABLE is the category that makes a link in a browser or a
+                chat app reach an app at all; without it this filter matches
+                nothing a user could ever tap.
+
+                A custom scheme rather than an https App Link because App Links
+                need a domain with assetlinks.json served from it and this
+                project has none. The cost is that scrolla:// does nothing on a
+                phone without Scrolla, so this is never the link you send to
+                someone you are inviting. The landing page is, and it branches.
+            -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="scrolla" android:host="join" />
+            </intent-filter>
         </activity>
         <!--
             Serves the CSV export as a content:// URI so the share sheet
