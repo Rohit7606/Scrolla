@@ -165,6 +165,10 @@ fun PrivacyScreen(
                     title = ScrollaStrings.PRIVACY_LEAVES_2_TITLE,
                     body = ScrollaStrings.PRIVACY_LEAVES_2_BODY
                 )
+                PrivacyEntry(
+                    title = ScrollaStrings.PRIVACY_LEAVES_3_TITLE,
+                    body = ScrollaStrings.PRIVACY_LEAVES_3_BODY
+                )
             }
 
             PrivacySection(title = ScrollaStrings.PRIVACY_CRASH_SECTION) {

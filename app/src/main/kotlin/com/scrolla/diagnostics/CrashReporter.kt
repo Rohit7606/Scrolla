@@ -68,6 +68,15 @@ object CrashReporter {
         /** The home-screen widget failed to render — Android shows an error tile. */
         WIDGET_RENDER,
 
+        /**
+         * Not a failure of this code — a report that the accessibility
+         * service has gone silent on someone's phone while still switched
+         * on (BUILD_PLAN, observability). Crashlytics groups it by device
+         * and Android version, which is the OEM breakdown that says whether
+         * this is one bad phone or a whole manufacturer.
+         */
+        TRACKING_SILENT,
+
         // --- Room reads. Each one returns a default that looks like real data. ---
         READ_TODAY_TOTAL,
         READ_TODAY_TOP_APPS,

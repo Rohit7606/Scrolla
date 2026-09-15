@@ -382,6 +382,10 @@ object ScrollaStrings {
     const val PRIVACY_LEAVES_2_BODY =
         "Stored against your account so a new phone can restore your history. Only you can read it. Per-app data is not included — which is also why a reinstall cannot bring it back."
 
+    const val PRIVACY_LEAVES_3_TITLE = "Whether tracking is still working, to us"
+    const val PRIVACY_LEAVES_3_BODY =
+        "Whether the permission is on, whether the service is running, and when it last recorded anything — with your phone model and Android version. No distances and no app names. It exists because Android makers kill background services silently: without it, Scrolla can stop measuring on your phone and nobody, including us, would ever know."
+
     const val PRIVACY_CRASH_SECTION = "Crash reports"
     const val PRIVACY_CRASH_BODY =
         "When something fails, Scrolla sends the error and where it happened, tagged with your account id so repeated failures can be recognised as one person’s. It does not attach your distances or the names of the apps you scroll. Device model, Android version and free storage come with it."

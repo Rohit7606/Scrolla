@@ -623,6 +623,43 @@ writer on `degradedReason`.
       `CachedBoardTest` covers the half that has to keep being true — caption
       shown when cached, rows still rendered, nothing shown when fresh.
 
+### 2.8 — Knowing when it breaks for someone else ✅ *(2026-09-15)*
+
+*(new)* Service health was written to Room and **never left the device** — not
+Firestore, not Crashlytics. Crashlytics catches crashes, and the characteristic
+Scrolla failure is not a crash: an OEM kills the accessibility service, the app
+still opens, still shows a number, and quietly stops measuring. The only person
+who could ever find out was the one least equipped to, and they would just drift
+away. At forty people across eight manufacturers that is the likeliest way this
+fails.
+
+`TrackingGap` already detected it correctly, counting waking hours so it does not
+fire every morning. Nothing reported it. `TrackingTelemetry` now does, from the
+**sync pass rather than the UI** — the in-app card can only reach someone who
+opened the app, and the person whose tracking died has no reason to.
+`SyncWorker` runs hourly regardless.
+
+Two outputs, two questions: a `tracking` map on `users/{uid}` says *who* is dark
+and since when (Console-readable, no rules change — that document already allows
+the owner to write any field), and a Crashlytics non-fatal says *how often and on
+what*, grouped by device and Android version for free.
+
+Deduped on the outage's own `lastEventTimestamp`, which needs no storage: during
+an outage nothing is recorded, so that value physically cannot move, and one
+outage is exactly one report.
+
+**Disclosed on the privacy screen** as a third "what leaves this phone" item.
+Adding a field to what the app uploads without saying so would be the same
+failure as the tracking itself — true, invisible, and nobody's choice but ours.
+
+**It caught a real outage on its first run.** The snapshot reported
+`accessibility=false running=false`; `settings get secure accessibility_enabled`
+returned 0 and `dumpsys` showed `Bound services:{}`. Repeated reinstalls during
+this session had knocked the grant off and it had not come back — Rohit's phone
+had stopped recording and nothing else would have said so.
+
+---
+
 ## STAGE 3 — Makes it good, not viable
 
 Ordered by value to a daily habit.

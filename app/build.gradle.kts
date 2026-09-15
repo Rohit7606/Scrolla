@@ -193,6 +193,10 @@ android {
     }
     buildFeatures {
         compose = true
+        // Needed for BuildConfig.VERSION_NAME in TrackingTelemetry: a report
+        // that someone's tracking is dark is far less useful without knowing
+        // which build they are dark on.
+        buildConfig = true
     }
     kotlinOptions {
         jvmTarget = "11"

@@ -1,6 +1,7 @@
 package com.scrolla.firestore
 
 import android.util.Log
+import kotlinx.coroutines.flow.first
 import com.scrolla.auth.AuthRepository
 import com.scrolla.room.ScrollRepository
 import java.time.Instant
@@ -34,7 +35,11 @@ class SyncEngine(
     private val groupRepository: GroupRepository = GroupRepository(),
     private val authRepository: AuthRepository = AuthRepository(),
     private val backupRepository: BackupRepository = BackupRepository(),
-    private val singleFlight: SingleFlightSync = SingleFlightSync()
+    private val singleFlight: SingleFlightSync = SingleFlightSync(),
+    /** Held here rather than created per pass: its dedupe is one field of
+     *  in-process state, and a fresh instance each time would report the same
+     *  silent day on every tick. */
+    private val telemetry: TrackingTelemetry = TrackingTelemetry()
 ) {
 
     /**
@@ -71,6 +76,12 @@ class SyncEngine(
 
             scrollRepository.triggerFirestoreSync(memberships)
             updateGroupRecords(memberships)
+
+            // Last, and never able to fail the pass. Reported from here rather
+            // than from the UI because the person whose tracking died is
+            // precisely the person with no reason to open the app — SyncWorker
+            // runs hourly either way.
+            reportTrackingHealth()
         }
 
         if (!ran) {
@@ -84,6 +95,26 @@ class SyncEngine(
             )
         }
         return ran
+    }
+
+    /**
+     * Tells somebody who can act on it that this device has stopped recording.
+     *
+     * See [TrackingTelemetry]. `observeServiceHealth()` is a Room-backed Flow
+     * and `first()` takes its current value — the DAO's one-shot read was
+     * deleted in the A-track audit and this does not need it back.
+     */
+    private suspend fun reportTrackingHealth() {
+        try {
+            val health = scrollRepository.observeServiceHealth().first()
+            telemetry.report(
+                health = health,
+                userId = authRepository.currentUser?.uid,
+                now = System.currentTimeMillis()
+            )
+        } catch (e: Exception) {
+            Log.w(TAG, "Tracking telemetry skipped: ${e.message}")
+        }
     }
 
     /**
