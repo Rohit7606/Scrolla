@@ -760,10 +760,29 @@ Ordered by value to a daily habit.
       that failure is logged rather than surfaced, because a housekeeping error
       must not report a successful "leave group" as a failure.
 
-      - [ ] **3.6a** The two already-orphaned groups need deleting **by hand in
-            the Console**. No client can reach them: nobody is a member, so no
-            rule that requires membership will ever permit it. Rohit's call —
-            this is live data and deleting it is not reversible.
+      - [x] **3.6a** ✅ *(2026-09-15)* Done, and the count was wrong. **Five**
+            group documents existed, not four, and the three candidates were
+            three different problems:
+
+            - `J5X6FU` "School Friends" — `members: []`, created by Rohit,
+              record holder `[deleted]`. The textbook orphan: everyone left,
+              unreachable by any client because every rule needs membership.
+              **Deleted, recursively.**
+            - `1YO220` — **no document at all.** It appears in the Console list
+              only as the parent of a subcollection, which is a different kind
+              of orphan and one no membership rule could ever have addressed.
+              **Deleted, recursively.**
+            - `6NPBWY` "RelTest0914DeleteMe" — **not orphaned.** One member,
+              the test account `7Kww…`. Named to be thrown away, but it has a
+              member, so deleting it is a different decision and was left
+              alone. Open question for Rohit, along with the test user itself.
+
+            Verified rather than assumed: a temporary read-only probe in the app
+            reported each document's `members` array on device before anything
+            was deleted, then again afterwards. Guessing which of three ids was
+            disposable would have destroyed a live group, its record and every
+            daily total in it, with no undo. The probe was removed immediately
+            after.
 - [x] **3.7 Accessibility pass** 🟡 *(2026-09-15 — audited and tested; TalkBack
       itself still unrun)* Most of this was already done and the audit mainly
       confirmed it.
