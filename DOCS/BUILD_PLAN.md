@@ -773,9 +773,13 @@ Ordered by value to a daily habit.
               of orphan and one no membership rule could ever have addressed.
               **Deleted, recursively.**
             - `6NPBWY` "RelTest0914DeleteMe" — **not orphaned.** One member,
-              the test account `7Kww…`. Named to be thrown away, but it has a
-              member, so deleting it is a different decision and was left
-              alone. Open question for Rohit, along with the test user itself.
+              the test account `7Kww…`. Deleted on Rohit's instruction rather
+              than as part of the orphan sweep, since it had a member. The test
+              account's dangling membership under
+              `users/7Kww…/groups/6NPBWY` went with it — deleting a group does
+              not cascade to the membership documents that point at it, and
+              that pointer would have been an orphan of the opposite kind. The
+              Firebase Auth user `7Kww…` itself still exists.
 
             Verified rather than assumed: a temporary read-only probe in the app
             reported each document's `members` array on device before anything
@@ -816,8 +820,7 @@ Ordered by value to a daily habit.
             `settings put secure enabled_accessibility_services`, which MIUI
             blocks — so this is a manual pass on a phone, by hand, and it is the
             only part of 3.7 that a person still has to do.
-- [ ] **3.8 Phone number linking** *(S1.B4)* — Settings advertises it as not yet
-      available, which is at least honest.
+- [~] **3.8 Phone number linking** — **moved to Stage 4 by Rohit, 2026-09-15.**
 - [x] **3.9 Primary group** ✅ *(2026-09-15 — closed by 3.1)* Not cut; finished.
       `setPrimaryGroup()` had been writing `isPrimary` since 2026-09-04 with
       nothing reading it, which is what made "build it or cut it" the right
@@ -840,6 +843,7 @@ Written down so they stop being reconsidered every week.
 | **`degradedReason` column split** *(P2.4e)* | Now only two writers, since reads stopped writing health. Cosmetic until it isn't. |
 | **Per-day tracking health** *(P2.6e / P2.11b)* | The real fix for record eligibility, but a new table and a migration. The span rule is good enough for a test group. |
 | **Excluding Scrolla's own scrolling** *(P2.10a)* | Real but tiny — the app is open for seconds a day. |
+| **Phone number linking** *(S1.B4, was 3.8)* | Cut 2026-09-15. Costs reCAPTCHA/Play Integrity setup, Spark's SMS limits and a second auth path to test, and buys nothing over Google sign-in, which is verified end to end. Settings already says "Not yet available", which is true rather than a placeholder. |
 | **Onboarding number accuracy** *(P4.1a–d)* | The 2,800× claim is 3–7× too high and the fake leaderboard is hardcoded. Fix with the share card (3.2), same copy pass. |
 
 ---
