@@ -129,7 +129,14 @@ fun WeeklyRecapScreen(
                         letterSpacing = 0.1.em,
                         fontWeight = FontWeight.Bold
                     ),
-                    color = MaterialTheme.colorScheme.primary
+                    // Not the accent. The design system names this exact
+                    // mistake: section labels are "never the accent — coral
+                    // section labels were the original accent leak". Coral is
+                    // reserved for four things, and the hero figure below is the
+                    // one of them on this screen. It was spending the accent up
+                    // here and setting the figure in plain text, which is the
+                    // rule inverted.
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             
@@ -158,7 +165,9 @@ fun WeeklyRecapScreen(
                             // Light is silently ignored, Bold is synthesised.
                             fontFeatureSettings = "tnum"
                         ),
-                        color = MaterialTheme.colorScheme.onBackground
+                        // The hero figure is one of the four legal uses of the
+                        // accent, and on this screen it is the only one.
+                        color = MaterialTheme.colorScheme.primary
                     )
 
                     Text(

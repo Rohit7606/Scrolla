@@ -95,12 +95,20 @@ object WeeklyChart {
             val km = byDay[date.toString()]?.totalKm ?: 0f
             val left = index * (barWidth + gap)
 
-            // A floor of two pixels so an empty day is a visible slot rather
-            // than a hole. Zero is a fact about that day, not an absence of one.
+            // A floor so an empty day is a visible slot rather than a hole.
+            // Zero is a fact about that day, not an absence of one.
+            //
+            // Proportional rather than a flat two pixels. Two was chosen for a
+            // 46dp widget chart and looked right there; the same renderer draws
+            // the share card at 320px, where a 2px line under a 300px bar reads
+            // as a stray mark rather than as a quiet day. Scaling it keeps one
+            // rule doing the job at both sizes instead of the second caller
+            // quietly growing its own.
+            val floor = (heightPx * 0.02f).coerceAtLeast(2f)
             val barHeight = if (max <= 0f) {
-                2f
+                floor
             } else {
-                (km / max * (heightPx - 2f)).coerceAtLeast(2f)
+                (km / max * (heightPx - floor)).coerceAtLeast(floor)
             }
 
             paint.color = if (date == today) todayColor else barColor

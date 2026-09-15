@@ -73,6 +73,12 @@ import androidx.compose.ui.unit.sp
 import com.scrolla.model.DistanceFormatter
 import com.scrolla.ui.ScrollaGraph
 import com.scrolla.ui.ScrollaMessages
+import androidx.compose.runtime.rememberCoroutineScope
+import com.scrolla.share.RecapCard
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.time.LocalDate
 import com.scrolla.ui.components.RefreshOnResume
 import com.scrolla.ui.components.rememberTapHaptic
 import com.scrolla.ui.theme.ScrollaType
@@ -119,6 +125,9 @@ fun MainShell(
     onSignedOut: () -> Unit = {}
 ) {
     val context = LocalContext.current
+    // Outlives the tap but not the screen: a share cancelled by
+    // navigating away should stop, not finish into a dead context.
+    val shareScope = rememberCoroutineScope()
     var routeStack by rememberSaveable { mutableStateOf(listOf<ScreenRoute>(ScreenRoute.MainTabs)) }
     var selectedTab by rememberSaveable { mutableIntStateOf(0) }
     // Survives rotation so a freshly created code is never lost before it is shared.
@@ -473,18 +482,52 @@ fun MainShell(
                     hasData = recapState.hasData,
                     onSkipClick = popBackStack,
                     onShareClick = {
-                        // S3.5's Bitmap card is not built yet; sharing the figure
-                        // as text is honest and does something, where popping the
-                        // back stack looked like the share had silently failed.
-                        val message = String.format(
-                            ScrollaStrings.RECAP_SHARE_TEMPLATE,
-                            DistanceFormatter.formatDistance(recapState.weeklyDistanceKm)
-                        )
-                        val send = Intent(Intent.ACTION_SEND).apply {
-                            type = "text/plain"
-                            putExtra(Intent.EXTRA_TEXT, message)
+                        // The card is built off the main thread. It is a
+                        // 1080x1350 PNG and the compress alone is long enough to
+                        // drop frames on a tap, which on the one screen meant to
+                        // make someone want to post would read as the app
+                        // hanging.
+                        shareScope.launch {
+                            val uri = withContext(Dispatchers.Default) {
+                                runCatching {
+                                    val card = RecapCard.render(
+                                        context = context,
+                                        weekKm = recapState.weeklyDistanceKm,
+                                        landmark = recapState.landmarkText
+                                    )
+                                    RecapCard.writeToCache(
+                                        context,
+                                        card,
+                                        LocalDate.now().toString()
+                                    )
+                                }.getOrNull()
+                            }
+
+                            if (uri == null) {
+                                // Say so rather than opening a chooser with
+                                // nothing attached. A share that silently
+                                // degrades to text is worse than one that admits
+                                // it failed: the user posts the wrong thing and
+                                // never finds out.
+                                ScrollaMessages.show(ScrollaStrings.RECAP_SHARE_FAILED)
+                                return@launch
+                            }
+
+                            val send = Intent(Intent.ACTION_SEND).apply {
+                                type = "image/png"
+                                putExtra(Intent.EXTRA_STREAM, uri)
+                                putExtra(
+                                    Intent.EXTRA_TEXT,
+                                    RecapCard.shareText(recapState.weeklyDistanceKm)
+                                )
+                                // Without this the receiving app gets a URI it
+                                // is not allowed to open, which most of them
+                                // report as "couldn't load image" rather than as
+                                // a permission problem.
+                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                            }
+                            context.startActivity(Intent.createChooser(send, null))
                         }
-                        context.startActivity(Intent.createChooser(send, null))
                     }
                 )
             }

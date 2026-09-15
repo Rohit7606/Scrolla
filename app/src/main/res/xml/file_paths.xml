@@ -7,4 +7,8 @@
         would make that readable by any app granted a share URI.
     -->
     <cache-path name="exports" path="exports/" />
+
+    <!-- The weekly recap card (BUILD_PLAN 3.2). Its own subdirectory for
+         the same reason: scoped to exactly what is being handed over. -->
+    <cache-path name="share" path="share/" />
 </paths>

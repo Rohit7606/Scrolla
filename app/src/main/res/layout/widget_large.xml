@@ -79,7 +79,7 @@
                     android:layout_marginStart="4dp"
                     android:layout_marginBottom="4dp"
                     android:layout_gravity="bottom"
-                    android:fontFamily="@font/inter_regular"
+                    android:fontFamily="@font/space_grotesk_regular"
                     android:maxLines="1" />
             </LinearLayout>
         </LinearLayout>
@@ -104,7 +104,7 @@
         android:text="@string/widget_placeholder_landmark"
         android:textColor="@color/widget_text_mid"
         android:textSize="11sp"
-        android:fontFamily="@font/inter_regular"
+        android:fontFamily="@font/space_grotesk_regular"
         android:maxLines="1"
         android:ellipsize="end" />
 
@@ -153,7 +153,7 @@
                 android:text="@string/widget_row_empty"
                 android:textColor="@color/widget_text_hi"
                 android:textSize="15sp"
-                android:fontFamily="@font/inter_regular"
+                android:fontFamily="@font/space_grotesk_regular"
                 android:maxLines="1" />
         </LinearLayout>
 
@@ -181,7 +181,7 @@
                 android:text="@string/widget_row_empty"
                 android:textColor="@color/widget_text_hi"
                 android:textSize="15sp"
-                android:fontFamily="@font/inter_regular"
+                android:fontFamily="@font/space_grotesk_regular"
                 android:maxLines="1" />
         </LinearLayout>
 
@@ -209,7 +209,7 @@
                 android:text="@string/widget_row_empty"
                 android:textColor="@color/widget_text_hi"
                 android:textSize="15sp"
-                android:fontFamily="@font/inter_regular"
+                android:fontFamily="@font/space_grotesk_regular"
                 android:maxLines="1" />
         </LinearLayout>
     </LinearLayout>

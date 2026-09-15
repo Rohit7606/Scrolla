@@ -250,7 +250,18 @@ object ScrollaStrings {
     // Account
     const val SETTINGS_ACCOUNT_SECTION = "Account"
     const val SETTINGS_NOT_YET_AVAILABLE = "Not yet available"
-    const val RECAP_SHARE_TEMPLATE = "I scrolled %s this week. Measured by Scrolla."
+    /**
+     * The caption that travels with the recap card (BUILD_PLAN 3.2).
+     *
+     * It explains the game, because the image is going to land in front of
+     * people who have never heard of a leaderboard you win by losing.
+     * Without that clause "I scrolled 1.2 km this week" reads as a boast
+     * about the wrong thing.
+     */
+    const val RECAP_SHARE_FAILED = "Couldn't build your recap card"
+
+    const val RECAP_SHARE_TEMPLATE =
+        "I scrolled %s this week. Scrolla is a leaderboard where the lowest number wins."
     const val RECAP_EMPTY_HEADLINE = "nothing recorded yet"
     const val RECAP_EMPTY_BODY = "Your first full week will show up here."
     const val SETTINGS_DISPLAY_NAME_LABEL = "Display name"
@@ -447,6 +458,14 @@ object ScrollaStrings {
     const val RECAP_SHARE = "Share your recap"
     const val RECAP_SKIP = "Maybe later"
     const val RECAP_FOOTER = "Scrolla"
+
+    /**
+     * Only on the share card, never on the screen (BUILD_PLAN 3.2).
+     * In the app the rules of the game are the app around it; in
+     * someone else's feed there is no app around it, and a distance
+     * with no framing reads as a boast about the wrong thing.
+     */
+    const val RECAP_SHARE_TAGLINE = "the one who scrolls least wins"
 
     // =========================================
     // Screen 13: Personal Records
