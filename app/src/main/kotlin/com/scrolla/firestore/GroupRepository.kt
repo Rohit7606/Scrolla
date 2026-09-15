@@ -379,14 +379,72 @@ class GroupRepository(
      */
     suspend fun leaveGroup(groupId: String, userId: String, displayName: String): Result<Unit> {
         return try {
+            val lastOut = isLastMember(groupId, userId)
+
             clearUserFromGroup(groupId, userId, displayName)
             firestore.collection("users").document(userId)
                 .collection("groups").document(groupId)
                 .delete().await()
+
+            if (lastOut) deleteEmptyGroup(groupId)
+
             Result.success(Unit)
         } catch (e: Exception) {
             Log.e(TAG, "Failed to leave group: $groupId", e)
             Result.failure(e)
+        }
+    }
+
+    /**
+     * True when this user is the only member left, so leaving empties the group
+     * (BUILD_PLAN 3.6).
+     *
+     * Read **before** the `arrayRemove`, not after. Afterwards the members array
+     * no longer contains the caller, and the delete rule — which requires the
+     * caller be the last member — could never pass again. The group would be
+     * unreachable by anyone, forever, which is exactly the state 3.6 exists to
+     * stop creating.
+     */
+    private suspend fun isLastMember(groupId: String, userId: String): Boolean {
+        return try {
+            val members = firestore.collection("groups").document(groupId)
+                .get().await().get("members") as? List<*> ?: return false
+            members.size == 1 && members.firstOrNull() == userId
+        } catch (e: Exception) {
+            // Fail closed: if we cannot tell, do not try to delete. A group left
+            // behind is untidy; a group deleted out from under people is not
+            // recoverable.
+            Log.w(TAG, "Could not check membership before leaving $groupId: ${e.message}")
+            false
+        }
+    }
+
+    /**
+     * Deletes a group the last member has just walked out of (BUILD_PLAN 3.6).
+     *
+     * Without this, every group anyone ever abandons stays in Firestore forever,
+     * holding a six-character join code that can never be reached and can never
+     * be reissued. Four group documents exist in this project today and two are
+     * already in that state.
+     *
+     * **Failure here is deliberately not an error.** The `allow delete` rule
+     * this needs is written but not yet deployed (REVIEW_LOG), so on current
+     * production this call is denied — and a permission error must not turn a
+     * successful "leave group" into a failure the user sees. They did leave. The
+     * group being tidied up afterwards is housekeeping, and it is logged rather
+     * than surfaced.
+     *
+     * The `dailyTotals` subcollection is already empty by this point:
+     * `clearUserFromGroup` deletes the departing member's documents, and every
+     * member before them deleted theirs on the way out. Firestore does not
+     * cascade, so a group emptied any other way would leave those behind.
+     */
+    private suspend fun deleteEmptyGroup(groupId: String) {
+        try {
+            firestore.collection("groups").document(groupId).delete().await()
+            Log.i(TAG, "Deleted group $groupId — its last member left")
+        } catch (e: Exception) {
+            Log.w(TAG, "Could not delete empty group $groupId: ${e.message}")
         }
     }
 

@@ -92,6 +92,27 @@ service cloud.firestore {
       // fields could never be written by anyone. Both are allowed now, each
       // narrowed to exactly the fields and shape it needs.
       allow update: if isSelfJoin() || isRecordImprovement() || isSelfLeave() || isGroupRename();
+
+      // The last member out deletes the group (BUILD_PLAN 3.6).
+      //
+      // Without this, every abandoned group stays in Firestore forever, holding
+      // a six-character join code that can never be reached and can never be
+      // reissued. Two of the four group documents in this project are already
+      // in that state.
+      //
+      // The two conditions together permit exactly one case: you are in the
+      // members array, and you are the only one in it. A group with anyone else
+      // still in it cannot be deleted by a member, so nobody can delete a group
+      // out from under their friends — the destructive-action equivalent of
+      // isSelfLeave's subset check.
+      //
+      // Checked against `resource.data`, the document as it currently stands. On
+      // a delete there is no `request.resource` to inspect, which is the same
+      // trap that made dailyTotals deletion impossible until it was split out of
+      // `allow write`.
+      allow delete: if signedIn()
+                    && resource.data.members.size() == 1
+                    && request.auth.uid in resource.data.members;
     }
 
     // Adding yourself to a group, changing nothing else. Existing members must

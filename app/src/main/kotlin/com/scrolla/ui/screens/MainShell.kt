@@ -545,11 +545,24 @@ fun MainShell(
                 // displaying the old figure until the app was force-stopped.
                 LaunchedEffect(Unit) { breakdownViewModel.refresh() }
 
+                // The board is read here, not inside AppBreakdownViewModel
+                // (BUILD_PLAN 3.4). That ViewModel has no GroupRepository on
+                // purpose, so the per-app figures have no code path to the
+                // cloud — DATA_CONTRACT §3.2 — and joining the two halves in
+                // this router keeps it that way. Only one number crosses: how
+                // much a 20% cut would save. No app name, no app total.
+                val nudgeViewModel: LeaderboardViewModel = viewModel()
+                val nudgeBoard by nudgeViewModel.uiState.collectAsState()
+                LaunchedEffect(Unit) { nudgeViewModel.refreshIfStale() }
+
                 AppBreakdownScreen(
                     hasData = breakdownState.hasData,
                     topApp = breakdownState.topApp,
-                    // Needs the group leaderboard, which needs A's sync.
-                    targetRank = null,
+                    targetRank = cutNudgeRank(
+                        topAppKm = breakdownState.apps.firstOrNull()?.distanceKm ?: 0f,
+                        selfKm = nudgeBoard.entries.firstOrNull { it.isSelf }?.distanceKm,
+                        memberKm = nudgeBoard.entries.map { it.distanceKm }
+                    )?.let { ScrollaFormatters.formatOrdinal(it) },
                     apps = breakdownState.apps,
                     onBackClick = popBackStack
                 )

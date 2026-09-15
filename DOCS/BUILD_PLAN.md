@@ -693,18 +693,65 @@ Ordered by value to a daily habit.
 
       Not verified on device: the phone was disconnected when this was written,
       so the Firestore write has not been seen on hardware.
-- [ ] **3.4 App Breakdown's "cut X by 20 %" nudge** *(S3.2)* — turns a list into
-      a suggestion.
-- [ ] **3.5 Group edge cases** *(S3.12)* — group of one, empty group, member who
-      never syncs.
-- [ ] **3.6 Orphaned groups** *(P2.7f)* — a group whose last member leaves stays
-      in Firestore forever, unreachable. Already real: four group documents
-      exist, two are abandoned.
+- [x] **3.4 App Breakdown's "cut X by 20 %" nudge** ✅ *(2026-09-15)* The copy
+      and the slot already existed; `targetRank` was hardcoded `null`.
+      `cutNudgeRank` fills it.
+
+      **The two halves are joined in `MainShell`, never in a ViewModel.**
+      `AppBreakdownViewModel` has no `GroupRepository` on purpose, so per-app
+      figures have no code path to the cloud (DATA_CONTRACT §3.2). Computing
+      this inside it would have been one line shorter and would have quietly
+      dismantled that guard. Exactly one number crosses: how much a 20 % cut
+      would save. No app name, no app total.
+
+      Reuses `standingOf` rather than counting ranks a third time — the widget
+      already showed what happens when the third consumer copies the call and
+      drops the guard. Refuses when there is no honest rank, when the cut would
+      not move you, when there is no app data, and when you are already first.
+      Eight tests, including a group where two members share a total (removing
+      *every* matching figure would delete the other person from the comparison
+      and promise a rank against one fewer competitor than exists).
+- [x] **3.5 Group edge cases** ✅ *(2026-09-15 — already handled, now pinned)*
+      All three were done: a group of one renders "You're the only one here"
+      instead of a ranking, a group where nobody has synced says so (distinctly
+      from "you have no group" — reporting one as the other sends someone to
+      join a group they are already in), and non-syncing members are counted in
+      "2 of 5 synced today" without being invented as rows.
+
+      `GroupEdgeCaseTest` pins all three. They are branches that only appear for
+      a user in an unusual state, which is exactly the branch a refactor breaks
+      and a stranger finds.
+- [x] **3.6 Orphaned groups** 🟡 *(2026-09-15 — client done, rule pending A)*
+      `leaveGroup` now deletes the group when the last member walks out.
+
+      Membership is read **before** the `arrayRemove`, not after: afterwards the
+      caller is no longer in `members`, the delete rule could never pass again,
+      and the group would be stranded permanently — the exact state this item
+      exists to prevent.
+
+      **The rule is written but NOT deployed** — `allow delete` on
+      `groups/{groupId}`, gated on the caller being in `members` *and*
+      `members.size() == 1`, so nobody can delete a group their friends are
+      still in. §2 requires A on rules changes: **REVIEW_LOG #11, pending
+      Monish.** The client ships safely without it — the delete is denied, and
+      that failure is logged rather than surfaced, because a housekeeping error
+      must not report a successful "leave group" as a failure.
+
+      - [ ] **3.6a** The two already-orphaned groups need deleting **by hand in
+            the Console**. No client can reach them: nobody is a member, so no
+            rule that requires membership will ever permit it. Rohit's call —
+            this is live data and deleting it is not reversible.
 - [ ] **3.7 Accessibility pass** *(P3.3a–e)* — TalkBack, 48dp targets, 200 % font
       scale, contrast. An app built on an accessibility API should survive one.
 - [ ] **3.8 Phone number linking** *(S1.B4)* — Settings advertises it as not yet
       available, which is at least honest.
-- [ ] **3.9 Primary group** *(P3.5a)* — build it or cut the machinery.
+- [x] **3.9 Primary group** ✅ *(2026-09-15 — closed by 3.1)* Not cut; finished.
+      `setPrimaryGroup()` had been writing `isPrimary` since 2026-09-04 with
+      nothing reading it, which is what made "build it or cut it" the right
+      question. The widget became the reader it was written for, and there are
+      now four: `WidgetSnapshot`, `ProfileViewModel`, `HallOfFameViewModel`, and
+      `LeaderboardViewModel`'s active-group fallback. The group switcher writes
+      it under "set as widget group".
 
 ---
 
