@@ -2,6 +2,7 @@ package com.scrolla.share
 
 import android.graphics.Bitmap
 import androidx.test.core.app.ApplicationProvider
+import com.scrolla.model.DistanceFormatter
 import com.scrolla.ui.ScreenTestApplication
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
@@ -32,7 +33,11 @@ class RecapCardRenderTest {
     private fun render(): Bitmap = RecapCard.render(
         context = ApplicationProvider.getApplicationContext(),
         weekKm = 3.05f,
-        landmark = "that's about 10 Eiffel Towers"
+        // The real pipeline, not a hand-written string. The card that went to
+        // WhatsApp on 2026-09-15 read "that's about 1 km walk" while this test
+        // rendered a grammatical placeholder and passed -- a preview of
+        // something the product does not produce is not a preview.
+        landmark = DistanceFormatter.landmarkPhrase(3.05f)?.let { "that's about $it" }
     )
 
     @Test

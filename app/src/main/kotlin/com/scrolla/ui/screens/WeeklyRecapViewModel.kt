@@ -61,5 +61,9 @@ class WeeklyRecapViewModel(
      * genuinely in that landmark's neighbourhood.
      */
     private fun landmarkFor(km: Float): String? =
-        DistanceFormatter.landmarkComparison(km)?.let { "that's about $it" }
+        // landmarkPhrase, not landmarkComparison. The short labels are written
+        // to follow the caption prefix and drop their articles, so this lead-in produced
+        // "that's about 1 km walk" -- which went out to WhatsApp in an image on
+        // 2026-09-15, where a fix cannot reach it.
+        DistanceFormatter.landmarkPhrase(km)?.let { "that's about $it" }
 }

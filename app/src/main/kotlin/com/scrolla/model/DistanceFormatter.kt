@@ -93,7 +93,7 @@ object DistanceFormatter {
      *  caller has applied the honesty check. */
     fun nearestLandmark(km: Float): Pair<String, Float>? {
         if (km <= 0f) return null
-        return LANDMARKS.minByOrNull { Math.abs(it.second - km) }
+        return LANDMARKS.minByOrNull { Math.abs(it.km - km) }?.let { it.label to it.km }
     }
 
     /**
@@ -114,35 +114,73 @@ object DistanceFormatter {
      * scrolling was the Eiffel Tower. A rule that three callers need is not a
      * ViewModel's private business.
      *
-     * Returns the bare landmark name. Each surface adds its own lead-in
-     * ("≈ …", "that's about …"), because they read differently in a caption,
-     * a share card and on a home screen — but none of them should be deciding
-     * *whether* the comparison is true.
+     * Returns the **short label**, which is written to follow "≈ " — where
+     * dropping articles is the convention and "≈ Eiffel Tower height" reads
+     * correctly. For a lead-in that needs a grammatical sentence, use
+     * [landmarkPhrase].
      */
     fun landmarkComparison(
         km: Float,
         minRatio: Float = MIN_LANDMARK_RATIO,
         maxRatio: Float = MAX_LANDMARK_RATIO
-    ): String? {
-        val (name, landmarkKm) = nearestLandmark(km) ?: return null
-        if (landmarkKm <= 0f) return null
-        val ratio = km / landmarkKm
-        return if (ratio in minRatio..maxRatio) name else null
+    ): String? = honestLandmark(km, minRatio, maxRatio)?.label
+
+    /**
+     * The same comparison, written to follow "that's about …".
+     *
+     * **Two forms, because one string cannot serve both lead-ins.** The labels
+     * are written for "≈ ", where articles are dropped by convention. Dropped
+     * into a sentence they produce "that's about 1 km walk" and "that's about
+     * Eiffel Tower height" — which is what the weekly recap shared to WhatsApp
+     * on 2026-09-15, in an image, where it outlives any fix.
+     *
+     * This is the third time this exact seam has bitten: the widget once
+     * rendered "about the height of Eiffel Tower height" by pairing a lead-in
+     * with the wrong form. The guard stayed in one place and the *wording*
+     * quietly forked instead. So both forms live on the landmark itself, and
+     * neither is derived from the other.
+     *
+     * The design system sets the shape: "about the height of three Burj
+     * Khalifas" — the landmark line carries its own articles.
+     */
+    fun landmarkPhrase(
+        km: Float,
+        minRatio: Float = MIN_LANDMARK_RATIO,
+        maxRatio: Float = MAX_LANDMARK_RATIO
+    ): String? = honestLandmark(km, minRatio, maxRatio)?.phrase
+
+    /**
+     * The honesty guard, in one place. Both public forms go through here so a
+     * new rendering cannot arrive with its own idea of when a comparison is
+     * true — the failure that shipped a widget claiming ten metres was the
+     * Eiffel Tower.
+     */
+    private fun honestLandmark(km: Float, minRatio: Float, maxRatio: Float): Landmark? {
+        val landmark = LANDMARKS.minByOrNull { Math.abs(it.km - km) } ?: return null
+        if (km <= 0f || landmark.km <= 0f) return null
+        val ratio = km / landmark.km
+        return if (ratio in minRatio..maxRatio) landmark else null
     }
+
+    /**
+     * @param label follows "≈ " — articles dropped, as a caption sets them.
+     * @param phrase follows "that's about " — a grammatical fragment.
+     */
+    data class Landmark(val km: Float, val label: String, val phrase: String)
 
     /** Below half a landmark, or above double it, a comparison is not honest. */
     const val MIN_LANDMARK_RATIO = 0.5f
     const val MAX_LANDMARK_RATIO = 2.0f
 
     private val LANDMARKS = listOf(
-        Pair("Eiffel Tower height", 0.163f),
-        Pair("Empire State Building height", 0.443f),
-        Pair("Burj Khalifa height", 0.830f),
-        Pair("1 km walk", 1.0f),
-        Pair("height of 2 Burj Khalifas", 1.66f),
-        Pair("Everest base camp to summit", 3.8f),
-        Pair("full height of Mt. Everest", 8.8f),
-        Pair("marathon distance", 42.2f),
-        Pair("approx. ISS orbit altitude", 400.0f)
+        Landmark(0.163f, "Eiffel Tower height", "the height of the Eiffel Tower"),
+        Landmark(0.443f, "Empire State Building height", "the height of the Empire State Building"),
+        Landmark(0.830f, "Burj Khalifa height", "the height of the Burj Khalifa"),
+        Landmark(1.0f, "1 km walk", "a one-kilometre walk"),
+        Landmark(1.66f, "height of 2 Burj Khalifas", "the height of two Burj Khalifas"),
+        Landmark(3.8f, "Everest base camp to summit", "Everest base camp to the summit"),
+        Landmark(8.8f, "full height of Mt. Everest", "the full height of Mount Everest"),
+        Landmark(42.2f, "marathon distance", "a marathon"),
+        Landmark(400.0f, "approx. ISS orbit altitude", "the altitude the ISS orbits at")
     )
 }
