@@ -1,6 +1,6 @@
 # Scrolla — Your Doomscroll, Measured in Kilometres 📜
 
-<img width="1920" height="1440" alt="Scrolla Hero Banner" src="PLACEHOLDER_HERO_IMAGE" />
+<img width="3010" height="1694" alt="Image" src="https://github.com/user-attachments/assets/1e77ed25-491c-4229-8a55-7093190aa26e" />
 
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.2.10-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white)](https://kotlinlang.org)
 [![Jetpack Compose](https://img.shields.io/badge/Jetpack_Compose-BOM_2026.02-4285F4?style=for-the-badge&logo=jetpackcompose&logoColor=white)](https://developer.android.com/jetpack/compose)
